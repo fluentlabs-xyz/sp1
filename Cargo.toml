@@ -30,6 +30,8 @@ members = [
   "crates/stark",
   "crates/verifier",
   "crates/zkvm/*",
+  "crates/rwasm/executor",
+  "crates/rwasm/machine",
 ]
 exclude = ["examples/target"]
 resolver = "2"
