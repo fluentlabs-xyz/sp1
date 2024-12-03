@@ -39,12 +39,12 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelIterator, ParallelSlice};
+use sp1_derive::AlignedBorrow;
+use sp1_primitives::consts::WORD_SIZE;
 use sp1_rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     ByteOpcode, ExecutionRecord, Opcode, Program,
 };
-use sp1_derive::AlignedBorrow;
-use sp1_primitives::consts::WORD_SIZE;
 use sp1_stark::{air::MachineAir, MachineRecord, Word};
 
 use crate::{air::SP1CoreAirBuilder, alu::mul::utils::get_msb, utils::pad_rows_fixed};

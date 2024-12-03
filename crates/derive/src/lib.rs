@@ -378,12 +378,15 @@ fn find_eval_trait_bound(attrs: &[syn::Attribute]) -> Option<String> {
     None
 }
 
-
-
-
 #[proc_macro_derive(
     MachineAirRwasm,
-    attributes(sp1_rwasm_path, rwasm_execution_record_path, rwasm_program_path, builder_path, eval_trait_bound)
+    attributes(
+        sp1_rwasm_path,
+        rwasm_execution_record_path,
+        rwasm_program_path,
+        builder_path,
+        eval_trait_bound
+    )
 )]
 pub fn machine_air_rwasm_derive(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
@@ -587,8 +590,6 @@ pub fn machine_air_rwasm_derive(input: TokenStream) -> TokenStream {
     }
 }
 
-
-
 fn find_rwasm_execution_record_path(attrs: &[syn::Attribute]) -> syn::Path {
     for attr in attrs {
         if attr.path.is_ident("rwasm_execution_record_path") {
@@ -618,7 +619,3 @@ fn find_rwasm_program_path(attrs: &[syn::Attribute]) -> syn::Path {
     }
     parse_quote!(sp1_rwasm_executor::Program)
 }
-
-
-
-

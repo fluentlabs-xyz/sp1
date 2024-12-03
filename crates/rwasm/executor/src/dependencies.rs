@@ -289,5 +289,4 @@ pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
 //     }
 // }
 
-
 //TODO: when we have jump instruction reuse this.

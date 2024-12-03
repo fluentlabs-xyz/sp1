@@ -124,5 +124,4 @@
 //     }
 // }
 
-
 pub type Instruction = rwasm::engine::bytecode::Instruction;

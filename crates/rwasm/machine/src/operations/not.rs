@@ -1,8 +1,8 @@
 use p3_air::AirBuilder;
 use p3_field::{AbstractField, Field};
-use sp1_rwasm_executor::{events::ByteRecord, ByteOpcode};
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
+use sp1_rwasm_executor::{events::ByteRecord, ByteOpcode};
 use sp1_stark::{air::SP1AirBuilder, Word};
 
 /// A set of columns needed to compute the not of a word.

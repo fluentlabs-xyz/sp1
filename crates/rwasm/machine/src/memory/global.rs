@@ -7,8 +7,8 @@ use std::array;
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_rwasm_executor::{events::MemoryInitializeFinalizeEvent, ExecutionRecord, Program};
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::{events::MemoryInitializeFinalizeEvent, ExecutionRecord, Program};
 use sp1_stark::{
     air::{
         AirInteraction, BaseAirBuilder, InteractionScope, MachineAir, PublicValues, SP1AirBuilder,
@@ -397,57 +397,57 @@ where
 //         }
 //     }
 
-    // #[test]
-    // fn test_memory_lookup_interactions() {
-    //     setup_logger();
-    //     let program = sha_extend_program();
-    //     let program_clone = program.clone();
-    //     let mut runtime = Executor::new(program, SP1CoreOpts::default());
-    //     runtime.run().unwrap();
-    //     let machine: StarkMachine<BabyBearPoseidon2, RiscvAir<BabyBear>> =
-    //         RiscvAir::machine(BabyBearPoseidon2::new());
-    //     let (pkey, _) = machine.setup(&program_clone);
-    //     let opts = SP1CoreOpts::default();
-    //     machine.generate_dependencies(&mut runtime.records, &opts, None);
+// #[test]
+// fn test_memory_lookup_interactions() {
+//     setup_logger();
+//     let program = sha_extend_program();
+//     let program_clone = program.clone();
+//     let mut runtime = Executor::new(program, SP1CoreOpts::default());
+//     runtime.run().unwrap();
+//     let machine: StarkMachine<BabyBearPoseidon2, RiscvAir<BabyBear>> =
+//         RiscvAir::machine(BabyBearPoseidon2::new());
+//     let (pkey, _) = machine.setup(&program_clone);
+//     let opts = SP1CoreOpts::default();
+//     machine.generate_dependencies(&mut runtime.records, &opts, None);
 
-    //     let shards = runtime.records;
-    //     for shard in shards.clone() {
-    //         debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
-    //             &machine,
-    //             &pkey,
-    //             &[shard],
-    //             vec![InteractionKind::Memory],
-    //             InteractionScope::Local,
-    //         );
-    //     }
-    //     debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
-    //         &machine,
-    //         &pkey,
-    //         &shards,
-    //         vec![InteractionKind::Memory],
-    //         InteractionScope::Global,
-    //     );
-    // }
+//     let shards = runtime.records;
+//     for shard in shards.clone() {
+//         debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
+//             &machine,
+//             &pkey,
+//             &[shard],
+//             vec![InteractionKind::Memory],
+//             InteractionScope::Local,
+//         );
+//     }
+//     debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
+//         &machine,
+//         &pkey,
+//         &shards,
+//         vec![InteractionKind::Memory],
+//         InteractionScope::Global,
+//     );
+// }
 
-    // #[test]
-    // fn test_byte_lookup_interactions() {
-    //     setup_logger();
-    //     let program = sha_extend_program();
-    //     let program_clone = program.clone();
-    //     let mut runtime = Executor::new(program, SP1CoreOpts::default());
-    //     runtime.run().unwrap();
-    //     let machine = RiscvAir::machine(BabyBearPoseidon2::new());
-    //     let (pkey, _) = machine.setup(&program_clone);
-    //     let opts = SP1CoreOpts::default();
-    //     machine.generate_dependencies(&mut runtime.records, &opts, None);
+// #[test]
+// fn test_byte_lookup_interactions() {
+//     setup_logger();
+//     let program = sha_extend_program();
+//     let program_clone = program.clone();
+//     let mut runtime = Executor::new(program, SP1CoreOpts::default());
+//     runtime.run().unwrap();
+//     let machine = RiscvAir::machine(BabyBearPoseidon2::new());
+//     let (pkey, _) = machine.setup(&program_clone);
+//     let opts = SP1CoreOpts::default();
+//     machine.generate_dependencies(&mut runtime.records, &opts, None);
 
-    //     let shards = runtime.records;
-    //     debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
-    //         &machine,
-    //         &pkey,
-    //         &shards,
-    //         vec![InteractionKind::Byte],
-    //         InteractionScope::Global,
-    //     );
-    // }
+//     let shards = runtime.records;
+//     debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
+//         &machine,
+//         &pkey,
+//         &shards,
+//         vec![InteractionKind::Byte],
+//         InteractionScope::Global,
+//     );
+// }
 // }

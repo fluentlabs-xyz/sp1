@@ -122,9 +122,7 @@ pub mod tests {
 
     #[must_use]
     pub fn simple_program() -> Program {
-        let instructions = vec![
-           
-        ];
+        let instructions = vec![];
         Program::new(instructions, 0, 0)
     }
 
@@ -161,9 +159,7 @@ pub mod tests {
     #[must_use]
     #[allow(clippy::unreadable_literal)]
     pub fn simple_memory_program() -> Program {
-        let instructions = vec![
-            
-        ];
+        let instructions = vec![];
         Program::new(instructions, 0, 0)
     }
 }

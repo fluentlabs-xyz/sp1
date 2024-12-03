@@ -10,11 +10,6 @@ use num::{BigUint, One, Zero};
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_rwasm_executor::{
-    events::{ByteLookupEvent, ByteRecord, EdDecompressEvent, FieldOperation, PrecompileEvent},
-    syscalls::SyscallCode,
-    ExecutionRecord, Program,
-};
 use sp1_curves::{
     edwards::{
         ed25519::{ed25519_sqrt, Ed25519BaseField},
@@ -23,6 +18,11 @@ use sp1_curves::{
     params::{limbs_from_vec, FieldParameters, Limbs},
 };
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::{
+    events::{ByteLookupEvent, ByteRecord, EdDecompressEvent, FieldOperation, PrecompileEvent},
+    syscalls::SyscallCode,
+    ExecutionRecord, Program,
+};
 use sp1_stark::air::{BaseAirBuilder, InteractionScope, MachineAir, SP1AirBuilder};
 use typenum::U32;
 

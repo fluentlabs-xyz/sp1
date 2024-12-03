@@ -68,13 +68,13 @@ use core::{
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
+use sp1_derive::AlignedBorrow;
+use sp1_primitives::consts::WORD_SIZE;
 use sp1_rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     get_msb, get_quotient_and_remainder, is_signed_operation, ByteOpcode, ExecutionRecord, Opcode,
     Program,
 };
-use sp1_derive::AlignedBorrow;
-use sp1_primitives::consts::WORD_SIZE;
 use sp1_stark::{air::MachineAir, Word};
 
 use crate::{

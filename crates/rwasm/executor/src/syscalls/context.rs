@@ -109,8 +109,6 @@ impl<'a, 'b> SyscallContext<'a, 'b> {
         syscall_local_mem_events
     }
 
-    
-
     /// Get the current value of a byte, but doesn't use a memory record.
     #[must_use]
     pub fn byte_unsafe(&mut self, addr: u32) -> u8 {

@@ -20,7 +20,7 @@ pub struct CpuEvent {
     pub next_pc: u32,
     /// The instruction.
     pub instruction: Instruction,
-   
+
     /// The exit code.
     pub exit_code: u32,
     /// The ALU lookup id.

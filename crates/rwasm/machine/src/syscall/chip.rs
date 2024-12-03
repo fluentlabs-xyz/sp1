@@ -7,8 +7,8 @@ use std::{
 use p3_air::{Air, BaseAir};
 use p3_field::PrimeField32;
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_rwasm_executor::{events::SyscallEvent, ExecutionRecord, Program};
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::{events::SyscallEvent, ExecutionRecord, Program};
 use sp1_stark::air::{InteractionScope, MachineAir, SP1AirBuilder};
 
 use crate::utils::pad_rows_fixed;

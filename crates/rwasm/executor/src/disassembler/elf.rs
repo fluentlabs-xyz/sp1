@@ -7,8 +7,8 @@ use elf::{
     ElfBytes,
 };
 use hashbrown::HashMap;
-use sp1_primitives::consts::{MAXIMUM_MEMORY_SIZE, WORD_SIZE};
 use rwasm::engine::bytecode::Instruction;
+use sp1_primitives::consts::{MAXIMUM_MEMORY_SIZE, WORD_SIZE};
 /// RISC-V 32IM ELF (Executable and Linkable Format) File.
 ///
 /// This file represents a binary in the ELF format, specifically the RISC-V 32IM architecture

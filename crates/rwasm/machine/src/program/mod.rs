@@ -8,8 +8,8 @@ use crate::{air::ProgramAirBuilder, utils::pad_rows_fixed};
 use p3_air::{Air, BaseAir, PairBuilder};
 use p3_field::PrimeField;
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_rwasm_executor::{ExecutionRecord, Program};
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::{ExecutionRecord, Program};
 use sp1_stark::air::{MachineAir, SP1AirBuilder};
 
 use crate::cpu::columns::{InstructionCols, OpcodeSelectorCols};
@@ -198,9 +198,7 @@ mod tests {
         //     addi x29, x0, 5
         //     addi x30, x0, 37
         //     add x31, x30, x29
-        let instructions = vec![
-           
-        ];
+        let instructions = vec![];
         let shard = ExecutionRecord {
             program: Arc::new(Program {
                 instructions,

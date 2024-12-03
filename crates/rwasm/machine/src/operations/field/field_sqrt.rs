@@ -148,8 +148,8 @@ mod tests {
     use num::{BigUint, One, Zero};
     use p3_air::BaseAir;
     use p3_field::{Field, PrimeField32};
-    use sp1_rwasm_executor::{ExecutionRecord, Program};
     use sp1_curves::params::{FieldParameters, Limbs};
+    use sp1_rwasm_executor::{ExecutionRecord, Program};
     use sp1_stark::air::{MachineAir, SP1AirBuilder};
 
     use crate::utils::{pad_to_power_of_two, uni_stark_prove as prove, uni_stark_verify as verify};
@@ -163,9 +163,9 @@ mod tests {
     use p3_field::AbstractField;
     use p3_matrix::{dense::RowMajorMatrix, Matrix};
     use rand::thread_rng;
-    use sp1_rwasm_executor::events::ByteRecord;
     use sp1_curves::edwards::ed25519::{ed25519_sqrt, Ed25519BaseField};
     use sp1_derive::AlignedBorrow;
+    use sp1_rwasm_executor::events::ByteRecord;
     use sp1_stark::{baby_bear_poseidon2::BabyBearPoseidon2, StarkGenericConfig};
 
     use super::FieldSqrtCols;

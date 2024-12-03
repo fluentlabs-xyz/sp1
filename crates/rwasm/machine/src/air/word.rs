@@ -2,8 +2,8 @@ use std::array;
 
 use itertools::Itertools;
 use p3_field::AbstractField;
-use sp1_rwasm_executor::ByteOpcode;
 use sp1_primitives::consts::WORD_SIZE;
+use sp1_rwasm_executor::ByteOpcode;
 use sp1_stark::{air::ByteAirBuilder, Word};
 
 pub trait WordAirBuilder: ByteAirBuilder {

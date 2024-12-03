@@ -29,8 +29,8 @@ use crate::{
     riscv::cost::CostEstimator,
     utils::{chunk_vec, concurrency::TurnBasedSync},
 };
-use sp1_rwasm_executor::{events::sorted_table_lines, ExecutionState};
 use sp1_primitives::io::SP1PublicValues;
+use sp1_rwasm_executor::{events::sorted_table_lines, ExecutionState};
 
 use sp1_rwasm_executor::{
     subproof::NoOpSubproofVerifier, ExecutionError, ExecutionRecord, ExecutionReport, Executor,

@@ -9,11 +9,11 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
+use sp1_derive::AlignedBorrow;
 use sp1_rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
     ExecutionRecord, Opcode, Program,
 };
-use sp1_derive::AlignedBorrow;
 use sp1_stark::{
     air::{MachineAir, SP1AirBuilder},
     Word,

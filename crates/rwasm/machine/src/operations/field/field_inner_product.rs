@@ -2,9 +2,9 @@ use std::fmt::Debug;
 
 use num::{BigUint, Zero};
 use p3_field::{AbstractField, PrimeField32};
-use sp1_rwasm_executor::events::ByteRecord;
 use sp1_curves::params::{FieldParameters, Limbs};
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::events::ByteRecord;
 use sp1_stark::air::{Polynomial, SP1AirBuilder};
 
 use super::{
@@ -136,8 +136,8 @@ mod tests {
     use num::BigUint;
     use p3_air::BaseAir;
     use p3_field::{Field, PrimeField32};
-    use sp1_rwasm_executor::{ExecutionRecord, Program};
     use sp1_curves::params::FieldParameters;
+    use sp1_rwasm_executor::{ExecutionRecord, Program};
     use sp1_stark::air::{MachineAir, SP1AirBuilder};
 
     use super::{FieldInnerProductCols, Limbs};

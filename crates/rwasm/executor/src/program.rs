@@ -7,11 +7,7 @@ use p3_field::Field;
 use serde::{Deserialize, Serialize};
 use sp1_stark::air::{MachineAir, MachineProgram};
 
-use crate::{
-    disassembler::{ Elf},
-    instruction::Instruction,
-    CoreShape,
-};
+use crate::{disassembler::Elf, instruction::Instruction, CoreShape};
 
 /// A program that can be executed by the SP1 zkVM.
 ///
@@ -43,7 +39,7 @@ impl Program {
             preprocessed_shape: None,
         }
     }
-    //TODO: fix this 
+    //TODO: fix this
     // /// Disassemble a RV32IM ELF to a program that be executed by the VM.
     // ///
     // /// # Errors

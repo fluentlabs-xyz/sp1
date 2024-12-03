@@ -11,7 +11,7 @@ use thiserror::Error;
 
 use crate::{
     context::SP1Context,
-    dependencies::{ emit_divrem_dependencies},
+    dependencies::emit_divrem_dependencies,
     events::{
         create_alu_lookup_id, create_alu_lookups, AluEvent, CpuEvent, LookupId,
         MemoryAccessPosition, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
@@ -19,12 +19,12 @@ use crate::{
     },
     hook::{HookEnv, HookRegistry},
     memory::{Entry, PagedMemory},
-    record::{ExecutionRecord},
+    record::ExecutionRecord,
     report::ExecutionReport,
     state::{ExecutionState, ForkState},
     subproof::{DefaultSubproofVerifier, SubproofVerifier},
     syscalls::{default_syscall_map, Syscall, SyscallCode, SyscallContext},
-     Opcode, Program, Register,
+    Opcode, Program, Register,
 };
 
 use rwasm::engine::bytecode::Instruction;
@@ -210,7 +210,7 @@ impl<'a> Executor<'a> {
             records: vec![],
             state: ExecutionState::new(program.pc_start),
             program,
-          
+
             shard_size: (opts.shard_size as u32) * 4,
             shard_batch_size: opts.shard_batch_size as u32,
             cycle_tracker: HashMap::new(),
@@ -261,9 +261,6 @@ impl<'a> Executor<'a> {
         runtime.state = state;
         runtime
     }
-
-    
-    
 
     /// Get the current value of a word.
     #[must_use]
@@ -464,10 +461,6 @@ impl<'a> Executor<'a> {
         )
     }
 
-   
-
-    
-  
     /// Emit a CPU event.
     #[allow(clippy::too_many_arguments)]
     fn emit_cpu(
@@ -477,8 +470,7 @@ impl<'a> Executor<'a> {
         pc: u32,
         next_pc: u32,
         instruction: Instruction,
-      
-       
+
         exit_code: u32,
         lookup_id: LookupId,
         syscall_lookup_id: LookupId,
@@ -489,9 +481,7 @@ impl<'a> Executor<'a> {
             pc,
             next_pc,
             instruction,
-          
-         
-           
+
             exit_code,
             alu_lookup_id: lookup_id,
             syscall_lookup_id,
@@ -619,8 +609,6 @@ impl<'a> Executor<'a> {
     //     }
     // }
 
-   
-
     /// Fetch the instruction at the current program counter.
     #[inline]
     fn fetch(&self) -> Instruction {
@@ -637,9 +625,7 @@ impl<'a> Executor<'a> {
         let mut sp = self.state.sp;
         let mut next_pc = self.state.pc.wrapping_add(4);
 
-       
         let (arg1, arg2, res): (u32, u32, u32);
-        
 
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
@@ -788,9 +774,7 @@ impl<'a> Executor<'a> {
             Instruction::I32Clz => todo!(),
             Instruction::I32Ctz => todo!(),
             Instruction::I32Popcnt => todo!(),
-            Instruction::I32Add => {
-
-            },
+            Instruction::I32Add => {}
             Instruction::I32Sub => todo!(),
             Instruction::I32Mul => todo!(),
             Instruction::I32DivS => todo!(),
@@ -901,9 +885,6 @@ impl<'a> Executor<'a> {
                 pc,
                 next_pc,
                 *instruction,
-               
-               
-                
                 exit_code,
                 lookup_id,
                 syscall_lookup_id,

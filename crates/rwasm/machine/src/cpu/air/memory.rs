@@ -38,14 +38,11 @@ impl CpuChip {
         todo!()
     }
 
-     /// Computes whether the opcode is a store instruction.
-     pub(crate) fn is_branch_instruction<AB: SP1AirBuilder>(
+    /// Computes whether the opcode is a store instruction.
+    pub(crate) fn is_branch_instruction<AB: SP1AirBuilder>(
         &self,
         opcode_selectors: &OpcodeSelectorCols<AB::Var>,
     ) -> AB::Expr {
         todo!()
     }
-
-   
-
 }

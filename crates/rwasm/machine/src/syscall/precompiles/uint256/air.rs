@@ -17,16 +17,16 @@ use num::{BigUint, One, Zero};
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_rwasm_executor::{
-    events::{ByteRecord, FieldOperation, PrecompileEvent},
-    syscalls::SyscallCode,
-    ExecutionRecord, Program,
-};
 use sp1_curves::{
     params::{Limbs, NumLimbs, NumWords},
     uint256::U256Field,
 };
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::{
+    events::{ByteRecord, FieldOperation, PrecompileEvent},
+    syscalls::SyscallCode,
+    ExecutionRecord, Program,
+};
 use sp1_stark::{
     air::{BaseAirBuilder, InteractionScope, MachineAir, Polynomial, SP1AirBuilder},
     MachineRecord,

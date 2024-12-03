@@ -55,7 +55,6 @@ where
         let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
         let is_alu_instruction: AB::Expr = self.is_alu_instruction::<AB>(&local.selectors);
 
-        
         // ALU instructions.
         builder.send_alu(
             local.instruction.opcode,
@@ -101,8 +100,6 @@ where
 
         // Check that the is_real flag is correct.
         self.eval_is_real(builder, local, next);
-
-     
     }
 }
 
@@ -258,10 +255,8 @@ impl CpuChip {
 
         // We already assert that `local.clk < 2^24`. `num_extra_cycles` is an entry of a word and
         // therefore less than `2^8`, this means that the sum cannot overflow in a 31 bit field.
-        let expected_next_clk =
-            local.clk + AB::Expr::from_canonical_u32(4);
-            // +  num_extra_cycles.clone()
-            
+        let expected_next_clk = local.clk + AB::Expr::from_canonical_u32(4);
+        // +  num_extra_cycles.clone()
 
         builder.when_transition().when(next.is_real).assert_eq(expected_next_clk.clone(), next.clk);
 
@@ -292,7 +287,8 @@ impl CpuChip {
         builder.when(local.is_real).assert_eq(
             local.is_sequential_instr,
             AB::Expr::one()
-                - (is_branch_instruction
+                - (
+                    is_branch_instruction
                     // + local.selectors.is_jal
                     // + local.selectors.is_jalr
                     // + is_halt),

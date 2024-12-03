@@ -15,7 +15,7 @@ use crate::{
     ExecutorMode, SP1ReduceProof,
 };
 
-pub const SP_START:u32 = 0x100000;
+pub const SP_START: u32 = 0x100000;
 
 /// Holds data describing the current state of a program's execution.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -39,7 +39,7 @@ pub struct ExecutionState {
     pub clk: u32,
 
     /// stack pointer start from 10000x, must be aligned i.e. sp%4 = 0
-    /// 
+    ///
     pub sp: u32,
     /// Uninitialized memory addresses that have a specific value they should be initialized with.
     /// `SyscallHintRead` uses this to write hint data into uninitialized memory.
@@ -106,7 +106,6 @@ pub struct ForkState {
     /// All memory changes since the fork point.
     pub memory_diff: HashMap<u32, Option<MemoryRecord>>,
     /// The original memory access record at the fork point.
-   
     pub record: ExecutionRecord,
     /// Whether `emit_events` was enabled at the fork point.
     pub executor_mode: ExecutorMode,

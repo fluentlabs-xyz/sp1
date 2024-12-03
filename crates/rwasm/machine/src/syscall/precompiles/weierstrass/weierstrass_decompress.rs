@@ -10,17 +10,17 @@ use num::{BigUint, Zero};
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_rwasm_executor::{
-    events::{ByteRecord, FieldOperation, PrecompileEvent},
-    syscalls::SyscallCode,
-    ExecutionRecord, Program,
-};
 use sp1_curves::{
     params::{limbs_from_vec, FieldParameters, Limbs, NumLimbs, NumWords},
     weierstrass::{bls12_381::bls12381_sqrt, secp256k1::secp256k1_sqrt, WeierstrassParameters},
     CurveType, EllipticCurve,
 };
 use sp1_derive::AlignedBorrow;
+use sp1_rwasm_executor::{
+    events::{ByteRecord, FieldOperation, PrecompileEvent},
+    syscalls::SyscallCode,
+    ExecutionRecord, Program,
+};
 use sp1_stark::air::{BaseAirBuilder, InteractionScope, MachineAir, SP1AirBuilder};
 use std::marker::PhantomData;
 use typenum::Unsigned;

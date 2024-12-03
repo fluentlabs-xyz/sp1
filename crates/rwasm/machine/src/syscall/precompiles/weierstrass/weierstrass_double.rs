@@ -11,6 +11,12 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
+use sp1_curves::{
+    params::{FieldParameters, Limbs, NumLimbs, NumWords},
+    weierstrass::WeierstrassParameters,
+    AffinePoint, CurveType, EllipticCurve,
+};
+use sp1_derive::AlignedBorrow;
 use sp1_rwasm_executor::{
     events::{
         ByteLookupEvent, ByteRecord, EllipticCurveDoubleEvent, FieldOperation, PrecompileEvent,
@@ -19,12 +25,6 @@ use sp1_rwasm_executor::{
     syscalls::SyscallCode,
     ExecutionRecord, Program,
 };
-use sp1_curves::{
-    params::{FieldParameters, Limbs, NumLimbs, NumWords},
-    weierstrass::WeierstrassParameters,
-    AffinePoint, CurveType, EllipticCurve,
-};
-use sp1_derive::AlignedBorrow;
 use sp1_stark::air::{InteractionScope, MachineAir, SP1AirBuilder};
 
 use crate::{

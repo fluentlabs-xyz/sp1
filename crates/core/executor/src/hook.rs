@@ -179,8 +179,9 @@ pub fn hook_ecrecover_v2(_: HookEnv, buf: &[u8]) -> Vec<Vec<u8>> {
         sig = sig_normalized;
         recovery_id ^= 1;
     };
-    let recid = RecoveryId::from_byte(recovery_id).expect("Computed recovery ID is invalid, this is a bug.");
-    
+    let recid = RecoveryId::from_byte(recovery_id)
+        .expect("Computed recovery ID is invalid, this is a bug.");
+
     // Attempting to recvover the public key has failed, write a 0 to indicate to the caller.
     let Ok(recovered_key) = VerifyingKey::recover_from_prehash(&msg_hash[..], &sig, recid) else {
         return vec![vec![0]];
