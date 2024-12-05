@@ -44,7 +44,9 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
         } else if instruction.is_ecall_instruction() {
             self.is_ecall = F::one();
         } else if instruction.is_memory_instruction() {
+            todo!()
         } else if instruction.is_branch_instruction() {
+            todo!()
         }
     }
 }

@@ -461,6 +461,22 @@ impl<'a> Executor<'a> {
         )
     }
 
+    fn fetch_binary_op_data(&mut self)->(Option<MemoryReadRecord>,Option<MemoryReadRecord>){
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let arg1_record = self.mr(sp, shard, clk, None);
+        let arg2_record = self.mr(sp-4, shard, clk, None);
+        (Some(arg1_record),Some(arg2_record))
+    }
+
+    fn write_back_res(&mut self,res:u32,next_sp:u32)->MemoryWriteRecord{
+        self.state.clk+=4;
+        self.state.sp= next_sp;
+        self.mw(self.state.sp, res, self.shard(),self.state.clk, None)
+        
+    }
+
     /// Emit a CPU event.
     #[allow(clippy::too_many_arguments)]
     fn emit_cpu(
@@ -470,7 +486,12 @@ impl<'a> Executor<'a> {
         pc: u32,
         next_pc: u32,
         instruction: Instruction,
-
+        arg1:u32,
+        arg2:u32,
+        res:u32,
+        arg1_record:Option<MemoryReadRecord>,
+        arg2_record:Option<MemoryReadRecord>,
+        res_record:Option<MemoryWriteRecord>,
         exit_code: u32,
         lookup_id: LookupId,
         syscall_lookup_id: LookupId,
@@ -481,7 +502,12 @@ impl<'a> Executor<'a> {
             pc,
             next_pc,
             instruction,
-
+            arg1,
+            arg2,
+            res,
+            arg1_record,
+            arg2_record,
+            res_record,
             exit_code,
             alu_lookup_id: lookup_id,
             syscall_lookup_id,
@@ -624,9 +650,12 @@ impl<'a> Executor<'a> {
         let mut exit_code = 0u32;
         let mut sp = self.state.sp;
         let mut next_pc = self.state.pc.wrapping_add(4);
-
+        let mut next_sp = sp;//we do not know the next_sp until we know the operator
         let (arg1, arg2, res): (u32, u32, u32);
-
+        let mut arg1_record:Option<MemoryReadRecord>=None;
+        let mut arg2_record:Option<MemoryReadRecord> =None;
+        let mut res_record:Option<MemoryWriteRecord>= None;
+        let mut has_res :bool = false;
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
         }
@@ -774,7 +803,15 @@ impl<'a> Executor<'a> {
             Instruction::I32Clz => todo!(),
             Instruction::I32Ctz => todo!(),
             Instruction::I32Popcnt => todo!(),
-            Instruction::I32Add => {}
+            Instruction::I32Add => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1.wrapping_add(arg2);
+                next_sp = sp-4;
+                has_res = true;
+
+            }
             Instruction::I32Sub => todo!(),
             Instruction::I32Mul => todo!(),
             Instruction::I32DivS => todo!(),
@@ -871,8 +908,15 @@ impl<'a> Executor<'a> {
             Instruction::I64TruncSatF64U => todo!(),
         }
 
+
+        if has_res{
+            res_record=Some(self.write_back_res(res, next_sp));
+        }
+
         // Update the program counter.
         self.state.pc = next_pc;
+
+
 
         // Update the clk to the next cycle.
         self.state.clk += 4;
@@ -885,6 +929,12 @@ impl<'a> Executor<'a> {
                 pc,
                 next_pc,
                 *instruction,
+                arg1,
+                arg2,
+                res,
+                arg1_record,
+                arg1_record,
+                res_record,
                 exit_code,
                 lookup_id,
                 syscall_lookup_id,

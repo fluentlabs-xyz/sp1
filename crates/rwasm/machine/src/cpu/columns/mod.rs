@@ -21,7 +21,7 @@ use sp1_derive::AlignedBorrow;
 use sp1_stark::Word;
 use std::mem::{size_of, transmute};
 
-use crate::memory::{MemoryCols, MemoryReadCols, MemoryReadWriteCols};
+use crate::memory::{MemoryCols, MemoryReadCols, MemoryReadWriteCols, MemoryWriteCols};
 
 pub const NUM_CPU_COLS: usize = size_of::<CpuCols<u8>>();
 
@@ -56,9 +56,9 @@ pub struct CpuCols<T: Copy> {
     pub selectors: OpcodeSelectorCols<T>,
 
     /// Operand values, either from registers or immediate values.
-    pub op_a_access: MemoryReadWriteCols<T>,
-    pub op_b_access: MemoryReadCols<T>,
-    pub op_c_access: MemoryReadCols<T>,
+    pub op_arg1_access: MemoryReadCols<T>,
+    pub op_arg2_access: MemoryReadCols<T>,
+    pub op_res_access: MemoryWriteCols<T>,
 
     pub opcode_specific_columns: OpcodeSpecificCols<T>,
 
@@ -116,18 +116,18 @@ pub struct CpuCols<T: Copy> {
 
 impl<T: Copy> CpuCols<T> {
     /// Gets the value of the first operand.
-    pub fn op_a_val(&self) -> Word<T> {
-        *self.op_a_access.value()
+    pub fn op_arg1_val(&self) -> Word<T> {
+        *self.op_arg1_access.value()
     }
 
     /// Gets the value of the second operand.
-    pub fn op_b_val(&self) -> Word<T> {
-        *self.op_b_access.value()
+    pub fn op_arg2_val(&self) -> Word<T> {
+        *self.op_arg2_access.value()
     }
 
     /// Gets the value of the third operand.
-    pub fn op_c_val(&self) -> Word<T> {
-        *self.op_c_access.value()
+    pub fn op_res_val(&self) -> Word<T> {
+        *self.op_res_access.value()
     }
 }
 

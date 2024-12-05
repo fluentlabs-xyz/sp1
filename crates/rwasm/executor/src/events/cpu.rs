@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Instruction;
 
-use super::{memory::MemoryRecordEnum, LookupId};
+use super::{memory::MemoryRecordEnum, LookupId, MemoryReadRecord, MemoryWriteRecord};
 
 /// CPU Event.
 ///
@@ -20,7 +20,18 @@ pub struct CpuEvent {
     pub next_pc: u32,
     /// The instruction.
     pub instruction: Instruction,
-
+    /// the first argument of an rwasm op
+    pub arg1:u32,
+    /// the second argument of an rwasm op
+    pub arg2:u32,
+    /// result of an op
+    pub res :u32,
+    /// the memory record of reading the first argument
+    pub arg1_record:Option<MemoryReadRecord>,   
+    /// the memory record of reading the second argument
+    pub arg2_record:Option<MemoryReadRecord>,
+    /// the memory record of writing back the result
+    pub res_record:Option<MemoryWriteRecord>,
     /// The exit code.
     pub exit_code: u32,
     /// The ALU lookup id.

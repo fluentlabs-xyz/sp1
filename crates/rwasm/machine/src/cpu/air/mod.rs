@@ -58,9 +58,9 @@ where
         // ALU instructions.
         builder.send_alu(
             local.instruction.opcode,
-            local.op_a_val(),
-            local.op_b_val(),
-            local.op_c_val(),
+            local.op_res_val(),
+            local.op_arg1_val(),
+            local.op_arg2_val(),
             local.shard,
             local.nonce,
             is_alu_instruction,
