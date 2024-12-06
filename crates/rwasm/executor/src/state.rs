@@ -15,7 +15,7 @@ use crate::{
     ExecutorMode, SP1ReduceProof,
 };
 
-pub const SP_START: u32 = 0x100000;
+pub const SP_START: u32 = 0x2000;
 
 /// Holds data describing the current state of a program's execution.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -50,10 +50,13 @@ where
             local.is_real,
         );
 
-        // Compute some flags for which type of instruction we are dealing with.
-        let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
-        let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
-        let is_alu_instruction: AB::Expr = self.is_alu_instruction::<AB>(&local.selectors);
+        // // Compute some flags for which type of instruction we are dealing with.
+        // let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
+        // let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
+
+        let is_memory_instruction: AB::Expr =local.selectors.is_unimpl.into();
+        let is_branch_instruction: AB::Expr = local.selectors.is_unimpl.into();
+         let is_alu_instruction: AB::Expr = self.is_alu_instruction::<AB>(&local.selectors);
 
         // ALU instructions.
         builder.send_alu(

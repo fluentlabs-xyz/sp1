@@ -7428,6 +7428,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "sp1-rwasm-prover"
+version = "3.3.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "clap",
+ "dirs",
+ "eyre",
+ "hashbrown 0.14.5",
+ "itertools 0.13.0",
+ "lazy_static",
+ "lru",
+ "num-bigint 0.4.6",
+ "p3-baby-bear",
+ "p3-bn254-fr",
+ "p3-challenger",
+ "p3-commit",
+ "p3-field",
+ "p3-matrix",
+ "p3-symmetric",
+ "rayon",
+ "reqwest 0.11.27",
+ "rwasm",
+ "serde",
+ "serde_json",
+ "serial_test",
+ "sp1-core-executor",
+ "sp1-core-machine",
+ "sp1-primitives",
+ "sp1-recursion-circuit",
+ "sp1-recursion-compiler",
+ "sp1-recursion-core",
+ "sp1-recursion-gnark-ffi",
+ "sp1-rwasm-executor",
+ "sp1-rwasm-machine",
+ "sp1-stark",
+ "subtle-encoding",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "sp1-sdk"
 version = "3.3.0"
 dependencies = [

@@ -520,7 +520,7 @@ impl<'a> Executor<'a> {
             jump_jalr_lookup_id: create_alu_lookup_id(),
             auipc_lookup_id: create_alu_lookup_id(),
         };
-
+        println!("cpu event: {:?}",cpu_event);
         self.record.cpu_events.push(cpu_event);
         // emit_cpu_dependencies(self, &cpu_event);
     }

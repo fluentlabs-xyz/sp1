@@ -32,6 +32,7 @@ members = [
   "crates/zkvm/*",
   "crates/rwasm/executor",
   "crates/rwasm/machine",
+  "crates/rwasm/prover"
 ]
 exclude = ["examples/target"]
 resolver = "2"
@@ -72,6 +73,7 @@ sp1-zkvm = { path = "crates/zkvm/entrypoint", version = "3.3.0", default-feature
 
 sp1-rwasm-machine = { path = "crates/rwasm/machine", version = "3.3.0" }
 sp1-rwasm-executor = { path = "crates/rwasm/executor", version = "3.3.0" }
+sp1-rwasm-prover = { path = "crates/rwasm/prover", version = "3.3.0" }
 # p3
 p3-air = "0.1.4-succinct"
 p3-field = "0.1.4-succinct"

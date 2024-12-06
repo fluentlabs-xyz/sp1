@@ -56,7 +56,7 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let columns = vec![self.is_alu, self.is_ecall, self.is_auipc, self.is_unimpl];
+        let columns = vec![self.is_alu, self.is_ecall, self.is_auipc, self.is_unimpl,self.is_iadd32];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS);
         columns.into_iter()
     }
