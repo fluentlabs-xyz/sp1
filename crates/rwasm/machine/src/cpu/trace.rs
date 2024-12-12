@@ -118,6 +118,8 @@ impl CpuChip {
         // Populate basic fields.
         cols.pc = F::from_canonical_u32(event.pc);
         cols.next_pc = F::from_canonical_u32(event.next_pc);
+        cols.sp = F::from_canonical_u32(event.sp);
+        cols.next_sp = F::from_canonical_u32(event.next_sp);
         cols.instruction.populate(event.instruction);
         cols.selectors.populate(event.instruction);
         *cols.op_arg1_access.value_mut() = event.arg1.into();
@@ -126,40 +128,43 @@ impl CpuChip {
 
         // Populate memory accesses for a, b, and c.
         if let Some(record) = event.arg1_record {
+            println!("arg_1 record:{:?}",record);
             cols.op_arg1_access.populate(record, blu_events);
         }
         if let Some(record) = event.arg2_record {
+            println!("arg_2 record:{:?}",record);
             cols.op_arg2_access.populate(record, blu_events);
         }
         if let Some(record) = event.res_record {
+            println!("arg_res record:{:?}",record);
             cols.op_res_access.populate(record, blu_events);
         }
 
-        // Populate range checks for a.
-        let arg1_bytes = cols
-            .op_arg1_access
-            .access
-            .value
-            .0
-            .iter()
-            .map(|x| x.as_canonical_u32())
-            .collect::<Vec<_>>();
-        blu_events.add_byte_lookup_event(ByteLookupEvent {
-            shard: event.shard,
-            opcode: ByteOpcode::U8Range,
-            a1: 0,
-            a2: 0,
-            b: arg1_bytes[0] as u8,
-            c: arg1_bytes[1] as u8,
-        });
-        blu_events.add_byte_lookup_event(ByteLookupEvent {
-            shard: event.shard,
-            opcode: ByteOpcode::U8Range,
-            a1: 0,
-            a2: 0,
-            b: arg1_bytes[2] as u8,
-            c: arg1_bytes[3] as u8,
-        });
+        // // Populate range checks for a.
+        // let arg1_bytes = cols
+        //     .op_arg1_access
+        //     .access
+        //     .value
+        //     .0
+        //     .iter()
+        //     .map(|x| x.as_canonical_u32())
+        //     .collect::<Vec<_>>();
+        // blu_events.add_byte_lookup_event(ByteLookupEvent {
+        //     shard: event.shard,
+        //     opcode: ByteOpcode::U8Range,
+        //     a1: 0,
+        //     a2: 0,
+        //     b: arg1_bytes[0] as u8,
+        //     c: arg1_bytes[1] as u8,
+        // });
+        // blu_events.add_byte_lookup_event(ByteLookupEvent {
+        //     shard: event.shard,
+        //     opcode: ByteOpcode::U8Range,
+        //     a1: 0,
+        //     a2: 0,
+        //     b: arg1_bytes[2] as u8,
+        //     c: arg1_bytes[3] as u8,
+        // });
 
         // // Populate memory accesses for reading from memory.
         // assert_eq!(event.memory_record.is_some(), event.memory.is_some());

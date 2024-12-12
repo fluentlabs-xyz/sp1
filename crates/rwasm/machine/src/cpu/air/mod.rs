@@ -101,9 +101,15 @@ where
         // Check public values constraints.
         self.eval_public_values(builder, local, next, public_values);
 
+        //check op memory access
+        
+        self.eval_binary_op_memory(builder, local);
         // Check that the is_real flag is correct.
         self.eval_is_real(builder, local, next);
     }
+
+
+    
 }
 
 impl CpuChip {
@@ -361,6 +367,20 @@ impl CpuChip {
         builder.assert_bool(local.is_real);
         builder.when_first_row().assert_one(local.is_real);
         builder.when_transition().when_not(local.is_real).assert_zero(next.is_real);
+    }
+
+    fn eval_binary_op_memory<AB: SP1AirBuilder>(
+        &self,
+        builder: &mut AB,
+        local: &CpuCols<AB::Var>,
+    ){
+        let shard = local.shard;
+        let clk = local.clk;
+        
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real);
+        builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), &local.op_arg2_access, local.is_real);
+        builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4), local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.is_real);
+    
     }
 }
 

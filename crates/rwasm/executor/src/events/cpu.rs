@@ -18,6 +18,11 @@ pub struct CpuEvent {
     pub pc: u32,
     /// The next program counter.
     pub next_pc: u32,
+
+    pub sp: u32,
+
+    pub next_sp: u32,
+    
     /// The instruction.
     pub instruction: Instruction,
     /// the first argument of an rwasm op

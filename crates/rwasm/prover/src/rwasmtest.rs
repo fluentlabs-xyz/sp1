@@ -42,7 +42,6 @@ mod tests {
         
          println!("{:?}",mem);
          let instructions = vec![   Instruction::I32Add, 
-         Instruction::I32Add, 
            ];
   
          let program = Program{instructions:instructions,

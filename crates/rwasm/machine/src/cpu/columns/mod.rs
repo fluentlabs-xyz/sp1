@@ -49,6 +49,10 @@ pub struct CpuCols<T: Copy> {
     /// The expected next program counter value.
     pub next_pc: T,
 
+    pub sp: T,
+    
+    pub next_sp: T,
+    
     /// Columns related to the instruction.
     pub instruction: InstructionCols<T>,
 

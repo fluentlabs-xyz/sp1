@@ -485,6 +485,8 @@ impl<'a> Executor<'a> {
         clk: u32,
         pc: u32,
         next_pc: u32,
+        sp:u32,
+        next_sp:u32,
         instruction: Instruction,
         arg1:u32,
         arg2:u32,
@@ -501,6 +503,8 @@ impl<'a> Executor<'a> {
             clk,
             pc,
             next_pc,
+            sp,
+            next_sp,
             instruction,
             arg1,
             arg2,
@@ -537,6 +541,7 @@ impl<'a> Executor<'a> {
             c,
             sub_lookups: create_alu_lookups(),
         };
+        println!("aluevent{:?}",event);
         match opcode {
             Opcode::ADD => {
                 self.record.add_events.push(event);
@@ -810,6 +815,8 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_add(arg2);
                 next_sp = sp-4;
                 has_res = true;
+                self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id); 
+               
 
             }
             Instruction::I32Sub => todo!(),
@@ -928,12 +935,14 @@ impl<'a> Executor<'a> {
                 clk,
                 pc,
                 next_pc,
+                sp,
+                next_sp,
                 *instruction,
                 arg1,
                 arg2,
                 res,
                 arg1_record,
-                arg1_record,
+                arg2_record,
                 res_record,
                 exit_code,
                 lookup_id,

@@ -72,7 +72,13 @@ impl<F: PrimeField32> MachineAir<F> for MemoryGlobalChip {
             MemoryChipType::Initialize => input.public_values.previous_init_addr_bits,
             MemoryChipType::Finalize => input.public_values.previous_finalize_addr_bits,
         };
-
+        for es in memory_events.iter(){
+           let str =  match self.kind {
+                MemoryChipType::Initialize => "init",
+                MemoryChipType::Finalize => "final",
+            };
+            println!("{},{:?}",str,es);
+        }
         memory_events.sort_by_key(|event| event.addr);
         let mut rows: Vec<[F; NUM_MEMORY_INIT_COLS]> = (0..memory_events.len()) // OPT: change this to par_iter
             .map(|i| {
