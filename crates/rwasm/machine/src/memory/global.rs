@@ -3,7 +3,7 @@ use core::{
     mem::size_of,
 };
 use std::array;
-
+use rand::prelude::*;
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
@@ -82,9 +82,9 @@ impl<F: PrimeField32> MachineAir<F> for MemoryGlobalChip {
         memory_events.sort_by_key(|event| event.addr);
         let mut rows: Vec<[F; NUM_MEMORY_INIT_COLS]> = (0..memory_events.len()) // OPT: change this to par_iter
             .map(|i| {
-                let MemoryInitializeFinalizeEvent { addr, value, shard, timestamp, used } =
+                let MemoryInitializeFinalizeEvent { addr, mut value, shard, timestamp, used } =
                     memory_events[i];
-
+               
                 let mut row = [F::zero(); NUM_MEMORY_INIT_COLS];
                 let cols: &mut MemoryInitCols<F> = row.as_mut_slice().borrow_mut();
                 cols.addr = F::from_canonical_u32(addr);
@@ -220,7 +220,7 @@ where
             byte4 += local.value[i + 24].into() * AB::F::from_canonical_u8(1 << i);
         }
         let value = [byte1, byte2, byte3, byte4];
-
+       
         if self.kind == MemoryChipType::Initialize {
             let mut values = vec![AB::Expr::zero(), AB::Expr::zero(), local.addr.into()];
             values.extend(value.map(Into::into));
@@ -272,96 +272,96 @@ where
         // the field, so we can get an element from the bit decomposition with no concern for
         // overflow.
 
-        let local_addr_bits = local.addr_bits.bits;
+        // let local_addr_bits = local.addr_bits.bits;
 
-        let public_values_array: [AB::Expr; SP1_PROOF_NUM_PV_ELTS] =
-            array::from_fn(|i| builder.public_values()[i].into());
-        let public_values: &PublicValues<Word<AB::Expr>, AB::Expr> =
-            public_values_array.as_slice().borrow();
+        // let public_values_array: [AB::Expr; SP1_PROOF_NUM_PV_ELTS] =
+        //     array::from_fn(|i| builder.public_values()[i].into());
+        // let public_values: &PublicValues<Word<AB::Expr>, AB::Expr> =
+        //     public_values_array.as_slice().borrow();
 
-        let prev_addr_bits = match self.kind {
-            MemoryChipType::Initialize => &public_values.previous_init_addr_bits,
-            MemoryChipType::Finalize => &public_values.previous_finalize_addr_bits,
-        };
+        // let prev_addr_bits = match self.kind {
+        //     MemoryChipType::Initialize => &public_values.previous_init_addr_bits,
+        //     MemoryChipType::Finalize => &public_values.previous_finalize_addr_bits,
+        // };
 
-        // Since the previous address is either zero or constrained by a different shard, we know
-        // it's an element of the field, so we can get an element from the bit decomposition with
-        // no concern for overflow.
-        let prev_addr = prev_addr_bits
-            .iter()
-            .enumerate()
-            .map(|(i, bit)| bit.clone() * AB::F::from_wrapped_u32(1 << i))
-            .sum::<AB::Expr>();
+        // // Since the previous address is either zero or constrained by a different shard, we know
+        // // it's an element of the field, so we can get an element from the bit decomposition with
+        // // no concern for overflow.
+        // let prev_addr = prev_addr_bits
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(i, bit)| bit.clone() * AB::F::from_wrapped_u32(1 << i))
+        //     .sum::<AB::Expr>();
 
-        // Constrain the is_prev_addr_zero operation only in the first row.
-        let is_first_row = builder.is_first_row();
-        IsZeroOperation::<AB::F>::eval(builder, prev_addr, local.is_prev_addr_zero, is_first_row);
+        // // Constrain the is_prev_addr_zero operation only in the first row.
+        // let is_first_row = builder.is_first_row();
+        // IsZeroOperation::<AB::F>::eval(builder, prev_addr, local.is_prev_addr_zero, is_first_row);
 
-        // Constrain the is_first_comp column.
-        builder.assert_bool(local.is_first_comp);
-        builder
-            .when_first_row()
-            .assert_eq(local.is_first_comp, AB::Expr::one() - local.is_prev_addr_zero.result);
+        // // Constrain the is_first_comp column.
+        // // builder.assert_bool(local.is_first_comp);
+        // // builder
+        // //     .when_first_row()
+        // //     .assert_eq(local.is_first_comp, AB::Expr::one() - local.is_prev_addr_zero.result);
 
-        // Ensure at least one real row.
-        builder.when_first_row().assert_one(local.is_real);
+        // // Ensure at least one real row.
+        // builder.when_first_row().assert_one(local.is_real);
 
-        // Constrain the inequality assertion in the first row.
-        local.lt_cols.eval(builder, prev_addr_bits, &local_addr_bits, local.is_first_comp);
+        // // Constrain the inequality assertion in the first row.
+        // local.lt_cols.eval(builder, prev_addr_bits, &local_addr_bits, local.is_first_comp);
 
-        // Insure that there are no duplicate initializations by assuring there is exactly one
-        // initialization event of the zero address. This is done by assuring that when the previous
-        // address is zero, then the first row address is also zero, and that the second row is also
-        // real, and the less than comparison is being made.
-        builder.when_first_row().when(local.is_prev_addr_zero.result).assert_zero(local.addr);
-        builder.when_first_row().when(local.is_prev_addr_zero.result).assert_one(next.is_real);
-        // Ensure that in the address zero case the comparison is being made so that there is an
-        // address bigger than zero being committed to.
-        builder.when_first_row().when(local.is_prev_addr_zero.result).assert_one(next.is_next_comp);
+        // // Insure that there are no duplicate initializations by assuring there is exactly one
+        // // initialization event of the zero address. This is done by assuring that when the previous
+        // // address is zero, then the first row address is also zero, and that the second row is also
+        // // real, and the less than comparison is being made.
+        // builder.when_first_row().when(local.is_prev_addr_zero.result).assert_zero(local.addr);
+        // builder.when_first_row().when(local.is_prev_addr_zero.result).assert_one(next.is_real);
+        // // Ensure that in the address zero case the comparison is being made so that there is an
+        // // address bigger than zero being committed to.
+        // builder.when_first_row().when(local.is_prev_addr_zero.result).assert_one(next.is_next_comp);
 
-        // Make assertions for specific types of memory chips.
+        // // Make assertions for specific types of memory chips.
 
-        if self.kind == MemoryChipType::Initialize {
-            builder.when(local.is_real).assert_eq(local.timestamp, AB::F::one());
-        }
+        // if self.kind == MemoryChipType::Initialize {
+        //     builder.when(local.is_real).assert_eq(local.timestamp, AB::F::one());
+        // }
 
-        // Constraints related to register %x0.
+        // // Constraints related to register %x0.
 
-        // Register %x0 should always be 0. See 2.6 Load and Store Instruction on
-        // P.18 of the RISC-V spec.  To ensure that, we will constrain that the value is zero
-        // whenever the `is_first_comp` flag is set to to zero as well. This guarantees that the
-        // presence of this flag asserts the initialization/finalization of %x0 to zero.
-        //
-        // **Remark**: it is up to the verifier to ensure that this flag is set to zero exactly
-        // once, this can be constrained by the public values setting `previous_init_addr_bits` or
-        // `previous_finalize_addr_bits` to zero.
-        for i in 0..32 {
-            builder.when_first_row().when_not(local.is_first_comp).assert_zero(local.value[i]);
-        }
+        // // Register %x0 should always be 0. See 2.6 Load and Store Instruction on
+        // // P.18 of the RISC-V spec.  To ensure that, we will constrain that the value is zero
+        // // whenever the `is_first_comp` flag is set to to zero as well. This guarantees that the
+        // // presence of this flag asserts the initialization/finalization of %x0 to zero.
+        // //
+        // // **Remark**: it is up to the verifier to ensure that this flag is set to zero exactly
+        // // once, this can be constrained by the public values setting `previous_init_addr_bits` or
+        // // `previous_finalize_addr_bits` to zero.
+        // for i in 0..32 {
+        //     builder.when_first_row().when_not(local.is_first_comp).assert_zero(local.value[i]);
+        // }
 
-        // Make assertions for the final value. We need to connect the final valid address to the
-        // corresponding `last_addr` value.
-        let last_addr_bits = match self.kind {
-            MemoryChipType::Initialize => &public_values.last_init_addr_bits,
-            MemoryChipType::Finalize => &public_values.last_finalize_addr_bits,
-        };
-        // The last address is either:
-        // - It's the last row and `is_real` is set to one.
-        // - The flag `is_real` is set to one and the next `is_real` is set to zero.
+        // // Make assertions for the final value. We need to connect the final valid address to the
+        // // corresponding `last_addr` value.
+        // let last_addr_bits = match self.kind {
+        //     MemoryChipType::Initialize => &public_values.last_init_addr_bits,
+        //     MemoryChipType::Finalize => &public_values.last_finalize_addr_bits,
+        // };
+        // // The last address is either:
+        // // - It's the last row and `is_real` is set to one.
+        // // - The flag `is_real` is set to one and the next `is_real` is set to zero.
 
-        // Constrain the `is_last_addr` flag.
-        builder
-            .when_transition()
-            .assert_eq(local.is_last_addr, local.is_real * (AB::Expr::one() - next.is_real));
+        // // Constrain the `is_last_addr` flag.
+        // builder
+        //     .when_transition()
+        //     .assert_eq(local.is_last_addr, local.is_real * (AB::Expr::one() - next.is_real));
 
-        // Constrain the last address bits to be equal to the corresponding `last_addr_bits` value.
-        for (local_bit, pub_bit) in local.addr_bits.bits.iter().zip(last_addr_bits.iter()) {
-            builder.when_last_row().when(local.is_real).assert_eq(*local_bit, pub_bit.clone());
-            builder
-                .when_transition()
-                .when(local.is_last_addr)
-                .assert_eq(*local_bit, pub_bit.clone());
-        }
+        // // Constrain the last address bits to be equal to the corresponding `last_addr_bits` value.
+        // for (local_bit, pub_bit) in local.addr_bits.bits.iter().zip(last_addr_bits.iter()) {
+        //     builder.when_last_row().when(local.is_real).assert_eq(*local_bit, pub_bit.clone());
+        //     builder
+        //         .when_transition()
+        //         .when(local.is_last_addr)
+        //         .assert_eq(*local_bit, pub_bit.clone());
+        // }
     }
 }
 

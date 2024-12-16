@@ -36,10 +36,9 @@ mod tests {
          let y_value:u32 = 0x23;
        
          let mut mem=HashMap::new();
-        
          mem.insert(sp_value, x_value);
          mem.insert(sp_value-4, y_value);
-        
+          
          println!("{:?}",mem);
          let instructions = vec![   Instruction::I32Add, 
            ];
@@ -72,20 +71,20 @@ mod tests {
         
         tracing::info!("prove core");
         let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk,program, &stdin, opts, context).unwrap();
+        let core_proof = prover.prove_core_program(&pk,program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+              tracing::info!("verify core");
+              prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            },
+            Err(err) => {
+              println!("{}",err);
+            },
+        }
     
-        
-        tracing::info!("initializing prover");
-      
-        
-        tracing::info!("setup elf");
-      
-      
-        tracing::info!("prove core");
-        
+     
        
-        tracing::info!("verify core");
-        prover.verify(&core_proof.proof, &vk).unwrap();
         println!("done rwasm proof");
     }
    

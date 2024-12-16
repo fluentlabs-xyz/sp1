@@ -1270,7 +1270,7 @@ impl<'a> Executor<'a> {
 
         // Get the final public values.
         let public_values = self.record.public_values;
-
+        println!("done?{}",done);
         if done {
             self.postprocess();
 
@@ -1349,14 +1349,17 @@ impl<'a> Executor<'a> {
 
             let addr_0_final_record = match addr_0_record {
                 Some(record) => record,
-                None => &MemoryRecord { value: 0, shard: 0, timestamp: 1 },
+                None => &MemoryRecord { value: 0, shard: 0, timestamp: 0 },
             };
+
+            println!("add_0_record{:?}",addr_0_record);
+            println!("add_0_final_record{:?}",addr_0_final_record);
             memory_finalize_events
                 .push(MemoryInitializeFinalizeEvent::finalize_from_record(0, addr_0_final_record));
 
             let memory_initialize_events = &mut self.record.global_memory_initialize_events;
             let addr_0_initialize_event =
-                MemoryInitializeFinalizeEvent::initialize(0, 0, addr_0_record.is_some());
+                MemoryInitializeFinalizeEvent::initialize(0, 0, true);
             memory_initialize_events.push(addr_0_initialize_event);
 
             // Count the number of touched memory addresses manually, since `PagedMemory` doesn't
