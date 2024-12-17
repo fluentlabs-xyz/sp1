@@ -11,12 +11,12 @@ use thiserror::Error;
 use p3_baby_bear::BabyBear;
 use p3_field::AbstractField;
 use serde::{Deserialize, Serialize};
-use sp1_rwasm_machine::riscv::CoreShapeConfig;
 use sp1_recursion_circuit::machine::{
     SP1CompressWithVKeyWitnessValues, SP1CompressWithVkeyShape, SP1DeferredShape,
     SP1DeferredWitnessValues, SP1RecursionShape, SP1RecursionWitnessValues,
 };
 use sp1_recursion_core::{shape::RecursionShapeConfig, RecursionProgram};
+use sp1_rwasm_machine::riscv::CoreShapeConfig;
 use sp1_stark::{MachineProver, ProofShape, DIGEST_SIZE};
 
 use crate::{components::SP1ProverComponents, CompressAir, HashableKey, SP1Prover};

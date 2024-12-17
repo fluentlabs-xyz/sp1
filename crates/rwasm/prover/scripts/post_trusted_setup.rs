@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use sp1_rwasm_machine::utils::setup_logger;
 use sp1_recursion_gnark_ffi::Groth16Bn254Prover;
+use sp1_rwasm_machine::utils::setup_logger;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]

@@ -4,9 +4,9 @@ use anyhow::Result;
 use num_bigint::BigUint;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField};
+use sp1_primitives::{consts::WORD_SIZE, io::SP1PublicValues};
 use sp1_rwasm_executor::{subproof::SubproofVerifier, SP1ReduceProof};
 use sp1_rwasm_machine::cpu::MAX_CPU_LOG_DEGREE;
-use sp1_primitives::{consts::WORD_SIZE, io::SP1PublicValues};
 
 use sp1_recursion_circuit::machine::RootPublicValues;
 use sp1_recursion_core::{air::RecursionPublicValues, stark::BabyBearPoseidon2Outer};
@@ -150,7 +150,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
                 return Err(MachineVerificationError::InvalidPublicValues(
                     "start_pc != next_pc: start_pc should equal next_pc for non-cpu shards",
                 ));
-            } 
+            }
             // else if shard_proof.contains_cpu() && public_values.start_pc == BabyBear::zero() {
             //     return Err(MachineVerificationError::InvalidPublicValues(
             //         "start_pc == 0: execution should never start at halted state",
