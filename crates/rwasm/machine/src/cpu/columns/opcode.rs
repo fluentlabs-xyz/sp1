@@ -34,6 +34,7 @@ pub struct OpcodeSelectorCols<T> {
     pub is_unimpl: T,
 
     pub is_iadd32: T,
+
 }
 
 impl<F: PrimeField> OpcodeSelectorCols<F> {
@@ -48,6 +49,8 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
         } else if instruction.is_branch_instruction() {
             todo!()
         }
+
+        
     }
 }
 

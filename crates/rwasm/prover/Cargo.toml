@@ -47,7 +47,9 @@ lazy_static = "1.5.0"
 
 sp1-rwasm-executor = {workspace = true}
 sp1-rwasm-machine = {workspace = true}
-rwasm ={ path = "../../../../Fluent/rwasm/rwasm",default-features = false, features = ["std"]}
+
+rwasm ={ git = "https://github.com/fluentlabs-xyz/rwasm.git",branch = "sp1-compatible", default-features = false, features = ["std"]}
+
 hashbrown = { version = "0.14.5", features = ["serde", "inline-more"] }
 [[bin]]
 name = "build_plonk_bn254"

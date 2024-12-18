@@ -98,6 +98,9 @@ where
         // Check that the pc is updated correctly.
         self.eval_pc(builder, local, next, is_branch_instruction.clone());
 
+        // Check that the sp is updated correctly.
+        self.eval_sp(builder, local, next);
+
         // Check public values constraints.
         self.eval_public_values(builder, local, next, public_values);
 
@@ -320,6 +323,37 @@ impl CpuChip {
             .when(local.is_sequential_instr)
             .assert_eq(local.pc + AB::Expr::from_canonical_u8(4), local.next_pc);
     }
+
+     /// Constraints related to the pc for non jump, branch, and halt instructions.
+    ///
+    /// The function will verify that the pc increments by 4 for all instructions except branch,
+    /// jump and halt instructions. Also, it ensures that the pc is carried down to the last row
+    /// for non-real rows.
+    pub(crate) fn eval_sp<AB: SP1AirBuilder>(
+        &self,
+        builder: &mut AB,
+        local: &CpuCols<AB::Var>,
+        next: &CpuCols<AB::Var>,
+    ) {
+        
+
+        // Verify that the sp decrease by 4 for all instructions except branch, jump and halt
+        // instructions. The other case is handled by eval_jump, eval_branch and eval_ecall
+        // (for halt).
+        builder
+            .when_transition()
+            .when(next.is_real)
+            .when(local.instruction.is_binary)
+            .assert_eq(next.sp + AB::Expr::from_canonical_u8(4), local.sp);
+
+        // When the last row is real and it's a sequential instruction, assert that local.next_pc
+        // <==> local.pc + 4
+        builder
+            .when(local.is_real)
+            .when(local.instruction.is_binary)
+            .assert_eq(local.next_sp + AB::Expr::from_canonical_u8(4), local.sp);
+    }
+
 
     /// Constraints related to the public values.
     pub(crate) fn eval_public_values<AB: SP1AirBuilder>(

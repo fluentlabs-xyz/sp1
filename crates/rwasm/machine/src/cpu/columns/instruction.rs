@@ -14,18 +14,7 @@ pub const NUM_INSTRUCTION_COLS: usize = size_of::<InstructionCols<u8>>();
 pub struct InstructionCols<T> {
     /// The opcode for this cycle.
     pub opcode: T,
-
-    /// The first operand for this instruction.
-    pub op_a: Word<T>,
-
-    /// The second operand for this instruction.
-    pub op_b: Word<T>,
-
-    /// The third operand for this instruction.
-    pub op_c: Word<T>,
-
-    /// Flags to indicate if op_a is register 0.
-    pub op_a_0: T,
+    pub is_binary: T,
 }
 
 impl<F: PrimeField> InstructionCols<F> {
@@ -33,6 +22,7 @@ impl<F: PrimeField> InstructionCols<F> {
 
         let sp1_op = rwasm_ins_to_sp1_alu(&instruction);
         self.opcode=sp1_op.as_field();
+        self.is_binary = F::from_bool(instruction.is_binary_instruction());
     }
 }
 
@@ -42,10 +32,6 @@ impl<T> IntoIterator for InstructionCols<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         once(self.opcode)
-            .chain(self.op_a)
-            .chain(self.op_b)
-            .chain(self.op_c)
-            .chain(once(self.op_a_0))
             .collect::<Vec<_>>()
             .into_iter()
     }
