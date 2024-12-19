@@ -337,17 +337,13 @@ impl CpuChip {
     ) {
         
 
-        // Verify that the sp decrease by 4 for all instructions except branch, jump and halt
-        // instructions. The other case is handled by eval_jump, eval_branch and eval_ecall
-        // (for halt).
+        //verfiy that when next is real then next start sp equals local's sp
         builder
             .when_transition()
             .when(next.is_real)
-            .when(local.instruction.is_binary)
-            .assert_eq(next.sp + AB::Expr::from_canonical_u8(4), local.sp);
+            .assert_eq(next.sp , local.next_sp);
 
-        // When the last row is real and it's a sequential instruction, assert that local.next_pc
-        // <==> local.pc + 4
+        //verify that sp decreses by 4 if op is binary.
         builder
             .when(local.is_real)
             .when(local.instruction.is_binary)
