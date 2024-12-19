@@ -12,14 +12,13 @@ use sp1_stark::{
     air::{BaseAirBuilder, PublicValues, SP1AirBuilder, SP1_PROOF_NUM_PV_ELTS},
     Word,
 };
+use crate::air::WordAirBuilder;
 
 use crate::{
-    air::{MemoryAirBuilder, SP1CoreAirBuilder},
-    cpu::{
+    air::{MemoryAirBuilder, SP1CoreAirBuilder}, cpu::{
         columns::{CpuCols, OpcodeSelectorCols, NUM_CPU_COLS},
         CpuChip,
-    },
-    operations::BabyBearWordRangeChecker,
+    }, memory::MemoryCols, operations::BabyBearWordRangeChecker
 };
 use sp1_rwasm_executor::Opcode;
 
@@ -267,7 +266,7 @@ impl CpuChip {
 
         // We already assert that `local.clk < 2^24`. `num_extra_cycles` is an entry of a word and
         // therefore less than `2^8`, this means that the sum cannot overflow in a 31 bit field.
-        let expected_next_clk = local.clk + AB::Expr::from_canonical_u32(4);
+        let expected_next_clk = local.clk + AB::Expr::from_canonical_u32(8);
         // +  num_extra_cycles.clone()
 
         builder.when_transition().when(next.is_real).assert_eq(expected_next_clk.clone(), next.clk);
@@ -406,11 +405,20 @@ impl CpuChip {
     ){
         let shard = local.shard;
         let clk = local.clk;
-        
+        //make sure the memory access are correct
         builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real);
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), &local.op_arg2_access, local.is_real);
         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4), local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.is_real);
-    
+        
+        // make sure the arg1 and arg2 are correctly read from stack without change.
+        
+        builder.assert_word_eq(local.op_arg1, *local.op_arg1_access.prev_value());
+        builder.assert_word_eq(local.op_arg1, *local.op_arg1_access.value());
+        builder.assert_word_eq(local.op_arg2, *local.op_arg2_access.prev_value());
+        builder.assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
+
+        // make sure the result is correclty write into memory
+        builder.assert_word_eq(local.res, *local.op_res_access.value());
     }
 }
 

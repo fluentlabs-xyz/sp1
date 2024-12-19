@@ -64,6 +64,10 @@ pub struct CpuCols<T: Copy> {
     pub op_arg2_access: MemoryReadCols<T>,
     pub op_res_access: MemoryWriteCols<T>,
 
+    pub op_arg1: Word<T>,
+    pub op_arg2: Word<T>,
+    pub res: Word<T>,
+
     pub opcode_specific_columns: OpcodeSpecificCols<T>,
 
     /// Selector to label whether this row is a non padded row.

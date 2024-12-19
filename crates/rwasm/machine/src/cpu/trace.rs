@@ -122,10 +122,9 @@ impl CpuChip {
         cols.next_sp = F::from_canonical_u32(event.next_sp);
         cols.instruction.populate(event.instruction);
         cols.selectors.populate(event.instruction);
-        *cols.op_arg1_access.value_mut() = event.arg1.into();
-        *cols.op_arg2_access.value_mut() = event.arg2.into();
-        *cols.op_res_access.value_mut() = event.res.into();
-
+        cols.op_arg1=event.arg1.into();
+        cols.op_arg2=event.arg2.into();
+        cols.res=event.res.into();
         // Populate memory accesses for a, b, and c.
         if let Some(record) = event.arg1_record {
             println!("arg_1 record:{:?}",record);
