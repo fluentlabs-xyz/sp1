@@ -30,13 +30,25 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
+        let z1_value: u32 = 0x3;
+        let z2_value: u32 = 0x37;
+        let z3_value: u32 = 0x12;
+        let z4_value: u32 = 0x2;
+
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
         mem.insert(sp_value - 4, y_value);
-
+        mem.insert(sp_value - 8, z1_value);
+        mem.insert(sp_value - 12, z2_value);
+        mem.insert(sp_value - 16, z3_value);
+        mem.insert(sp_value - 20, z4_value);
         println!("{:?}", mem);
-        let instructions = vec![Instruction::I32Add];
+        let instructions = vec![Instruction::I32Add,
+        Instruction::I32Sub,
+        Instruction::I32Mul,
+        Instruction::I32DivS,
+        Instruction::I32DivU,];
 
         let program = Program {
             instructions,

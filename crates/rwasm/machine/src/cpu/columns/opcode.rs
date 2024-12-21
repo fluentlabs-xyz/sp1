@@ -34,6 +34,11 @@ pub struct OpcodeSelectorCols<T> {
     pub is_unimpl: T,
 
     pub is_iadd32: T,
+    pub is_isub32: T,
+    pub is_imul32: T,
+    pub is_idivu32:T,
+    pub is_idivs32:T,
+
 
 }
 
@@ -59,7 +64,8 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let columns = vec![self.is_alu, self.is_ecall, self.is_auipc, self.is_unimpl,self.is_iadd32];
+        let columns = vec![self.is_alu, self.is_ecall, self.is_auipc, self.is_unimpl,self.is_iadd32,self.is_isub32,
+        self.is_imul32,self.is_idivs32,self.is_idivu32];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS);
         columns.into_iter()
     }

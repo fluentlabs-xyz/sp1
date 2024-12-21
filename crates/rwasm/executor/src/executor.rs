@@ -819,10 +819,48 @@ impl<'a> Executor<'a> {
                
 
             }
-            Instruction::I32Sub => todo!(),
-            Instruction::I32Mul => todo!(),
-            Instruction::I32DivS => todo!(),
-            Instruction::I32DivU => todo!(),
+            Instruction::I32Sub => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1.wrapping_sub(arg2);
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::SUB, res, arg1, arg2, lookup_id); 
+               
+            },
+            Instruction::I32Mul => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1.wrapping_mul(arg2);
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::MUL, res, arg1, arg2, lookup_id); 
+               
+            },
+            Instruction::I32DivS => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                let signed_arg1 = arg1 as i32;
+                let signed_arg2 = arg2 as i32;
+                res = (arg1.wrapping_div(arg2)) as u32;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::DIV, res, arg1, arg2, lookup_id); 
+               
+            },
+            Instruction::I32DivU => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1.wrapping_div(arg2);
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::DIVU, res, arg1, arg2, lookup_id); 
+               
+            },
             Instruction::I32RemS => todo!(),
             Instruction::I32RemU => todo!(),
             Instruction::I32And => todo!(),
