@@ -18,6 +18,13 @@ pub fn rwasm_ins_to_sp1_alu(ins:&Instruction)->Opcode{
         Instruction::I32DivU=>{
             Opcode::DIVU
         },
+        Instruction::I32RemU=>{
+            Opcode::REMU
+        },
+        Instruction::I32RemS=>{
+            Opcode::REM
+        },
+
 
 
         _=>{todo!()}

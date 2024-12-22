@@ -845,7 +845,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 let signed_arg1 = arg1 as i32;
                 let signed_arg2 = arg2 as i32;
-                res = (arg1.wrapping_div(arg2)) as u32;
+                res = (signed_arg1.wrapping_div(signed_arg2)) as u32;
                 next_sp = sp-4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::DIV, res, arg1, arg2, lookup_id); 
@@ -861,8 +861,28 @@ impl<'a> Executor<'a> {
                 self.emit_alu(clk, Opcode::DIVU, res, arg1, arg2, lookup_id); 
                
             },
-            Instruction::I32RemS => todo!(),
-            Instruction::I32RemU => todo!(),
+            Instruction::I32RemS => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                let signed_arg1 = arg1 as i32;
+                let signed_arg2 = arg2 as i32;
+                res = (signed_arg1.wrapping_rem(signed_arg2)) as u32;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::REM, res, arg1, arg2, lookup_id); 
+               
+            },
+            Instruction::I32RemU => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1.wrapping_rem(arg2);
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::REMU, res, arg1, arg2, lookup_id); 
+               
+            },
             Instruction::I32And => todo!(),
             Instruction::I32Or => todo!(),
             Instruction::I32Xor => todo!(),
