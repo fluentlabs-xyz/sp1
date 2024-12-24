@@ -57,8 +57,8 @@ mod tests {
 
         let program = Program {
             instructions,
-            pc_base: 0,
-            pc_start: 0,
+            pc_base: 1,//If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1,//If it's a shard with "CPU", then `start_pc` should never equal zero
             memory_image: mem,
             preprocessed_shape: None,
         };
