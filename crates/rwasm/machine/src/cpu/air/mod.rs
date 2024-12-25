@@ -12,7 +12,7 @@ use sp1_stark::{
     air::{BaseAirBuilder, PublicValues, SP1AirBuilder, SP1_PROOF_NUM_PV_ELTS},
     Word,
 };
-use crate::air::WordAirBuilder;
+use crate::{air::WordAirBuilder, alu};
 
 use crate::{
     air::{MemoryAirBuilder, SP1CoreAirBuilder}, cpu::{
@@ -55,18 +55,8 @@ where
 
         let is_memory_instruction: AB::Expr =local.selectors.is_unimpl.into();
         let is_branch_instruction: AB::Expr = local.selectors.is_unimpl.into();
-         let is_alu_instruction: AB::Expr = self.is_alu_instruction::<AB>(&local.selectors);
-
-        // ALU instructions.
-        builder.send_alu(
-            local.instruction.opcode,
-            local.op_res_val(),
-            local.op_arg1_val(),
-            local.op_arg2_val(),
-            local.shard,
-            local.nonce,
-            is_alu_instruction,
-        );
+        
+        self.eval_alu_ops::<AB>(builder, local);
 
         // // Branch instructions.
         // self.eval_branch_ops::<AB>(builder, is_branch_instruction.clone(), local, next);
@@ -116,11 +106,19 @@ where
 
 impl CpuChip {
     /// Whether the instruction is an ALU instruction.
-    pub(crate) fn is_alu_instruction<AB: SP1AirBuilder>(
+    pub(crate) fn is_ordinary_alu_instruction<AB: SP1AirBuilder>(
         &self,
         opcode_selectors: &OpcodeSelectorCols<AB::Var>,
     ) -> AB::Expr {
-        opcode_selectors.is_alu.into()
+        opcode_selectors.is_ordinary_alu.into()
+    }
+
+     /// Whether the instruction is an ALU instruction.
+     pub(crate) fn is_comparision_alu_instruction<AB: SP1AirBuilder>(
+        &self,
+        opcode_selectors: &OpcodeSelectorCols<AB::Var>,
+    ) -> AB::Expr {
+        opcode_selectors.is_comparison_alu.into()
     }
 
     // /// Constraints related to jump operations.
@@ -419,6 +417,109 @@ impl CpuChip {
 
         // make sure the result is correclty write into memory
         builder.assert_word_eq(local.res, *local.op_res_access.value());
+    }
+
+    pub(crate) fn eval_alu_ops<AB: SP1AirBuilder>(
+        &self,
+        builder: &mut AB,
+        local: &CpuCols<AB::Var>,
+    ){
+        let is_ordinary_alu_instruction: AB::Expr = self.is_ordinary_alu_instruction::<AB>(&local.selectors);
+        let is_comparison_alu_instruction: AB::Expr  = self.is_comparision_alu_instruction::<AB>(&local.selectors);
+         // oridnary ALU instructions.
+         builder.send_alu(
+            local.instruction.opcode,
+            local.op_res_val(),
+            local.op_arg1_val(),
+            local.op_arg2_val(),
+            local.shard,
+            local.nonce,
+            is_ordinary_alu_instruction,
+        );
+        let alu_cols = local.opcode_specific_columns.alu();
+
+
+        
+        
+        // comparision ALU instruction.
+        // we first get the boolean value of a_eq_b a_gt_b and a_lt_b
+        // we then use them to prove the correctness of comparision ops.
+        builder
+            .when(is_comparison_alu_instruction.clone())
+            .when(alu_cols.arg1_eq_arg2)
+            .assert_word_eq(local.op_arg1_val(),local.op_arg2_val());
+
+        // Calculate a_lt_b <==> a < b (using appropriate signedness).
+        let use_signed_comparison = local.selectors.is_i32ges + local.selectors.is_i32gts+
+        local.selectors.is_i32les;
+        let comparison_alu = local.opcode_specific_columns.alu();
+
+        // assert that all comparison variable are bool
+        builder.when(is_comparison_alu_instruction.clone()).assert_bool(comparison_alu.res_bool);
+        builder.when(is_comparison_alu_instruction.clone()).assert_bool(comparison_alu.arg1_eq_arg2);
+        builder.when(is_comparison_alu_instruction.clone()).assert_bool(comparison_alu.arg1_gt_arg2);
+        builder.when(is_comparison_alu_instruction.clone()).assert_bool(comparison_alu.arg1_lt_arg2);
+        builder.send_alu(
+            use_signed_comparison.clone() * Opcode::SLT.as_field::<AB::F>()
+                + (AB::Expr::one() - use_signed_comparison.clone())
+                    * Opcode::SLTU.as_field::<AB::F>(),
+            Word::extend_var::<AB>(comparison_alu.arg1_lt_arg2),
+            local.op_arg1_val(),
+            local.op_arg2_val(),
+            local.shard,
+            comparison_alu.a_lt_b_nonce,
+            is_comparison_alu_instruction.clone(),
+        );
+
+        // Calculate a_gt_b <==> a > b (using appropriate signedness).
+        builder.send_alu(
+            use_signed_comparison.clone() * Opcode::SLT.as_field::<AB::F>()
+                + (AB::Expr::one() - use_signed_comparison) * Opcode::SLTU.as_field::<AB::F>(),
+            Word::extend_var::<AB>(comparison_alu.arg1_gt_arg2),
+            local.op_arg2_val(),
+            local.op_arg1_val(),
+            local.shard,
+            comparison_alu.a_gt_b_nonce,
+            is_comparison_alu_instruction.clone(),
+        );
+        
+        builder
+        .when(((local.selectors.is_i32gts+local.selectors.is_i32gtu) 
+            * comparison_alu.res_bool )
+            +(local.selectors.is_i32les+local.selectors.is_i32leu)
+            *(AB::Expr::one()-comparison_alu.res_bool))
+        .assert_one(comparison_alu.arg1_gt_arg2);
+       
+        builder
+        .when(((local.selectors.is_i32gts+local.selectors.is_i32gtu) 
+            *(AB::Expr::one()-comparison_alu.res_bool))
+            +(local.selectors.is_i32les+local.selectors.is_i32leu)
+            *comparison_alu.res_bool )
+        .assert_one(comparison_alu.arg1_lt_arg2+comparison_alu.arg1_eq_arg2);
+               
+        builder
+        .when((local.selectors.is_i32ges+local.selectors.is_i32geu)
+            *comparison_alu.res_bool)
+        .assert_one(comparison_alu.arg1_gt_arg2+comparison_alu.arg1_eq_arg2);
+        
+        builder
+        .when((local.selectors.is_i32ges+local.selectors.is_i32geu)
+            *(AB::Expr::one()-comparison_alu.res_bool))
+        .assert_one(comparison_alu.arg1_lt_arg2);   
+        
+        builder.when(local.selectors.is_i32eq*comparison_alu.res_bool+
+            local.selectors.is_i32ne*(AB::Expr::one()-comparison_alu.res_bool))
+            .assert_one(comparison_alu.arg1_eq_arg2);
+        builder.when(local.selectors.is_i32eq *(AB::Expr::one()-comparison_alu.res_bool) 
+        +local.selectors.is_i32ne*comparison_alu.res_bool)
+        .assert_one(comparison_alu.arg1_gt_arg2+comparison_alu.arg1_lt_arg2);
+        
+        builder.when(local.selectors.is_i32eqz).assert_word_zero(local.op_arg2);
+        builder.when(local.selectors.is_i32eqz * comparison_alu.res_bool)
+        .assert_word_zero(local.op_arg1_val());
+        builder.when(local.selectors.is_i32eqz * (AB::Expr::one()-comparison_alu.res_bool))
+        .assert_one(comparison_alu.arg1_gt_arg2+comparison_alu.arg1_lt_arg2);
+        
     }
 }
 
