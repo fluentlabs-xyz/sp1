@@ -14,6 +14,7 @@ pub const NUM_INSTRUCTION_COLS: usize = size_of::<InstructionCols<u8>>();
 pub struct InstructionCols<T> {
     /// The opcode for this cycle.
     pub opcode: T,
+    pub is_unary: T,
     pub is_binary: T,
 }
 
@@ -22,6 +23,7 @@ impl<F: PrimeField> InstructionCols<F> {
 
         let sp1_op = rwasm_ins_to_sp1_alu(&instruction);
         self.opcode=sp1_op.as_field();
+        self.is_unary = F::from_bool(instruction.is_unary_instruction());
         self.is_binary = F::from_bool(instruction.is_binary_instruction());
     }
 }

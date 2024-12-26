@@ -49,6 +49,10 @@ where
             local.is_real,
         );
 
+        //instruction must be either unary or binary
+        builder.assert_bool(local.instruction.is_unary);
+        builder.assert_bool(local.instruction.is_binary);
+        builder.assert_one(local.instruction.is_unary+local.instruction.is_binary);
         // // Compute some flags for which type of instruction we are dealing with.
         // let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
         // let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
@@ -95,7 +99,7 @@ where
 
         //check op memory access
         
-        self.eval_binary_op_memory(builder, local);
+        self.eval_op_memory(builder, local);
         // Check that the is_real flag is correct.
         self.eval_is_real(builder, local, next);
     }
@@ -340,6 +344,12 @@ impl CpuChip {
             .when(next.is_real)
             .assert_eq(next.sp , local.next_sp);
 
+         //verify that sp remains the same if op is unary.
+         builder
+         .when(local.is_real)
+         .when(local.instruction.is_unary)
+         .assert_eq(local.next_sp,local.sp);
+
         //verify that sp decreses by 4 if op is binary.
         builder
             .when(local.is_real)
@@ -396,7 +406,7 @@ impl CpuChip {
         builder.when_transition().when_not(local.is_real).assert_zero(next.is_real);
     }
 
-    fn eval_binary_op_memory<AB: SP1AirBuilder>(
+    fn eval_op_memory<AB: SP1AirBuilder>(
         &self,
         builder: &mut AB,
         local: &CpuCols<AB::Var>,
@@ -404,16 +414,16 @@ impl CpuChip {
         let shard = local.shard;
         let clk = local.clk;
         //make sure the memory access are correct
+        
         builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real);
-        builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), &local.op_arg2_access, local.is_real);
+        builder.when(local.instruction.is_binary).eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), &local.op_arg2_access, local.is_real);
         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4), local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.is_real);
         
         // make sure the arg1 and arg2 are correctly read from stack without change.
         
-        builder.assert_word_eq(local.op_arg1, *local.op_arg1_access.prev_value());
+      
         builder.assert_word_eq(local.op_arg1, *local.op_arg1_access.value());
-        builder.assert_word_eq(local.op_arg2, *local.op_arg2_access.prev_value());
-        builder.assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
+        builder.when(local.instruction.is_binary).assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
 
         // make sure the result is correclty write into memory
         builder.assert_word_eq(local.res, *local.op_res_access.value());

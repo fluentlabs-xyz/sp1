@@ -461,6 +461,15 @@ impl<'a> Executor<'a> {
         )
     }
 
+    fn fetch_unary_op_data(&mut self)->Option<MemoryReadRecord>{
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let arg1_record = self.mr(sp, shard, clk, None);
+       
+        Some(arg1_record)
+    }
+
     fn fetch_binary_op_data(&mut self)->(Option<MemoryReadRecord>,Option<MemoryReadRecord>){
         let sp = self.state.sp;
         let clk = self.state.clk;
@@ -656,7 +665,7 @@ impl<'a> Executor<'a> {
         let mut sp = self.state.sp;
         let mut next_pc = self.state.pc.wrapping_add(4);
         let mut next_sp = sp;//we do not know the next_sp until we know the operator
-        let (arg1, arg2, res): (u32, u32, u32);
+        let (mut arg1, mut arg2, mut res): (u32, u32, u32) = (0,0,0);
         let mut arg1_record:Option<MemoryReadRecord>=None;
         let mut arg2_record:Option<MemoryReadRecord> =None;
         let mut res_record:Option<MemoryWriteRecord>= None;
@@ -771,17 +780,113 @@ impl<'a> Executor<'a> {
             Instruction::F32Const(untyped_value) => todo!(),
             Instruction::F64Const(untyped_value) => todo!(),
             Instruction::ConstRef(const_ref) => todo!(),
-            Instruction::I32Eqz => todo!(),
-            Instruction::I32Eq => todo!(),
-            Instruction::I32Ne => todo!(),
-            Instruction::I32LtS => todo!(),
-            Instruction::I32LtU => todo!(),
-            Instruction::I32GtS => todo!(),
-            Instruction::I32GtU => todo!(),
-            Instruction::I32LeS => todo!(),
-            Instruction::I32LeU => todo!(),
-            Instruction::I32GeS => todo!(),
-            Instruction::I32GeU => todo!(),
+            Instruction::I32Eqz => {
+                // do not emit alu and event are generated in emit_cpu_dep
+                let arg1_record = self.fetch_unary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                res = (arg1 == 0) as u32;
+                has_res = true;
+            },
+            Instruction::I32Eq => {
+               // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = (arg1==arg2) as u32;
+                next_sp = sp-4;
+                has_res = true;
+                
+               
+            },
+            Instruction::I32Ne => {
+               // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = (arg1!=arg2) as u32;
+                next_sp = sp-4;
+                has_res = true; 
+            },
+            Instruction::I32LtS => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                let arg1_signed = arg1 as i32;
+                let arg2_singed = arg2 as i32;
+                res = (arg1_signed < arg2_singed) as u32;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::SLT, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32LtU => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = (arg1 < arg2) as u32;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::SLTU, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32GtS => {
+                 // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                let arg1_signed = arg1 as i32;
+                let arg2_singed = arg2 as i32;
+                res = (arg1_signed > arg2_singed) as u32;
+                next_sp = sp-4;
+                has_res = true;
+            },
+            Instruction::I32GtU => {
+                 // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = (arg1 > arg2) as u32;
+                next_sp = sp-4;
+                has_res = true;
+            },
+            Instruction::I32LeS => {
+                  // do not emit alu and event are generated in emit_cpu_dep
+                  (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                  arg1 = arg1_record.unwrap().value;
+                  arg2 = arg2_record.unwrap().value;
+                  let arg1_signed = arg1 as i32;
+                  let arg2_singed = arg2 as i32;
+                  res = (arg1_signed <= arg2_singed) as u32;
+                  next_sp = sp-4;
+                  has_res = true;
+            },
+            Instruction::I32LeU => {
+                 // do not emit alu and event are generated in emit_cpu_dep
+                 (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                 arg1 = arg1_record.unwrap().value;
+                 arg2 = arg2_record.unwrap().value;
+                 res = (arg1 <= arg2) as u32;
+                 next_sp = sp-4;
+                 has_res = true;
+            },
+            Instruction::I32GeS => {
+                   // do not emit alu and event are generated in emit_cpu_dep
+                   (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                   arg1 = arg1_record.unwrap().value;
+                   arg2 = arg2_record.unwrap().value;
+                   let arg1_signed = arg1 as i32;
+                   let arg2_singed = arg2 as i32;
+                   res = (arg1_signed >= arg2_singed) as u32;
+                   next_sp = sp-4;
+                   has_res = true;
+            },
+            Instruction::I32GeU => {
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = (arg1 >= arg2) as u32;
+                next_sp = sp-4;
+                has_res = true;  
+            },
             Instruction::I64Eqz => todo!(),
             Instruction::I64Eq => todo!(),
             Instruction::I64Ne => todo!(),
