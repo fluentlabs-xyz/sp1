@@ -1,3 +1,4 @@
+mod alu;
 mod auipc;
 mod branch;
 mod ecall;
@@ -6,7 +7,7 @@ mod jump;
 mod memory;
 mod opcode;
 mod opcode_specific;
-
+pub use alu::*;
 pub use auipc::*;
 pub use branch::*;
 pub use ecall::*;

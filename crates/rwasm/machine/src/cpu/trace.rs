@@ -1,5 +1,6 @@
 use hashbrown::HashMap;
 use itertools::Itertools;
+use rwasm::engine::bytecode::Instruction;
 use sp1_primitives::consts::WORD_SIZE;
 use sp1_rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, CpuEvent, LookupId, MemoryRecordEnum},
@@ -173,6 +174,7 @@ impl CpuChip {
         // }
 
         // // Populate memory, branch, jump, and auipc specific fields.
+        self.populate_alu(cols, event,nonce_lookup);
         // self.populate_memory(cols, event, blu_events, nonce_lookup);
         // self.populate_branch(cols, event, nonce_lookup);
         // self.populate_jump(cols, event, nonce_lookup);
@@ -562,4 +564,38 @@ impl CpuChip {
             )
         };
     }
+
+    fn populate_alu<F: PrimeField>(
+        &self,
+        cols: &mut CpuCols<F>,
+        event: &CpuEvent,
+        nonce_lookup: &HashMap<LookupId, u32>    
+    ) {
+       match event.instruction
+       {
+            Instruction::I32GtS|Instruction::I32GtU|
+            Instruction::I32GeS|Instruction::I32GeU|
+            Instruction::I32LeS|Instruction::I32LeU|
+            Instruction::I32Eqz |Instruction::I32Eq |
+            Instruction::I32Ne=>{
+                let alu = cols.opcode_specific_columns.alu_mut();
+                alu.arg1_eq_arg2 = F::from_bool(event.arg1 == event.arg2);
+                alu.arg1_gt_arg2 = F::from_bool(event.arg1 > event.arg2);
+                alu.arg1_lt_arg2 = F::from_bool(event.arg1 < event.arg2);
+                alu.res_bool = F::from_canonical_u32(event.res);
+
+                alu.a_lt_b_nonce = F::from_canonical_u32(
+                    nonce_lookup.get(&event.branch_lt_lookup_id).copied().unwrap_or_default(),
+                );
+    
+                alu.a_gt_b_nonce = F::from_canonical_u32(
+                    nonce_lookup.get(&event.branch_gt_lookup_id).copied().unwrap_or_default(),
+                );
+            }
+             _=>{
+                return;
+            }
+       }
+    }
+
 }

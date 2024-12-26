@@ -6,7 +6,7 @@ use std::{
 
 use static_assertions::const_assert;
 
-use super::ecall::EcallCols;
+use super::{ecall::EcallCols, AluCols};
 
 pub const NUM_OPCODE_SPECIFIC_COLS: usize = size_of::<OpcodeSpecificCols<u8>>();
 
@@ -19,6 +19,7 @@ pub union OpcodeSpecificCols<T: Copy> {
     jump: JumpCols<T>,
     auipc: AuipcCols<T>,
     ecall: EcallCols<T>,
+    alu: AluCols<T>,
 }
 
 impl<T: Copy + Default> Default for OpcodeSpecificCols<T> {
@@ -69,5 +70,12 @@ impl<T: Copy> OpcodeSpecificCols<T> {
     }
     pub fn ecall_mut(&mut self) -> &mut EcallCols<T> {
         unsafe { &mut self.ecall }
+    }
+
+    pub fn alu(&self) -> &AluCols<T> {
+        unsafe { &self.alu }
+    }
+    pub fn alu_mut(&mut self) -> &mut AluCols<T> {
+        unsafe { &mut self.alu }
     }
 }
