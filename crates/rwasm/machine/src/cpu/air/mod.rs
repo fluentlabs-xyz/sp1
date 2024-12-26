@@ -49,6 +49,9 @@ where
             local.is_real,
         );
 
+        builder.when(local.is_real).assert_bool(local.instruction.is_unary);
+        builder.when(local.is_real).assert_bool(local.instruction.is_binary);
+        builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary);
         // // Compute some flags for which type of instruction we are dealing with.
         // let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
         // let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
@@ -403,19 +406,17 @@ impl CpuChip {
         let shard = local.shard;
         let clk = local.clk;
         //make sure the memory access are correct
+        //always need to check arg1
+        //only check arg2 if instruction is binary
         builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real);
-        builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), &local.op_arg2_access, local.is_real);
-        builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4), local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.is_real);
-        
-        // make sure the arg1 and arg2 are correctly read from stack without change.
-        
-        builder.assert_word_eq(local.op_arg1, *local.op_arg1_access.prev_value());
-        builder.assert_word_eq(local.op_arg1, *local.op_arg1_access.value());
-        builder.assert_word_eq(local.op_arg2, *local.op_arg2_access.prev_value());
-        builder.assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
-
+        builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
+        &local.op_arg2_access, local.instruction.is_binary);
+        builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
+         local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.is_real);
         // make sure the result is correclty write into memory
         builder.assert_word_eq(local.res, *local.op_res_access.value());
+        builder.when(local.instruction.is_binary).assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
+
     }
 
     pub(crate) fn eval_alu_ops<AB: SP1AirBuilder>(
