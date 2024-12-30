@@ -782,10 +782,11 @@ impl<'a> Executor<'a> {
             Instruction::ConstRef(const_ref) => todo!(),
             Instruction::I32Eqz => {
                 // do not emit alu and event are generated in emit_cpu_dep
-                let arg1_record = self.fetch_unary_op_data();
+                arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 res = (arg1 == 0) as u32;
                 has_res = true;
+                println!("arg1_record:{:?} res: {} has_res: {}",arg1_record,res,has_res);
             },
             Instruction::I32Eq => {
                // do not emit alu and event are generated in emit_cpu_dep

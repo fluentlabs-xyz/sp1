@@ -347,6 +347,12 @@ impl CpuChip {
             .when(local.is_real)
             .when(local.instruction.is_binary)
             .assert_eq(local.next_sp + AB::Expr::from_canonical_u8(4), local.sp);
+
+         //verify that sp decreses by 4 if op is binary.
+         builder
+         .when(local.is_real)
+         .when(local.instruction.is_unary)
+         .assert_eq(local.next_sp,local.sp);
     }
 
 
@@ -412,7 +418,10 @@ impl CpuChip {
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
         &local.op_arg2_access, local.instruction.is_binary);
         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
-         local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.is_real);
+         local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_binary);
+         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
+         local.sp, &local.op_res_access, local.instruction.is_unary);
+          
         // make sure the result is correclty write into memory
         builder.assert_word_eq(local.res, *local.op_res_access.value());
         builder.when(local.instruction.is_binary).assert_word_eq(local.op_arg2, *local.op_arg2_access.value());

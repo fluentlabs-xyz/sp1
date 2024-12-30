@@ -1,32 +1,35 @@
 use sp1_rwasm_executor::{Opcode};
 use rwasm::engine::bytecode::Instruction;
 
-pub fn rwasm_ins_to_sp1_alu(ins:&Instruction)->Opcode{
+pub fn rwasm_ins_to_sp1_alu(ins:&Instruction)->Option<Opcode>{
     match ins{
         Instruction::I32Add=>{
-            Opcode::ADD
+            Some(Opcode::ADD)
         },
         Instruction::I32Sub=>{
-            Opcode::SUB
+           Some( Opcode::SUB)
         },
         Instruction::I32Mul=>{
-            Opcode::MUL
+            Some(Opcode::MUL)
         },
         Instruction::I32DivS=>{
-            Opcode::DIV
+            Some(Opcode::DIV)
         },
         Instruction::I32DivU=>{
-            Opcode::DIVU
+            Some(Opcode::DIVU)
         },
         Instruction::I32RemU=>{
-            Opcode::REMU
+            Some(Opcode::REMU)
         },
         Instruction::I32RemS=>{
-            Opcode::REM
+            Some(Opcode::REM)
         },
-
-
-
-        _=>{todo!()}
+        Instruction::I32LtS=>{
+            Some(Opcode::SLT)
+        },
+        Instruction::I32LtU=>{
+            Some(Opcode::SLTU)
+        }
+         _=>{None}
     }
 }

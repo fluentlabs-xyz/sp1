@@ -126,6 +126,7 @@ impl CpuChip {
         cols.op_arg1=event.arg1.into();
         cols.op_arg2=event.arg2.into();
         cols.res=event.res.into();
+        println!("evnet ins:{}",event.instruction);
         // Populate memory accesses for a, b, and c.
         if let Some(record) = event.arg1_record {
             println!("arg_1 record:{:?}",record);

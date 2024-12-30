@@ -22,7 +22,10 @@ impl<F: PrimeField> InstructionCols<F> {
     pub fn populate(&mut self, instruction: Instruction) {
 
         let sp1_op = rwasm_ins_to_sp1_alu(&instruction);
-        self.opcode=sp1_op.as_field();
+        match sp1_op{
+            Some(sp1_op)=>{self.opcode=sp1_op.as_field();}
+            None => (),
+        }
         self.is_unary = F::from_bool(instruction.is_unary_instruction());
         self.is_binary = F::from_bool(instruction.is_binary_instruction());
     }

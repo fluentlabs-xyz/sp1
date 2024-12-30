@@ -57,7 +57,7 @@ pub struct OpcodeSelectorCols<T> {
 
 impl<F: PrimeField> OpcodeSelectorCols<F> {
     pub fn populate(&mut self, instruction: Instruction) {
-        let op_code = instruction.code_value() as u32;
+        
         if instruction.is_alu_instruction() {
             // I32 Lts and I32 Ltu can use sp1 circuit directly so 
             // they do not need go to compare

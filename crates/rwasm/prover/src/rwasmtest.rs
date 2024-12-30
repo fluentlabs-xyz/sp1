@@ -57,8 +57,66 @@ mod tests {
 
         let program = Program {
             instructions,
-            pc_base: 1,//If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1,//If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
+
+        program
+    }
+
+    fn build_elf2() -> Program {
+        /*
+         let t0 = Register::X5;
+               let syscall_id = self.register(t0);
+               c = self.rr(Register::X11, MemoryAccessPosition::C);
+               b = self.rr(Register::X10, MemoryAccessPosition::B);
+               let syscall = SyscallCode::from_u32(syscall_id);
+        */
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x11;
+        let y_value: u32 = 0x23;
+        let z1_value: u32 = 0x3;
+        let z2_value: u32 = 0x37;
+        let z3_value: u32 = 0x12;
+        let z4_value: u32 = 0x2;
+        let z5_value: u32 = 0x7;
+        let z6_value: u32 = 0x21;
+        let z7_value: u32 = 0x333333;
+        let z8_value: u32 = 0x444444;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z1_value);
+        mem.insert(sp_value - 12, z2_value);
+        mem.insert(sp_value - 16, z3_value);
+        mem.insert(sp_value - 20, z4_value);
+        mem.insert(sp_value - 24, z5_value);
+        mem.insert(sp_value - 28, z6_value);
+        mem.insert(sp_value - 24, z7_value);
+        mem.insert(sp_value - 28, z8_value);
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::I32Ne,
+            Instruction::I32Eq,
+            Instruction::I32GtS,
+            Instruction::I32GtU,
+            Instruction::I32LeS,
+            Instruction::I32LeU,
+            Instruction::I32GeS,
+            Instruction::I32GeU,
+            Instruction::I32LtS,
+            Instruction::I32Eqz,
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
             memory_image: mem,
             preprocessed_shape: None,
         };
@@ -68,8 +126,37 @@ mod tests {
     }
 
     #[test]
-    fn test_rwasm_proof2() {
+    fn test_rwasm_proof1() {
         let mut program = build_elf();
+        setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
+
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
+
+    #[test]
+    fn test_rwasm_proof2() {
+        let mut program = build_elf2();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();

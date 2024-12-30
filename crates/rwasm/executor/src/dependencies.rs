@@ -187,8 +187,8 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
         Instruction::I32Eqz |Instruction::I32Ne|
         Instruction::I32Eq
      ){
-        let use_signed_comparison = matches!(event.instruction, Instruction::I32GeU |
-            Instruction::I32GtU|Instruction::I32LeU);
+        let use_signed_comparison = matches!(event.instruction, Instruction::I32GeS |
+            Instruction::I32GtS|Instruction::I32LeS);
         let arg1_lt_arg2 = if use_signed_comparison {
             (event.arg1 as i32) < (event.arg2 as i32)
         } else {
