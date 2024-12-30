@@ -34,16 +34,8 @@ pub struct OpcodeSelectorCols<T> {
     pub is_unimpl: T,
     // The following does not need selector because 
     // they are check directly with sp1 alu.
-    // pub is_i32add: T,
-    // pub is_i32sub: T,
-    // pub is_i32mul: T,
-    // pub is_i32divu:T,
-    // pub is_i32divs:T,
-    // pub is_i32remu: T,
-    // pub is_i32rem: T,
-
-    // pub is_i32lts: T,
-    // pub is_i32ltu: T,
+    // i32add, i32sub,i32mul,i32sub,i32divu, i32divs,i32remu,
+    // i32rems,i32and,i32or,i32xor,i32shru,i32shl,i32shrs
     pub is_i32les: T,
     pub is_i32leu: T,
     pub is_i32gts: T,

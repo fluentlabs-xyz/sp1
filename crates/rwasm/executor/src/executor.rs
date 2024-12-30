@@ -1,10 +1,9 @@
 use std::{
-    fs::File,
-    io::{BufWriter, Write},
-    sync::Arc,
+    fs::File, io::{BufWriter, Write}, ops::Shl, sync::Arc
 };
 
 use hashbrown::HashMap;
+use num::Signed;
 use serde::{Deserialize, Serialize};
 use sp1_stark::SP1CoreOpts;
 use thiserror::Error;
@@ -888,29 +887,6 @@ impl<'a> Executor<'a> {
                 next_sp = sp-4;
                 has_res = true;  
             },
-            Instruction::I64Eqz => todo!(),
-            Instruction::I64Eq => todo!(),
-            Instruction::I64Ne => todo!(),
-            Instruction::I64LtS => todo!(),
-            Instruction::I64LtU => todo!(),
-            Instruction::I64GtS => todo!(),
-            Instruction::I64GtU => todo!(),
-            Instruction::I64LeS => todo!(),
-            Instruction::I64LeU => todo!(),
-            Instruction::I64GeS => todo!(),
-            Instruction::I64GeU => todo!(),
-            Instruction::F32Eq => todo!(),
-            Instruction::F32Ne => todo!(),
-            Instruction::F32Lt => todo!(),
-            Instruction::F32Gt => todo!(),
-            Instruction::F32Le => todo!(),
-            Instruction::F32Ge => todo!(),
-            Instruction::F64Eq => todo!(),
-            Instruction::F64Ne => todo!(),
-            Instruction::F64Lt => todo!(),
-            Instruction::F64Gt => todo!(),
-            Instruction::F64Le => todo!(),
-            Instruction::F64Ge => todo!(),
             Instruction::I32Clz => todo!(),
             Instruction::I32Ctz => todo!(),
             Instruction::I32Popcnt => todo!(),
@@ -989,60 +965,64 @@ impl<'a> Executor<'a> {
                 self.emit_alu(clk, Opcode::REMU, res, arg1, arg2, lookup_id); 
                
             },
-            Instruction::I32And => todo!(),
-            Instruction::I32Or => todo!(),
-            Instruction::I32Xor => todo!(),
-            Instruction::I32Shl => todo!(),
-            Instruction::I32ShrS => todo!(),
-            Instruction::I32ShrU => todo!(),
+            Instruction::I32And => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1 & arg2;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::AND, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32Or => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1 | arg2;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::OR, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32Xor => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1 ^ arg2;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::XOR, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32Shl => {
+                 
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1.wrapping_shl(arg2);
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::SLL, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32ShrS => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = ((arg1 as i32)>> arg2) as u32;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::SRA, res, arg1, arg2, lookup_id); 
+            },
+            Instruction::I32ShrU => {
+                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = arg1 >> arg2;
+                next_sp = sp-4;
+                has_res = true;
+                self.emit_alu(clk, Opcode::SRL, res, arg1, arg2, lookup_id); 
+            },
             Instruction::I32Rotl => todo!(),
             Instruction::I32Rotr => todo!(),
-            Instruction::I64Clz => todo!(),
-            Instruction::I64Ctz => todo!(),
-            Instruction::I64Popcnt => todo!(),
-            Instruction::I64Add => todo!(),
-            Instruction::I64Sub => todo!(),
-            Instruction::I64Mul => todo!(),
-            Instruction::I64DivS => todo!(),
-            Instruction::I64DivU => todo!(),
-            Instruction::I64RemS => todo!(),
-            Instruction::I64RemU => todo!(),
-            Instruction::I64And => todo!(),
-            Instruction::I64Or => todo!(),
-            Instruction::I64Xor => todo!(),
-            Instruction::I64Shl => todo!(),
-            Instruction::I64ShrS => todo!(),
-            Instruction::I64ShrU => todo!(),
-            Instruction::I64Rotl => todo!(),
-            Instruction::I64Rotr => todo!(),
-            Instruction::F32Abs => todo!(),
-            Instruction::F32Neg => todo!(),
-            Instruction::F32Ceil => todo!(),
-            Instruction::F32Floor => todo!(),
-            Instruction::F32Trunc => todo!(),
-            Instruction::F32Nearest => todo!(),
-            Instruction::F32Sqrt => todo!(),
-            Instruction::F32Add => todo!(),
-            Instruction::F32Sub => todo!(),
-            Instruction::F32Mul => todo!(),
-            Instruction::F32Div => todo!(),
-            Instruction::F32Min => todo!(),
-            Instruction::F32Max => todo!(),
-            Instruction::F32Copysign => todo!(),
-            Instruction::F64Abs => todo!(),
-            Instruction::F64Neg => todo!(),
-            Instruction::F64Ceil => todo!(),
-            Instruction::F64Floor => todo!(),
-            Instruction::F64Trunc => todo!(),
-            Instruction::F64Nearest => todo!(),
-            Instruction::F64Sqrt => todo!(),
-            Instruction::F64Add => todo!(),
-            Instruction::F64Sub => todo!(),
-            Instruction::F64Mul => todo!(),
-            Instruction::F64Div => todo!(),
-            Instruction::F64Min => todo!(),
-            Instruction::F64Max => todo!(),
-            Instruction::F64Copysign => todo!(),
+           
             Instruction::I32WrapI64 => todo!(),
             Instruction::I32TruncF32S => todo!(),
             Instruction::I32TruncF32U => todo!(),
@@ -1077,6 +1057,7 @@ impl<'a> Executor<'a> {
             Instruction::I64TruncSatF32U => todo!(),
             Instruction::I64TruncSatF64S => todo!(),
             Instruction::I64TruncSatF64U => todo!(),
+            _=>todo!()
         }
 
 

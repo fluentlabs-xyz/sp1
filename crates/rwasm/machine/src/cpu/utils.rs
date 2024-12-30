@@ -30,6 +30,25 @@ pub fn rwasm_ins_to_sp1_alu(ins:&Instruction)->Option<Opcode>{
         Instruction::I32LtU=>{
             Some(Opcode::SLTU)
         }
+        Instruction::I32And=>{
+            Some(Opcode::AND)
+        },
+        Instruction::I32Or=>{
+            Some(Opcode::OR)
+        },
+        Instruction::I32Xor=>{
+            Some(Opcode::XOR)
+        },
+        Instruction::I32Shl=>{
+            Some(Opcode::SLL)
+        },
+        Instruction::I32ShrS=>{
+            Some(Opcode::SRA)
+        },
+        Instruction::I32ShrU=>{
+            Some(Opcode::SRL)
+        },
+        
          _=>{None}
     }
 }

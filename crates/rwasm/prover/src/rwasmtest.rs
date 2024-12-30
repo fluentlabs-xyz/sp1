@@ -124,6 +124,55 @@ mod tests {
 
         program
     }
+    
+    fn build_elf3() -> Program {
+        /*
+         let t0 = Register::X5;
+               let syscall_id = self.register(t0);
+               c = self.rr(Register::X11, MemoryAccessPosition::C);
+               b = self.rr(Register::X10, MemoryAccessPosition::B);
+               let syscall = SyscallCode::from_u32(syscall_id);
+        */
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1;
+        let y_value: u32 = 0x2;
+        let z1_value: u32 = 0x1;
+        let z2_value: u32 = 0x2;
+        let z3_value: u32 = 0x1;
+        let z4_value: u32 = 0x2;
+        let z5_value: u32 = 0x1;
+
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z1_value);
+        mem.insert(sp_value - 12, z2_value);
+        mem.insert(sp_value - 16, z3_value);
+        mem.insert(sp_value - 20, z4_value);
+        mem.insert(sp_value - 24, z5_value);
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::I32And,
+            Instruction::I32Or,
+            Instruction::I32Xor,
+            Instruction::I32Shl,
+            Instruction::I32ShrS,
+            Instruction::I32ShrU,
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
+
+        program
+    }
 
     #[test]
     fn test_rwasm_proof1() {
@@ -157,6 +206,35 @@ mod tests {
     #[test]
     fn test_rwasm_proof2() {
         let mut program = build_elf2();
+        setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
+
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
+
+    #[test]
+    fn test_rwasm_proof3() {
+        let mut program = build_elf3();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();
