@@ -1890,4 +1890,116 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
 
     }
+    #[test]
+    fn test_lts_ltu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 3222;
+        let y_value: u32 = 233;
+        let z_value: u32 = 32;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32LtS, // check whether signed x_value is less than signed y_value
+            Instruction::I32LtU, // check whether unsigned x_value is less than unsigned y_value
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_gts_gtu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 3222;
+        let y_value: u32 = 233;
+        let z_value: u32 = 32;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32GtS, // check whether signed x_value is greater than signed y_value
+            Instruction::I32GtU, // check whether unsigned x_value is greater than unsigned y_value
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
+    }
+    #[test]
+    fn test_ges_geu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 321;
+        let y_value: u32 = 233;
+        let z_value: u32 = 1;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32GeS, // check whether signed x_value is greater than or equal to signed y_value
+            Instruction::I32GeU, // check whether unsigned x_value is greater than or equal to unsigned y_value
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_les_leu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 321;
+        let y_value: u32 = 233;
+        let z_value: u32 = 0;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32LeS, // check whether signed x_value is less than or equal to signed y_value
+            Instruction::I32LeU, // check whether unsigned x_value is less than or equal to unsigned y_value
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
 }
