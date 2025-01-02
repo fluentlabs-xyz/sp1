@@ -472,28 +472,6 @@ impl<'a> Executor<'a> {
         self.mw(self.state.sp, res, self.shard(),self.state.clk, None)
 
     }
-    /// Get the current value of a register.
-    #[must_use]
-    pub fn register(&mut self, register: Register) -> u32 {
-        let addr = register as u32;
-        let record = self.state.memory.get(addr);
-
-        if self.executor_mode == ExecutorMode::Checkpoint || self.unconstrained {
-            match record {
-                Some(record) => {
-                    self.memory_checkpoint.entry(addr).or_insert_with(|| Some(*record));
-                }
-                None => {
-                    self.memory_checkpoint.entry(addr).or_insert(None);
-                }
-            }
-        }
-
-        match record {
-            Some(record) => record.value,
-            None => 0,
-        }
-    }
 
     /// Emit a CPU event.
     #[allow(clippy::too_many_arguments)]
