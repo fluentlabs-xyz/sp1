@@ -1787,4 +1787,107 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 4);
 
     }
+    #[test]
+    fn test_mul() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 32;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+
+        let instructions = vec![
+            Instruction::I32Mul, // 5 * 32 = 160
+         ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
+
+    }
+    #[test]
+    fn test_eq() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+        let y_value: u32 = 32;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+
+        let instructions = vec![
+            Instruction::I32Eq, // check whether x_value is equal y_value
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_ne() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+        let y_value: u32 = 32;
+        let z_value: u32 = 1;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32Ne, // check whether x_value is not equal y_value
+            Instruction::I32Ne,
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_eqz() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+
+        let instructions = vec![
+            Instruction::I32Eqz, // check whether x_value is zero
+         ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
+
+    }
 }
