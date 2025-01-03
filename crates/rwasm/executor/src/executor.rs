@@ -2114,4 +2114,70 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value >> (y_value + z_value));
     }
+
+    fn simple_instruction_test(opcode: Instruction, expected: u32, a: u32, b: u32) {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = a;
+        let y_value: u32 = b;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+         let instructions = vec![
+            opcode,
+        ];
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
+    }
+    #[test]
+    #[allow(clippy::unreadable_literal)]
+    fn multiplication_tests() {
+        simple_instruction_test(Instruction::I32Mul, 0x00001200, 0x00007e00, 0xb6db6db7);
+        simple_instruction_test(Instruction::I32Mul, 0x00001240, 0x00007fc0, 0xb6db6db7);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x00000000, 0x00000000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000001, 0x00000001, 0x00000001);
+        simple_instruction_test(Instruction::I32Mul, 0x00000015, 0x00000003, 0x00000007);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x00000000, 0xffff8000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x80000000, 0x00000000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x80000000, 0xffff8000);
+        simple_instruction_test(Instruction::I32Mul, 0x0000ff7f, 0xaaaaaaab, 0x0002fe7d);
+        simple_instruction_test(Instruction::I32Mul, 0x0000ff7f, 0x0002fe7d, 0xaaaaaaab);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0xff000000, 0xff000000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000001, 0xffffffff, 0xffffffff);
+        simple_instruction_test(Instruction::I32Mul, 0xffffffff, 0xffffffff, 0x00000001);
+        simple_instruction_test(Instruction::I32Mul, 0xffffffff, 0x00000001, 0xffffffff);
+    }
+    #[test]
+    fn division_tests() {
+        simple_instruction_test(Instruction::I32DivU, 3, 20, 6);
+        simple_instruction_test(Instruction::I32DivU, 715_827_879, u32::MAX - 20 + 1, 6);
+        simple_instruction_test(Instruction::I32DivU, 0, 20, u32::MAX - 6 + 1);
+        simple_instruction_test(Instruction::I32DivU, 0, u32::MAX - 20 + 1, u32::MAX - 6 + 1);
+
+        simple_instruction_test(Instruction::I32DivU, 1 << 31, 1 << 31, 1);
+        simple_instruction_test(Instruction::I32DivU, 0, 1 << 31, u32::MAX - 1 + 1);
+
+      //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 1 << 31, 0);
+       // simple_instruction_test(Instruction::I32DivU, u32::MAX, 1, 0);
+      //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 0, 0);
+
+        simple_instruction_test(Instruction::I32DivS, 3, 18, 6);
+        simple_instruction_test(Instruction::I32DivS, neg(6), neg(24), 4);
+        simple_instruction_test(Instruction::I32DivS, neg(2), 16, neg(8));
+     //   simple_instruction_test(Instruction::I32DivS, neg(1), 0, 0);
+
+        // Overflow cases
+        simple_instruction_test(Instruction::I32DivS, 1 << 31, 1 << 31, neg(1));
+        simple_instruction_test(Instruction::I32RemS, 0, 1 << 31, neg(1));
+    }
+    fn neg(a: u32) -> u32 {
+        u32::MAX - a + 1
+    }
 }
