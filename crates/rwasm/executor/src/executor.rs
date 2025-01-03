@@ -2002,4 +2002,116 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
     }
+    #[test]
+    fn test_divs_divu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 320;
+        let y_value: u32 = 10;
+        let z_value: u32 = 2;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32DivS, // divide x_value by y_value and return quotient (x and y are signed)
+            Instruction::I32DivU, // divide x_value by y_value and return quotient
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value/y_value/z_value);
+    }
+    #[test]
+    fn test_rems_remu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 320;
+        let y_value: u32 = 13;
+        let z_value: u32 = 5;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32RemS, // divide x_value by y_value and return remainder (x and y are signed)
+            Instruction::I32RemU, // divide x_value by y_value and return remainder
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, (x_value%y_value)%z_value);
+    }
+    #[test]
+    fn test_shl() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 2;
+        let y_value: u32 = 2;
+        let z_value: u32 = 3;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32Shl, // x_value is shifted left by y_value
+            Instruction::I32Shl,
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value << (y_value + z_value));
+    }
+    #[test]
+    fn test_shr_shru() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 256;
+        let y_value: u32 = 2;
+        let z_value: u32 = 3;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value - 8, z_value);
+
+        let instructions = vec![
+            Instruction::I32ShrS, // x_value is shifted right by y_value
+            Instruction::I32ShrU, //
+
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value >> (y_value + z_value));
+    }
 }
