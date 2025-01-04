@@ -984,6 +984,7 @@ impl<'a> Executor<'a> {
                 has_res = true;
                 self.emit_alu(clk, Opcode::XOR, res, arg1, arg2, lookup_id);
             }
+
             Instruction::I32Shl => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
