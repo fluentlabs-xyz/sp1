@@ -997,7 +997,7 @@ impl<'a> Executor<'a> {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
-                res = ((arg1 as i32) >> arg2) as u32;
+                res = (arg1 as i32).wrapping_shr(arg2) as u32; //TODO check
                 next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SRA, res, arg1, arg2, lookup_id);
@@ -1006,7 +1006,7 @@ impl<'a> Executor<'a> {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
-                res = arg1 >> arg2;
+                res = arg1.wrapping_shr(arg2); //Todo check
                 next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SRL, res, arg1, arg2, lookup_id);
@@ -2223,11 +2223,11 @@ mod tests {
         simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 7);
         simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 14);
         simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 31);
-        //simple_instruction_test(Instruction::I32ShrU, 0x21212121, 0x21212121, 0xffffffe0);
-        //simple_instruction_test(Instruction::I32ShrU, 0x10909090, 0x21212121, 0xffffffe1);
-        //simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 0xffffffe7);
-        //simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 0xffffffee);
-       // simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 0xffffffff);
+        simple_instruction_test(Instruction::I32ShrU, 0x21212121, 0x21212121, 0xffffffe0);
+        simple_instruction_test(Instruction::I32ShrU, 0x10909090, 0x21212121, 0xffffffe1);
+        simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 0xffffffe7);
+        simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 0xffffffee);
+        simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 0xffffffff);
 
         simple_instruction_test(Instruction::I32ShrS, 0x00000000, 0x00000000, 0);
         simple_instruction_test(Instruction::I32ShrS, 0xc0000000, 0x80000000, 1);
