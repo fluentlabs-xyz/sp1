@@ -2177,6 +2177,26 @@ mod tests {
         simple_instruction_test(Instruction::I32DivS, 1 << 31, 1 << 31, neg(1));
         simple_instruction_test(Instruction::I32RemS, 0, 1 << 31, neg(1));
     }
+    #[test]
+    fn remainder_tests() {
+        simple_instruction_test(Instruction::I32RemS, 7, 16, 9);
+        simple_instruction_test(Instruction::I32RemS, neg(4), neg(22), 6);
+        simple_instruction_test(Instruction::I32RemS, 1, 25, neg(3));
+        simple_instruction_test(Instruction::I32RemS, neg(2), neg(22), neg(4));
+        simple_instruction_test(Instruction::I32RemS, 0, 873, 1);
+        simple_instruction_test(Instruction::I32RemS, 0, 873, neg(1));
+        //simple_instruction_test(Instruction::I32RemS, 5, 5, 0);
+        //simple_instruction_test(Instruction::I32RemS, neg(5), neg(5), 0);
+        //simple_instruction_test(Instruction::I32RemS, 0, 0, 0);
+
+        simple_instruction_test(Instruction::I32RemU, 4, 18, 7);
+        simple_instruction_test(Instruction::I32RemU, 6, neg(20), 11);
+        simple_instruction_test(Instruction::I32RemU, 23, 23, neg(6));
+        simple_instruction_test(Instruction::I32RemU, neg(21), neg(21), neg(11));
+       // simple_instruction_test(Instruction::I32RemU, 5, 5, 0);
+       // simple_instruction_test(Instruction::I32RemU, neg(1), neg(1), 0);
+       // simple_instruction_test(Instruction::I32RemU, 0, 0, 0);
+    }
     fn neg(a: u32) -> u32 {
         u32::MAX - a + 1
     }
