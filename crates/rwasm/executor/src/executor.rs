@@ -1,5 +1,8 @@
 use std::{
-    fs::File, io::{BufWriter, Write}, ops::Shl, sync::Arc
+    fs::File,
+    io::{BufWriter, Write},
+    ops::Shl,
+    sync::Arc,
 };
 
 use hashbrown::HashMap;
@@ -8,11 +11,23 @@ use serde::{Deserialize, Serialize};
 use sp1_stark::SP1CoreOpts;
 use thiserror::Error;
 
-use crate::{context::SP1Context, dependencies::{emit_cpu_dependencies, emit_divrem_dependencies}, events::{
-    create_alu_lookup_id, create_alu_lookups, AluEvent, CpuEvent, LookupId,
-    MemoryAccessPosition, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
-    MemoryRecord, MemoryWriteRecord, SyscallEvent,
-}, hook::{HookEnv, HookRegistry}, memory::{Entry, PagedMemory}, record::ExecutionRecord, report::ExecutionReport, state::{ExecutionState, ForkState}, subproof::{DefaultSubproofVerifier, SubproofVerifier}, syscalls::{default_syscall_map, Syscall, SyscallCode, SyscallContext}, Opcode, Program, Register, SP_START};
+use crate::{
+    context::SP1Context,
+    dependencies::{emit_cpu_dependencies, emit_divrem_dependencies},
+    events::{
+        create_alu_lookup_id, create_alu_lookups, AluEvent, CpuEvent, LookupId,
+        MemoryAccessPosition, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
+        MemoryRecord, MemoryWriteRecord, SyscallEvent,
+    },
+    hook::{HookEnv, HookRegistry},
+    memory::{Entry, PagedMemory},
+    record::ExecutionRecord,
+    report::ExecutionReport,
+    state::{ExecutionState, ForkState},
+    subproof::{DefaultSubproofVerifier, SubproofVerifier},
+    syscalls::{default_syscall_map, Syscall, SyscallCode, SyscallContext},
+    Opcode, Program, Register, SP_START,
+};
 
 use rwasm::engine::bytecode::Instruction;
 
@@ -448,7 +463,7 @@ impl<'a> Executor<'a> {
         )
     }
 
-    fn fetch_unary_op_data(&mut self)->Option<MemoryReadRecord>{
+    fn fetch_unary_op_data(&mut self) -> Option<MemoryReadRecord> {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
@@ -457,20 +472,19 @@ impl<'a> Executor<'a> {
         Some(arg1_record)
     }
 
-    fn fetch_binary_op_data(&mut self)->(Option<MemoryReadRecord>,Option<MemoryReadRecord>){
+    fn fetch_binary_op_data(&mut self) -> (Option<MemoryReadRecord>, Option<MemoryReadRecord>) {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
         let arg1_record = self.mr(sp, shard, clk, None);
-        let arg2_record = self.mr(sp-4, shard, clk, None);
-        (Some(arg1_record),Some(arg2_record))
+        let arg2_record = self.mr(sp - 4, shard, clk, None);
+        (Some(arg1_record), Some(arg2_record))
     }
 
-    fn write_back_res(&mut self,res:u32,next_sp:u32)->MemoryWriteRecord{
-        self.state.clk+=4;
-        self.state.sp= next_sp;
-        self.mw(self.state.sp, res, self.shard(),self.state.clk, None)
-
+    fn write_back_res(&mut self, res: u32, next_sp: u32) -> MemoryWriteRecord {
+        self.state.clk += 4;
+        self.state.sp = next_sp;
+        self.mw(self.state.sp, res, self.shard(), self.state.clk, None)
     }
 
     /// Emit a CPU event.
@@ -481,15 +495,15 @@ impl<'a> Executor<'a> {
         clk: u32,
         pc: u32,
         next_pc: u32,
-        sp:u32,
-        next_sp:u32,
+        sp: u32,
+        next_sp: u32,
         instruction: Instruction,
-        arg1:u32,
-        arg2:u32,
-        res:u32,
-        arg1_record:Option<MemoryReadRecord>,
-        arg2_record:Option<MemoryReadRecord>,
-        res_record:Option<MemoryWriteRecord>,
+        arg1: u32,
+        arg2: u32,
+        res: u32,
+        arg1_record: Option<MemoryReadRecord>,
+        arg2_record: Option<MemoryReadRecord>,
+        res_record: Option<MemoryWriteRecord>,
         exit_code: u32,
         lookup_id: LookupId,
         syscall_lookup_id: LookupId,
@@ -520,7 +534,7 @@ impl<'a> Executor<'a> {
             jump_jalr_lookup_id: create_alu_lookup_id(),
             auipc_lookup_id: create_alu_lookup_id(),
         };
-        tracing::info!("cpu event: {:?}",cpu_event);
+        tracing::info!("cpu event: {:?}", cpu_event);
         self.record.cpu_events.push(cpu_event);
         emit_cpu_dependencies(self, &cpu_event);
     }
@@ -537,7 +551,7 @@ impl<'a> Executor<'a> {
             c,
             sub_lookups: create_alu_lookups(),
         };
-        tracing::info!("aluevent{:?}",event);
+        tracing::info!("aluevent{:?}", event);
         match opcode {
             Opcode::ADD => {
                 self.record.add_events.push(event);
@@ -651,12 +665,12 @@ impl<'a> Executor<'a> {
         let mut exit_code = 0u32;
         let mut sp = self.state.sp;
         let mut next_pc = self.state.pc.wrapping_add(4);
-        let mut next_sp = sp;//we do not know the next_sp until we know the operator
-        let (mut arg1, mut arg2, mut res): (u32, u32, u32) = (0,0,0);
-        let mut arg1_record:Option<MemoryReadRecord>=None;
-        let mut arg2_record:Option<MemoryReadRecord> =None;
-        let mut res_record:Option<MemoryWriteRecord>= None;
-        let mut has_res :bool = false;
+        let mut next_sp = sp; //we do not know the next_sp until we know the operator
+        let (mut arg1, mut arg2, mut res): (u32, u32, u32) = (0, 0, 0);
+        let mut arg1_record: Option<MemoryReadRecord> = None;
+        let mut arg2_record: Option<MemoryReadRecord> = None;
+        let mut res_record: Option<MemoryWriteRecord> = None;
+        let mut has_res: bool = false;
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
         }
@@ -773,241 +787,230 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 res = (arg1 == 0) as u32;
                 has_res = true;
-                println!("arg1_record:{:?} res: {} has_res: {}",arg1_record,res,has_res);
-            },
+                println!("arg1_record:{:?} res: {} has_res: {}", arg1_record, res, has_res);
+            }
             Instruction::I32Eq => {
-               // do not emit alu and event are generated in emit_cpu_dep
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
-                res = (arg1==arg2) as u32;
-                next_sp = sp-4;
+                res = (arg1 == arg2) as u32;
+                next_sp = sp - 4;
                 has_res = true;
-
-
-            },
+            }
             Instruction::I32Ne => {
-               // do not emit alu and event are generated in emit_cpu_dep
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
-                res = (arg1!=arg2) as u32;
-                next_sp = sp-4;
+                res = (arg1 != arg2) as u32;
+                next_sp = sp - 4;
                 has_res = true;
-            },
+            }
             Instruction::I32LtS => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 let arg1_signed = arg1 as i32;
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed < arg2_singed) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SLT, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32LtU => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 < arg2) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SLTU, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32GtS => {
-                 // do not emit alu and event are generated in emit_cpu_dep
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 let arg1_signed = arg1 as i32;
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed > arg2_singed) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
-            },
+            }
             Instruction::I32GtU => {
-                 // do not emit alu and event are generated in emit_cpu_dep
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 > arg2) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
-            },
+            }
             Instruction::I32LeS => {
-                  // do not emit alu and event are generated in emit_cpu_dep
-                  (arg1_record,arg2_record)= self.fetch_binary_op_data();
-                  arg1 = arg1_record.unwrap().value;
-                  arg2 = arg2_record.unwrap().value;
-                  let arg1_signed = arg1 as i32;
-                  let arg2_singed = arg2 as i32;
-                  res = (arg1_signed <= arg2_singed) as u32;
-                  next_sp = sp-4;
-                  has_res = true;
-            },
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                let arg1_signed = arg1 as i32;
+                let arg2_singed = arg2 as i32;
+                res = (arg1_signed <= arg2_singed) as u32;
+                next_sp = sp - 4;
+                has_res = true;
+            }
             Instruction::I32LeU => {
-                 // do not emit alu and event are generated in emit_cpu_dep
-                 (arg1_record,arg2_record)= self.fetch_binary_op_data();
-                 arg1 = arg1_record.unwrap().value;
-                 arg2 = arg2_record.unwrap().value;
-                 res = (arg1 <= arg2) as u32;
-                 next_sp = sp-4;
-                 has_res = true;
-            },
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                res = (arg1 <= arg2) as u32;
+                next_sp = sp - 4;
+                has_res = true;
+            }
             Instruction::I32GeS => {
-                   // do not emit alu and event are generated in emit_cpu_dep
-                   (arg1_record,arg2_record)= self.fetch_binary_op_data();
-                   arg1 = arg1_record.unwrap().value;
-                   arg2 = arg2_record.unwrap().value;
-                   let arg1_signed = arg1 as i32;
-                   let arg2_singed = arg2 as i32;
-                   res = (arg1_signed >= arg2_singed) as u32;
-                   next_sp = sp-4;
-                   has_res = true;
-            },
+                // do not emit alu and event are generated in emit_cpu_dep
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                arg2 = arg2_record.unwrap().value;
+                let arg1_signed = arg1 as i32;
+                let arg2_singed = arg2 as i32;
+                res = (arg1_signed >= arg2_singed) as u32;
+                next_sp = sp - 4;
+                has_res = true;
+            }
             Instruction::I32GeU => {
                 // do not emit alu and event are generated in emit_cpu_dep
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 >= arg2) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
-            },
+            }
             Instruction::I32Clz => todo!(),
             Instruction::I32Ctz => todo!(),
             Instruction::I32Popcnt => todo!(),
             Instruction::I32Add => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_add(arg2);
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id);
-
-
             }
             Instruction::I32Sub => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_sub(arg2);
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SUB, res, arg1, arg2, lookup_id);
-
-            },
+            }
             Instruction::I32Mul => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_mul(arg2);
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::MUL, res, arg1, arg2, lookup_id);
-
-            },
+            }
             Instruction::I32DivS => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 let signed_arg1 = arg1 as i32;
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_div(signed_arg2)) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::DIV, res, arg1, arg2, lookup_id);
-
-            },
+            }
             Instruction::I32DivU => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_div(arg2);
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::DIVU, res, arg1, arg2, lookup_id);
-
-            },
+            }
             Instruction::I32RemS => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 let signed_arg1 = arg1 as i32;
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_rem(signed_arg2)) as u32;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::REM, res, arg1, arg2, lookup_id);
-
-            },
+            }
             Instruction::I32RemU => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_rem(arg2);
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::REMU, res, arg1, arg2, lookup_id);
-
-            },
+            }
             Instruction::I32And => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 & arg2;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::AND, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32Or => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 | arg2;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::OR, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32Xor => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 ^ arg2;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::XOR, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32Shl => {
-
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_shl(arg2);
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SLL, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32ShrS => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
-                res = ((arg1 as i32)>> arg2) as u32;
-                next_sp = sp-4;
+                res = ((arg1 as i32) >> arg2) as u32;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SRA, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32ShrU => {
-                (arg1_record,arg2_record)= self.fetch_binary_op_data();
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 >> arg2;
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 has_res = true;
                 self.emit_alu(clk, Opcode::SRL, res, arg1, arg2, lookup_id);
-            },
+            }
             Instruction::I32Rotl => todo!(),
             Instruction::I32Rotr => todo!(),
 
@@ -1045,18 +1048,15 @@ impl<'a> Executor<'a> {
             Instruction::I64TruncSatF32U => todo!(),
             Instruction::I64TruncSatF64S => todo!(),
             Instruction::I64TruncSatF64U => todo!(),
-            _=>todo!()
+            _ => todo!(),
         }
 
-
-        if has_res{
-            res_record=Some(self.write_back_res(res, next_sp));
+        if has_res {
+            res_record = Some(self.write_back_res(res, next_sp));
         }
 
         // Update the program counter.
         self.state.pc = next_pc;
-
-
 
         // Update the clk to the next cycle.
         self.state.clk += 4;
@@ -1403,7 +1403,7 @@ impl<'a> Executor<'a> {
 
         // Get the final public values.
         let public_values = self.record.public_values;
-        println!("done?{}",done);
+        println!("done?{}", done);
         if done {
             self.postprocess();
 
@@ -1485,14 +1485,13 @@ impl<'a> Executor<'a> {
                 None => &MemoryRecord { value: 0, shard: 0, timestamp: 0 },
             };
 
-            println!("add_0_record{:?}",addr_0_record);
-            println!("add_0_final_record{:?}",addr_0_final_record);
+            println!("add_0_record{:?}", addr_0_record);
+            println!("add_0_final_record{:?}", addr_0_final_record);
             memory_finalize_events
                 .push(MemoryInitializeFinalizeEvent::finalize_from_record(0, addr_0_final_record));
 
             let memory_initialize_events = &mut self.record.global_memory_initialize_events;
-            let addr_0_initialize_event =
-                MemoryInitializeFinalizeEvent::initialize(0, 0, true);
+            let addr_0_initialize_event = MemoryInitializeFinalizeEvent::initialize(0, 0, true);
             memory_initialize_events.push(addr_0_initialize_event);
 
             // Count the number of touched memory addresses manually, since `PagedMemory` doesn't
@@ -1543,7 +1542,6 @@ impl<'a> Executor<'a> {
     }
 }
 
-
 impl Default for ExecutorMode {
     fn default() -> Self {
         Self::Simple
@@ -1562,10 +1560,10 @@ fn log2_ceil_usize(n: usize) -> usize {
 }
 #[cfg(test)]
 mod tests {
+    use crate::{Executor, Program, SP_START};
     use hashbrown::HashMap;
     use rwasm::engine::bytecode::Instruction;
     use sp1_stark::SP1CoreOpts;
-    use crate::{Executor, Program, SP_START};
 
     #[test]
     fn test_add() {
@@ -1593,7 +1591,6 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 36);
 
         println!("initial sp_value {} and last state.sp {}", sp_value, runtime.state.sp);
-
     }
     #[test]
     fn test_sub() {
@@ -1619,7 +1616,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 28);
-
     }
     #[test]
     fn test_xor() {
@@ -1645,7 +1641,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 32);
-
     }
     #[test]
     fn test_or() {
@@ -1671,7 +1666,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 37);
-
     }
     #[test]
     fn test_and() {
@@ -1697,7 +1691,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 5);
-
     }
     #[test]
     fn test_addi_negative() {
@@ -1711,10 +1704,7 @@ mod tests {
         mem.insert(sp_value - 4, y_value);
         mem.insert(sp_value - 8, z_value);
 
-        let instructions = vec![
-            Instruction::I32Add,
-            Instruction::I32Add,
-        ];
+        let instructions = vec![Instruction::I32Add, Instruction::I32Add];
 
         let program = Program {
             instructions,
@@ -1725,8 +1715,7 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 5-1+4);
-
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 5 - 1 + 4);
     }
 
     #[test]
@@ -1756,7 +1745,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 47);
-
     }
     #[test]
     fn test_andi() {
@@ -1785,7 +1773,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 4);
-
     }
     #[test]
     fn test_mul() {
@@ -1799,7 +1786,7 @@ mod tests {
 
         let instructions = vec![
             Instruction::I32Mul, // 5 * 32 = 160
-         ];
+        ];
 
         let program = Program {
             instructions,
@@ -1811,7 +1798,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
-
     }
     #[test]
     fn test_eq() {
@@ -1876,7 +1862,7 @@ mod tests {
 
         let instructions = vec![
             Instruction::I32Eqz, // check whether x_value is zero
-         ];
+        ];
 
         let program = Program {
             instructions,
@@ -1888,7 +1874,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
-
     }
     #[test]
     fn test_lts_ltu() {
@@ -1904,7 +1889,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32LtS, // check whether signed x_value is less than signed y_value
             Instruction::I32LtU, // check whether unsigned x_value is less than unsigned y_value
-
         ];
 
         let program = Program {
@@ -1932,7 +1916,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32GtS, // check whether signed x_value is greater than signed y_value
             Instruction::I32GtU, // check whether unsigned x_value is greater than unsigned y_value
-
         ];
 
         let program = Program {
@@ -1960,7 +1943,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32GeS, // check whether signed x_value is greater than or equal to signed y_value
             Instruction::I32GeU, // check whether unsigned x_value is greater than or equal to unsigned y_value
-
         ];
 
         let program = Program {
@@ -1988,7 +1970,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32LeS, // check whether signed x_value is less than or equal to signed y_value
             Instruction::I32LeU, // check whether unsigned x_value is less than or equal to unsigned y_value
-
         ];
 
         let program = Program {
@@ -2016,7 +1997,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32DivS, // divide x_value by y_value and return quotient (x and y are signed)
             Instruction::I32DivU, // divide x_value by y_value and return quotient
-
         ];
 
         let program = Program {
@@ -2028,7 +2008,10 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value/y_value/z_value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value / y_value / z_value
+        );
     }
     #[test]
     fn test_rems_remu() {
@@ -2044,7 +2027,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32RemS, // divide x_value by y_value and return remainder (x and y are signed)
             Instruction::I32RemU, // divide x_value by y_value and return remainder
-
         ];
 
         let program = Program {
@@ -2056,7 +2038,10 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, (x_value%y_value)%z_value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            (x_value % y_value) % z_value
+        );
     }
     #[test]
     fn test_shl() {
@@ -2072,7 +2057,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32Shl, // x_value is shifted left by y_value
             Instruction::I32Shl,
-
         ];
 
         let program = Program {
@@ -2084,7 +2068,10 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value << (y_value + z_value));
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value << (y_value + z_value)
+        );
     }
     #[test]
     fn test_shr_shru() {
@@ -2100,7 +2087,6 @@ mod tests {
         let instructions = vec![
             Instruction::I32ShrS, // x_value is shifted right by y_value
             Instruction::I32ShrU, //
-
         ];
 
         let program = Program {
@@ -2112,7 +2098,10 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value >> (y_value + z_value));
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value >> (y_value + z_value)
+        );
     }
 
     fn simple_instruction_test(opcode: Instruction, expected: u32, a: u32, b: u32) {
@@ -2122,9 +2111,7 @@ mod tests {
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
         mem.insert(sp_value - 4, y_value);
-         let instructions = vec![
-            opcode,
-        ];
+        let instructions = vec![opcode];
         let program = Program {
             instructions,
             pc_base: 0,
@@ -2164,14 +2151,14 @@ mod tests {
         simple_instruction_test(Instruction::I32DivU, 1 << 31, 1 << 31, 1);
         simple_instruction_test(Instruction::I32DivU, 0, 1 << 31, u32::MAX - 1 + 1);
 
-      //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 1 << 31, 0);
-       // simple_instruction_test(Instruction::I32DivU, u32::MAX, 1, 0);
-      //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 0, 0);
+        //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 1 << 31, 0);
+        // simple_instruction_test(Instruction::I32DivU, u32::MAX, 1, 0);
+        //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 0, 0);
 
         simple_instruction_test(Instruction::I32DivS, 3, 18, 6);
         simple_instruction_test(Instruction::I32DivS, neg(6), neg(24), 4);
         simple_instruction_test(Instruction::I32DivS, neg(2), 16, neg(8));
-     //   simple_instruction_test(Instruction::I32DivS, neg(1), 0, 0);
+        //   simple_instruction_test(Instruction::I32DivS, neg(1), 0, 0);
 
         // Overflow cases
         simple_instruction_test(Instruction::I32DivS, 1 << 31, 1 << 31, neg(1));
@@ -2193,9 +2180,70 @@ mod tests {
         simple_instruction_test(Instruction::I32RemU, 6, neg(20), 11);
         simple_instruction_test(Instruction::I32RemU, 23, 23, neg(6));
         simple_instruction_test(Instruction::I32RemU, neg(21), neg(21), neg(11));
-       // simple_instruction_test(Instruction::I32RemU, 5, 5, 0);
-       // simple_instruction_test(Instruction::I32RemU, neg(1), neg(1), 0);
-       // simple_instruction_test(Instruction::I32RemU, 0, 0, 0);
+        // simple_instruction_test(Instruction::I32RemU, 5, 5, 0);
+        // simple_instruction_test(Instruction::I32RemU, neg(1), neg(1), 0);
+        // simple_instruction_test(Instruction::I32RemU, 0, 0, 0);
+    }
+    #[test]
+    #[allow(clippy::unreadable_literal)]
+    fn shift_tests() {
+        simple_instruction_test(Instruction::I32Shl, 0x00000001, 0x00000001, 0);
+        simple_instruction_test(Instruction::I32Shl, 0x00000002, 0x00000001, 1);
+        simple_instruction_test(Instruction::I32Shl, 0x00000080, 0x00000001, 7);
+        simple_instruction_test(Instruction::I32Shl, 0x00004000, 0x00000001, 14);
+        simple_instruction_test(Instruction::I32Shl, 0x80000000, 0x00000001, 31);
+        simple_instruction_test(Instruction::I32Shl, 0xffffffff, 0xffffffff, 0);
+        simple_instruction_test(Instruction::I32Shl, 0xfffffffe, 0xffffffff, 1);
+        simple_instruction_test(Instruction::I32Shl, 0xffffff80, 0xffffffff, 7);
+        simple_instruction_test(Instruction::I32Shl, 0xffffc000, 0xffffffff, 14);
+        simple_instruction_test(Instruction::I32Shl, 0x80000000, 0xffffffff, 31);
+        simple_instruction_test(Instruction::I32Shl, 0x21212121, 0x21212121, 0);
+        simple_instruction_test(Instruction::I32Shl, 0x42424242, 0x21212121, 1);
+        simple_instruction_test(Instruction::I32Shl, 0x90909080, 0x21212121, 7);
+        simple_instruction_test(Instruction::I32Shl, 0x48484000, 0x21212121, 14);
+        simple_instruction_test(Instruction::I32Shl, 0x80000000, 0x21212121, 31);
+        simple_instruction_test(Instruction::I32Shl, 0x21212121, 0x21212121, 0xffffffe0);
+        simple_instruction_test(Instruction::I32Shl, 0x42424242, 0x21212121, 0xffffffe1);
+        simple_instruction_test(Instruction::I32Shl, 0x90909080, 0x21212121, 0xffffffe7);
+        simple_instruction_test(Instruction::I32Shl, 0x48484000, 0x21212121, 0xffffffee);
+        simple_instruction_test(Instruction::I32Shl, 0x00000000, 0x21212120, 0xffffffff);
+
+        simple_instruction_test(Instruction::I32ShrU, 0xffff8000, 0xffff8000, 0);
+        simple_instruction_test(Instruction::I32ShrU, 0x7fffc000, 0xffff8000, 1);
+        simple_instruction_test(Instruction::I32ShrU, 0x01ffff00, 0xffff8000, 7);
+        simple_instruction_test(Instruction::I32ShrU, 0x0003fffe, 0xffff8000, 14);
+        simple_instruction_test(Instruction::I32ShrU, 0x0001ffff, 0xffff8001, 15);
+        simple_instruction_test(Instruction::I32ShrU, 0xffffffff, 0xffffffff, 0);
+        simple_instruction_test(Instruction::I32ShrU, 0x7fffffff, 0xffffffff, 1);
+        simple_instruction_test(Instruction::I32ShrU, 0x01ffffff, 0xffffffff, 7);
+        simple_instruction_test(Instruction::I32ShrU, 0x0003ffff, 0xffffffff, 14);
+        simple_instruction_test(Instruction::I32ShrU, 0x00000001, 0xffffffff, 31);
+        simple_instruction_test(Instruction::I32ShrU, 0x21212121, 0x21212121, 0);
+        simple_instruction_test(Instruction::I32ShrU, 0x10909090, 0x21212121, 1);
+        simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 7);
+        simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 14);
+        simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 31);
+        //simple_instruction_test(Instruction::I32ShrU, 0x21212121, 0x21212121, 0xffffffe0);
+        //simple_instruction_test(Instruction::I32ShrU, 0x10909090, 0x21212121, 0xffffffe1);
+        //simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 0xffffffe7);
+        //simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 0xffffffee);
+       // simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 0xffffffff);
+
+        simple_instruction_test(Instruction::I32ShrS, 0x00000000, 0x00000000, 0);
+        simple_instruction_test(Instruction::I32ShrS, 0xc0000000, 0x80000000, 1);
+        simple_instruction_test(Instruction::I32ShrS, 0xff000000, 0x80000000, 7);
+        simple_instruction_test(Instruction::I32ShrS, 0xfffe0000, 0x80000000, 14);
+        simple_instruction_test(Instruction::I32ShrS, 0xffffffff, 0x80000001, 31);
+        simple_instruction_test(Instruction::I32ShrS, 0x7fffffff, 0x7fffffff, 0);
+        simple_instruction_test(Instruction::I32ShrS, 0x3fffffff, 0x7fffffff, 1);
+        simple_instruction_test(Instruction::I32ShrS, 0x00ffffff, 0x7fffffff, 7);
+        simple_instruction_test(Instruction::I32ShrS, 0x0001ffff, 0x7fffffff, 14);
+        simple_instruction_test(Instruction::I32ShrS, 0x00000000, 0x7fffffff, 31);
+        simple_instruction_test(Instruction::I32ShrS, 0x81818181, 0x81818181, 0);
+        simple_instruction_test(Instruction::I32ShrS, 0xc0c0c0c0, 0x81818181, 1);
+        simple_instruction_test(Instruction::I32ShrS, 0xff030303, 0x81818181, 7);
+        simple_instruction_test(Instruction::I32ShrS, 0xfffe0606, 0x81818181, 14);
+        simple_instruction_test(Instruction::I32ShrS, 0xffffffff, 0x81818181, 31);
     }
     fn neg(a: u32) -> u32 {
         u32::MAX - a + 1
