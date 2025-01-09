@@ -28,6 +28,7 @@ pub struct OpcodeSelectorCols<T> {
     pub is_ordinary_alu: T,
     pub is_comparison_alu:T,
     /// Table selectors for opcodes.
+    pub is_memory:T,
     pub is_ecall: T,
 
     pub is_auipc: T,
@@ -45,6 +46,15 @@ pub struct OpcodeSelectorCols<T> {
     pub is_i32eq: T,
     pub is_i32ne: T,
     pub is_i32eqz: T,
+
+    pub is_i32load: T,
+    pub is_i32load16s: T,
+    pub is_i32load16u: T,
+    pub is_i32load8u:T,
+    pub is_i32load8s:T,
+    pub is_i32store:T,
+    pub is_i32store16:T,
+    pub is_i32store8:T,
 }
 
 impl<F: PrimeField> OpcodeSelectorCols<F> {
@@ -69,7 +79,7 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
         } else if instruction.is_ecall_instruction() {
             self.is_ecall = F::one();
         } else if instruction.is_memory_instruction() {
-            todo!()
+            self.is_memory = F::one();
         } else if instruction.is_branch_instruction() {
             todo!()
         }
@@ -86,6 +96,14 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
             Instruction::I64Eqz => {self.is_i32eqz=F::one()},
             Instruction::I64Eq => {self.is_i32eq=F::one()},
             Instruction::I64Ne => {self.is_i32ne=F::one()},
+            Instruction::I32Load(_)=>{self.is_i32load=F::one()},
+            Instruction::I32Load16S(_)=>{self.is_i32load=F::one()},
+            Instruction::I32Load16U(_)=>{self.is_i32load=F::one()},
+            Instruction::I32Load8S(_)=>{self.is_i32load=F::one()},
+            Instruction::I32Load8U(_)=>{self.is_i32load=F::one()},
+            Instruction::I32Store(_)=>{self.is_i32store=F::one()},
+            Instruction::I32Store16(_)=>{self.is_i32store16=F::one()},
+            Instruction::I32Store8(_)=>{self.is_i32store8=F::one()},
            _=>{}
         }
 
@@ -98,10 +116,12 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let columns = vec![self.is_alu, self.is_ordinary_alu,self.is_comparison_alu,self.is_ecall, self.is_auipc, self.is_unimpl,
+        let columns = vec![self.is_alu, self.is_ordinary_alu,self.is_comparison_alu,self.is_memory,self.is_ecall, self.is_auipc, self.is_unimpl,
         self.is_i32les,self.is_i32leu,
         self.is_i32ges,self.is_i32geu,self.is_i32gts,self.is_i32gtu,
-        self.is_i32eq,self.is_i32ne,self.is_i32eqz];
+        self.is_i32eq,self.is_i32ne,self.is_i32eqz,
+        self.is_i32load,self.is_i32load16s,self.is_i32load16u,self.is_i32load8s,self.is_i32load8u,
+        self.is_i32store,self.is_i32store16,self.is_i32store8];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS); 
         columns.into_iter()
     }

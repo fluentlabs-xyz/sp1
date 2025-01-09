@@ -478,12 +478,62 @@ impl<'a> Executor<'a> {
         (Some(arg1_record),Some(arg2_record))
     }
 
-    fn write_back_res(&mut self,res:u32,next_sp:u32)->MemoryWriteRecord{
+    fn fetch_memory_value(&mut self,addr:u32)->Option<MemoryReadRecord>{
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        Some(self.mr(addr, shard,clk, None))
+    }
+
+  
+    fn write_back_res_to_stack(&mut self,res:u32,next_sp:u32)->MemoryWriteRecord{
         self.state.clk+=4;
         self.state.sp= next_sp;
         self.mw(self.state.sp, res, self.shard(),self.state.clk, None)
         
     }
+
+    fn write_back_res_to_memory(&mut self,res:u32,addr:u32,next_sp:u32)->MemoryWriteRecord{
+        self.state.clk+=4;
+        self.state.sp= next_sp;
+        self.mw(self.state.sp, res, self.shard(),self.state.clk, None)
+        
+    }
+
+    fn load_memory_value(&mut self,instruction: &Instruction,offset:u32)->
+        Result<(MemoryReadRecord,MemoryReadRecord,u32),ExecutionError>{
+            match instruction{
+                Instruction::I32Load(_)|
+                Instruction::I32Load16S(_)|
+                Instruction::I32Load16S(_)|
+                Instruction::I32Load16S(_)|
+                Instruction::I32Load16S(_)=>{
+                    let arg1_record=self.fetch_unary_op_data().unwrap();
+                    let raw_addr = arg1_record.value;
+                    let addr = offset.checked_add(raw_addr);  
+                    match addr {
+                        Some(addr)=>{
+                            let sp = self.state.sp;
+                            let clk = self.state.clk;
+                            let shard = self.shard();
+                            if addr !=align(addr){
+                                return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, offset))
+                            }
+                            let arg2_record = self.mr(align(addr), shard, clk, None);
+            
+                            return  Ok((arg1_record,arg2_record,addr));
+                           
+                        }
+                        None => {return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, offset))}
+                    }
+                }
+                _=>unreachable!()
+
+            }
+            todo!()
+    }
+
+ 
 
     /// Emit a CPU event.
     #[allow(clippy::too_many_arguments)]
@@ -497,7 +547,7 @@ impl<'a> Executor<'a> {
         next_sp:u32,
         instruction: Instruction,
         arg1:u32,
-        arg2:u32,
+        arg2:u32,   
         res:u32,
         arg1_record:Option<MemoryReadRecord>,
         arg2_record:Option<MemoryReadRecord>,
@@ -613,40 +663,7 @@ impl<'a> Executor<'a> {
         self.record.syscall_events.push(syscall_event);
     }
 
-    // /// Fetch the destination register and input operand values for an ALU instruction.
-    // fn alu_rr(&mut self, instruction: &Instruction) -> (Register, u32, u32) {
-    //     if !instruction.imm_c {
-    //         let (rd, rs1, rs2) = instruction.r_type();
-    //         let c = self.rr(rs2, MemoryAccessPosition::C);
-    //         let b = self.rr(rs1, MemoryAccessPosition::B);
-    //         (rd, b, c)
-    //     } else if !instruction.imm_b && instruction.imm_c {
-    //         let (rd, rs1, imm) = instruction.i_type();
-    //         let (rd, b, c) = (rd, self.rr(rs1, MemoryAccessPosition::B), imm);
-    //         (rd, b, c)
-    //     } else {
-    //         assert!(instruction.imm_b && instruction.imm_c);
-    //         let (rd, b, c) =
-    //             (Register::from_u32(instruction.op_a), instruction.op_b, instruction.op_c);
-    //         (rd, b, c)
-    //     }
-    // }
-
-    // /// Set the destination register with the result and emit an ALU event.
-    // fn alu_rw(
-    //     &mut self,
-    //     instruction: &Instruction,
-    //     rd: Register,
-    //     a: u32,
-    //     b: u32,
-    //     c: u32,
-    //     lookup_id: LookupId,
-    // ) {
-    //     self.rw(rd, a);
-    //     if self.executor_mode == ExecutorMode::Trace {
-    //         self.emit_alu(self.state.clk, instruction.opcode, a, b, c, lookup_id);
-    //     }
-    // }
+   
 
     /// Fetch the instruction at the current program counter.
     #[inline]
@@ -664,11 +681,12 @@ impl<'a> Executor<'a> {
         let mut sp = self.state.sp;
         let mut next_pc = self.state.pc.wrapping_add(4);
         let mut next_sp = sp;//we do not know the next_sp until we know the operator
-        let (mut arg1, mut arg2, mut res): (u32, u32, u32) = (0,0,0);
+        let (mut arg1, mut arg2,mut arg3, mut res): (u32, u32, u32,u32) = (0,0,0,0);
         let mut arg1_record:Option<MemoryReadRecord>=None;
         let mut arg2_record:Option<MemoryReadRecord> =None;
+        let mut arg3_record:Option<MemoryReadRecord> =None;
         let mut res_record:Option<MemoryWriteRecord>= None;
-        let mut has_res :bool = false;
+        let mut res_is_writtten_back_to_stack :bool = false;
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
         }
@@ -736,29 +754,152 @@ impl<'a> Executor<'a> {
             Instruction::Select => todo!(),
             Instruction::GlobalGet(global_idx) => todo!(),
             Instruction::GlobalSet(global_idx) => todo!(),
-            Instruction::I32Load(address_offset) => todo!(),
-            Instruction::I64Load(address_offset) => todo!(),
+            Instruction::I32Load(address_offset) => {
+                let offset = address_offset.into_inner();
+                match self.load_memory_value(instruction,offset){
+                    Ok(read_records)=>{
+                        res=read_records.1.value;
+                        res_is_writtten_back_to_stack=true;
+                        arg1 =read_records.0.value;
+                        arg2 =read_records.1.value;
+                        arg1_record=Some(read_records.0);
+                        arg2_record=Some(read_records.1);
+                    }
+                    Err(err) =>return Err(err) ,
+                }
+            },
             Instruction::F32Load(address_offset) => todo!(),
             Instruction::F64Load(address_offset) => todo!(),
-            Instruction::I32Load8S(address_offset) => todo!(),
-            Instruction::I32Load8U(address_offset) => todo!(),
-            Instruction::I32Load16S(address_offset) => todo!(),
-            Instruction::I32Load16U(address_offset) => todo!(),
-            Instruction::I64Load8S(address_offset) => todo!(),
-            Instruction::I64Load8U(address_offset) => todo!(),
-            Instruction::I64Load16S(address_offset) => todo!(),
-            Instruction::I64Load16U(address_offset) => todo!(),
-            Instruction::I64Load32S(address_offset) => todo!(),
-            Instruction::I64Load32U(address_offset) => todo!(),
-            Instruction::I32Store(address_offset) => todo!(),
-            Instruction::I64Store(address_offset) => todo!(),
-            Instruction::F32Store(address_offset) => todo!(),
-            Instruction::F64Store(address_offset) => todo!(),
-            Instruction::I32Store8(address_offset) => todo!(),
+            Instruction::I32Load8S(address_offset) => {
+                let offset = address_offset.into_inner();
+                match self.load_memory_value(instruction,offset){
+                    Ok(read_records)=>{
+                        let addr = read_records.2;
+                        let value = (read_records.1.value).to_le_bytes()[(addr % 4) as usize];
+                        res = ((value as i8) as i32) as u32;
+                        res_is_writtten_back_to_stack= true;
+                        arg1 =read_records.0.value;
+                        arg2 =read_records.1.value;
+                        arg1_record=Some(read_records.0);
+                        arg2_record=Some(read_records.1);
+                    },
+                    Err(err) =>return Err(err) ,
+                }
+              
+            },
+            Instruction::I32Load8U(address_offset) => {
+                let offset = address_offset.into_inner();
+                match self.load_memory_value(instruction,offset){
+                    Ok(read_records)=>{
+                        let addr = read_records.2;
+                        let value = (read_records.1.value).to_le_bytes()[(addr % 4) as usize];
+                        res =value as u32;
+                        res_is_writtten_back_to_stack= true;
+                        arg1 =read_records.0.value;
+                        arg2 =read_records.1.value;
+                        arg1_record=Some(read_records.0);
+                        arg2_record=Some(read_records.1);
+                    },
+                    Err(err) =>return Err(err) ,
+               
+            }
+        }
+            Instruction::I32Load16S(address_offset) => {
+                let offset = address_offset.into_inner();
+                match self.load_memory_value(instruction,offset){
+                    Ok(read_records)=>{
+                        let addr = read_records.2;
+                        let memory_read_value =read_records.1.value;
+                        if addr % 2 != 0 {
+                            return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
+                        }
+                        let value = match (addr >> 1) % 2 {
+                            0 => memory_read_value & 0x0000_FFFF,
+                            1 => (memory_read_value & 0xFFFF_0000) >> 16,
+                            _ => unreachable!(),
+                        };
+                        res = ((value as i16) as i32) as u32;
+                        res_is_writtten_back_to_stack=true;
+                        arg1 =read_records.0.value;
+                        arg2 =read_records.1.value;
+                        arg1_record=Some(read_records.0);
+                        arg2_record=Some(read_records.1);
+
+                    }
+                    Err(err) =>return Err(err) ,
+                }
+               
+            },
+            Instruction::I32Load16U(address_offset) => {
+                let offset = address_offset.into_inner();
+                match self.load_memory_value(instruction,offset){
+                    Ok(read_records)=>{
+                        let addr = read_records.2;
+                        let memory_read_value =read_records.1.value;
+                        if addr % 2 != 0 {
+                            return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
+                        }
+                        let value = match (addr >> 1) % 2 {
+                            0 => memory_read_value & 0x0000_FFFF,
+                            1 => (memory_read_value & 0xFFFF_0000) >> 16,
+                            _ => unreachable!(),
+                        };
+                        res = (value as u16)as u32;
+                        res_is_writtten_back_to_stack=true;
+                        arg1 =read_records.0.value;
+                        arg2 =read_records.1.value;
+                        arg1_record=Some(read_records.0);
+                        arg2_record=Some(read_records.1);
+
+                    }
+                    Err(err) =>return Err(err) ,
+                }
+                
+            },
+            Instruction::I32Store(address_offset) => {
+                (arg1_record,arg2_record)=self.fetch_binary_op_data();
+                let value  = arg2_record.unwrap().value;
+                
+                arg1 = arg1_record.unwrap().value;
+                match arg1.checked_add(address_offset.into_inner()){
+                    Some(addr)=>{
+                        res = value;
+                        next_sp = sp-4;
+                        res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                        res_is_writtten_back_to_stack=false;
+                    },
+                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, 0u32));}
+                }
+              
+            },
+            Instruction::I32Store8(address_offset) => {
+                (arg1_record,arg2_record)=self.fetch_binary_op_data();
+                
+                let raw_addr =arg1_record.unwrap().value;
+                let full_value  = arg2_record.unwrap().value;
+                arg1 = arg1_record.unwrap().value;
+               
+                match raw_addr.checked_add(address_offset.into_inner()){
+                    Some(addr)=>{
+                        arg3_record = self.fetch_memory_value(addr);
+                        arg3 = arg3_record.unwrap().value;
+                        let value = match addr % 4 {
+                            0 => (full_value & 0x0000_00FF) + (arg3 & 0xFFFF_FF00),
+                            1 => ((full_value & 0x0000_00FF) << 8) + (arg3 & 0xFFFF_00FF),
+                            2 => ((full_value & 0x0000_00FF) << 16) + (arg3 & 0xFF00_FFFF),
+                            3 => ((full_value& 0x0000_00FF) << 24) + (arg3 & 0x00FF_FFFF),
+                            _ => unreachable!(),
+                        };
+                        res = value;
+                        
+                        next_sp = sp-4;
+                        res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                        res_is_writtten_back_to_stack=false;
+                    },
+                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, 0u32));}
+                }
+            },
             Instruction::I32Store16(address_offset) => todo!(),
-            Instruction::I64Store8(address_offset) => todo!(),
-            Instruction::I64Store16(address_offset) => todo!(),
-            Instruction::I64Store32(address_offset) => todo!(),
             Instruction::MemorySize => todo!(),
             Instruction::MemoryGrow => todo!(),
             Instruction::MemoryFill => todo!(),
@@ -775,17 +916,14 @@ impl<'a> Executor<'a> {
             Instruction::ElemDrop(element_segment_idx) => todo!(),
             Instruction::RefFunc(func_idx) => todo!(),
             Instruction::I32Const(untyped_value) => todo!(),
-            Instruction::I64Const(untyped_value) => todo!(),
-            Instruction::F32Const(untyped_value) => todo!(),
-            Instruction::F64Const(untyped_value) => todo!(),
             Instruction::ConstRef(const_ref) => todo!(),
             Instruction::I32Eqz => {
                 // do not emit alu and event are generated in emit_cpu_dep
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 res = (arg1 == 0) as u32;
-                has_res = true;
-                println!("arg1_record:{:?} res: {} has_res: {}",arg1_record,res,has_res);
+                res_is_writtten_back_to_stack = true;
+                println!("arg1_record:{:?} res: {} has_res: {}",arg1_record,res,res_is_writtten_back_to_stack);
             },
             Instruction::I32Eq => {
                // do not emit alu and event are generated in emit_cpu_dep
@@ -794,7 +932,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1==arg2) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 
                
             },
@@ -805,7 +943,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1!=arg2) as u32;
                 next_sp = sp-4;
-                has_res = true; 
+                res_is_writtten_back_to_stack = true; 
             },
             Instruction::I32LtS => {
                 (arg1_record,arg2_record)= self.fetch_binary_op_data();
@@ -815,7 +953,7 @@ impl<'a> Executor<'a> {
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed < arg2_singed) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLT, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32LtU => {
@@ -824,7 +962,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 < arg2) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLTU, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32GtS => {
@@ -836,7 +974,7 @@ impl<'a> Executor<'a> {
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed > arg2_singed) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
             },
             Instruction::I32GtU => {
                  // do not emit alu and event are generated in emit_cpu_dep
@@ -845,7 +983,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 > arg2) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
             },
             Instruction::I32LeS => {
                   // do not emit alu and event are generated in emit_cpu_dep
@@ -856,7 +994,7 @@ impl<'a> Executor<'a> {
                   let arg2_singed = arg2 as i32;
                   res = (arg1_signed <= arg2_singed) as u32;
                   next_sp = sp-4;
-                  has_res = true;
+                  res_is_writtten_back_to_stack = true;
             },
             Instruction::I32LeU => {
                  // do not emit alu and event are generated in emit_cpu_dep
@@ -865,7 +1003,7 @@ impl<'a> Executor<'a> {
                  arg2 = arg2_record.unwrap().value;
                  res = (arg1 <= arg2) as u32;
                  next_sp = sp-4;
-                 has_res = true;
+                 res_is_writtten_back_to_stack = true;
             },
             Instruction::I32GeS => {
                    // do not emit alu and event are generated in emit_cpu_dep
@@ -876,7 +1014,7 @@ impl<'a> Executor<'a> {
                    let arg2_singed = arg2 as i32;
                    res = (arg1_signed >= arg2_singed) as u32;
                    next_sp = sp-4;
-                   has_res = true;
+                   res_is_writtten_back_to_stack = true;
             },
             Instruction::I32GeU => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -885,7 +1023,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 >= arg2) as u32;
                 next_sp = sp-4;
-                has_res = true;  
+                res_is_writtten_back_to_stack = true;  
             },
             Instruction::I32Clz => todo!(),
             Instruction::I32Ctz => todo!(),
@@ -896,7 +1034,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_add(arg2);
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id); 
                
 
@@ -907,7 +1045,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_sub(arg2);
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SUB, res, arg1, arg2, lookup_id); 
                
             },
@@ -917,7 +1055,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_mul(arg2);
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::MUL, res, arg1, arg2, lookup_id); 
                
             },
@@ -929,7 +1067,7 @@ impl<'a> Executor<'a> {
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_div(signed_arg2)) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::DIV, res, arg1, arg2, lookup_id); 
                
             },
@@ -939,7 +1077,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_div(arg2);
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::DIVU, res, arg1, arg2, lookup_id); 
                
             },
@@ -951,7 +1089,7 @@ impl<'a> Executor<'a> {
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_rem(signed_arg2)) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::REM, res, arg1, arg2, lookup_id); 
                
             },
@@ -961,7 +1099,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_rem(arg2);
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::REMU, res, arg1, arg2, lookup_id); 
                
             },
@@ -971,7 +1109,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 & arg2;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::AND, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32Or => {
@@ -980,7 +1118,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 | arg2;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::OR, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32Xor => {
@@ -989,7 +1127,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 ^ arg2;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::XOR, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32Shl => {
@@ -999,7 +1137,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_shl(arg2);
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLL, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32ShrS => {
@@ -1008,7 +1146,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = ((arg1 as i32)>> arg2) as u32;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SRA, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32ShrU => {
@@ -1017,7 +1155,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 >> arg2;
                 next_sp = sp-4;
-                has_res = true;
+                res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SRL, res, arg1, arg2, lookup_id); 
             },
             Instruction::I32Rotl => todo!(),
@@ -1061,8 +1199,8 @@ impl<'a> Executor<'a> {
         }
 
 
-        if has_res{
-            res_record=Some(self.write_back_res(res, next_sp));
+        if res_is_writtten_back_to_stack{
+            res_record=Some(self.write_back_res_to_stack(res, next_sp));
         }
 
         // Update the program counter.

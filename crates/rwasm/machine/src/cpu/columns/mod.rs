@@ -90,21 +90,7 @@ pub struct CpuCols<T: Copy> {
     /// > (is_bge | is_bgeu) & !(a_eq_b | a_gt_b)
     pub not_branching: T,
 
-    /// Flag for load mem instructions where the value is negative and not writing to x0.
-    /// More formally, it is
-    ///
-    /// > (is_lb | is_lh) & (most_sig_byte_decomp[7] == 1) & (not writing to x0)
-    pub mem_value_is_neg_not_x0: T,
-
-    /// Flag for load mem instructions where the value is positive and not writing to x0.
-    /// More formally, it is
-    ///
-    /// (
-    ///     ((is_lb | is_lh) & (most_sig_byte_decomp[7] == 0)) |
-    ///     is_lbu | is_lhu | is_lw
-    /// ) &
-    /// (not writing to x0)
-    pub mem_value_is_pos_not_x0: T,
+  
 
     /// The unsigned memory value is the value after the offset logic is applied. Used for the load
     /// memory opcodes (i.e. LB, LH, LW, LBU, and LHU).
