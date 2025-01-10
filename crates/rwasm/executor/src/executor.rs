@@ -478,14 +478,6 @@ impl<'a> Executor<'a> {
         (Some(arg1_record),Some(arg2_record))
     }
 
-    fn fetch_memory_value(&mut self,addr:u32)->Option<MemoryReadRecord>{
-        let sp = self.state.sp;
-        let clk = self.state.clk;
-        let shard = self.shard();
-        Some(self.mr(addr, shard,clk, None))
-    }
-
-  
     fn write_back_res_to_stack(&mut self,res:u32,next_sp:u32)->MemoryWriteRecord{
         self.state.clk+=4;
         self.state.sp= next_sp;
@@ -681,10 +673,9 @@ impl<'a> Executor<'a> {
         let mut sp = self.state.sp;
         let mut next_pc = self.state.pc.wrapping_add(4);
         let mut next_sp = sp;//we do not know the next_sp until we know the operator
-        let (mut arg1, mut arg2,mut arg3, mut res): (u32, u32, u32,u32) = (0,0,0,0);
+        let (mut arg1, mut arg2, mut res): (u32, u32,u32) = (0,0,0);
         let mut arg1_record:Option<MemoryReadRecord>=None;
         let mut arg2_record:Option<MemoryReadRecord> =None;
-        let mut arg3_record:Option<MemoryReadRecord> =None;
         let mut res_record:Option<MemoryWriteRecord>= None;
         let mut res_is_writtten_back_to_stack :bool = false;
         if self.executor_mode == ExecutorMode::Trace {
@@ -758,6 +749,10 @@ impl<'a> Executor<'a> {
                 let offset = address_offset.into_inner();
                 match self.load_memory_value(instruction,offset){
                     Ok(read_records)=>{
+                        let addr= read_records.2;
+                        if addr % 4 != 0 {
+                            return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
+                        }
                         res=read_records.1.value;
                         res_is_writtten_back_to_stack=true;
                         arg1 =read_records.0.value;
@@ -837,7 +832,7 @@ impl<'a> Executor<'a> {
                         let addr = read_records.2;
                         let memory_read_value =read_records.1.value;
                         if addr % 2 != 0 {
-                            return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
+                            return Err(ExecutionError::InvalidMemoryAccess(Opcode::LHU, addr));
                         }
                         let value = match (addr >> 1) % 2 {
                             0 => memory_read_value & 0x0000_FFFF,
@@ -868,7 +863,7 @@ impl<'a> Executor<'a> {
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
                         res_is_writtten_back_to_stack=false;
                     },
-                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, 0u32));}
+                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, 0u32));}
                 }
               
             },
@@ -881,13 +876,12 @@ impl<'a> Executor<'a> {
                
                 match raw_addr.checked_add(address_offset.into_inner()){
                     Some(addr)=>{
-                        arg3_record = self.fetch_memory_value(addr);
-                        arg3 = arg3_record.unwrap().value;
+                        let memory_value = self.word(align(addr));
                         let value = match addr % 4 {
-                            0 => (full_value & 0x0000_00FF) + (arg3 & 0xFFFF_FF00),
-                            1 => ((full_value & 0x0000_00FF) << 8) + (arg3 & 0xFFFF_00FF),
-                            2 => ((full_value & 0x0000_00FF) << 16) + (arg3 & 0xFF00_FFFF),
-                            3 => ((full_value& 0x0000_00FF) << 24) + (arg3 & 0x00FF_FFFF),
+                            0 => (full_value & 0x0000_00FF) + (memory_value & 0xFFFF_FF00),
+                            1 => ((full_value & 0x0000_00FF) << 8) + (memory_value & 0xFFFF_00FF),
+                            2 => ((full_value & 0x0000_00FF) << 16) + (memory_value & 0xFF00_FFFF),
+                            3 => ((full_value& 0x0000_00FF) << 24) + (memory_value & 0x00FF_FFFF),
                             _ => unreachable!(),
                         };
                         res = value;
@@ -896,10 +890,33 @@ impl<'a> Executor<'a> {
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
                         res_is_writtten_back_to_stack=false;
                     },
-                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, 0u32));}
+                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));}
                 }
             },
-            Instruction::I32Store16(address_offset) => todo!(),
+            Instruction::I32Store16(address_offset) => {
+                (arg1_record,arg2_record)=self.fetch_binary_op_data();
+                
+                let raw_addr =arg1_record.unwrap().value;
+                let full_value  = arg2_record.unwrap().value;
+                arg1 = arg1_record.unwrap().value;
+               
+                match raw_addr.checked_add(address_offset.into_inner()){
+                    Some(addr)=>{
+                        let memory_value = self.word(align(addr));
+                        let value = match addr % 2 {
+                            0 => (full_value & 0x0000_FFFF) + (memory_value & 0xFFFF_0000),
+                            1 => ((full_value & 0x0000_FFFF) << 16) + (memory_value & 0x0000_FFFF),
+                            _ => unreachable!(),
+                        };
+                        res = value;
+                        
+                        next_sp = sp-4;
+                        res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                        res_is_writtten_back_to_stack=false;
+                    },
+                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));}
+                }
+            },
             Instruction::MemorySize => todo!(),
             Instruction::MemoryGrow => todo!(),
             Instruction::MemoryFill => todo!(),
