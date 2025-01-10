@@ -2,7 +2,7 @@ use sp1_derive::AlignedBorrow;
 use sp1_stark::Word;
 use std::mem::size_of;
 
-use crate::{memory::MemoryReadWriteCols, operations::BabyBearWordRangeChecker};
+use crate::{memory::{MemoryReadWriteCols, MemoryWriteCols}, operations::BabyBearWordRangeChecker};
 
 pub const NUM_MEMORY_COLUMNS: usize = size_of::<MemoryColumns<u8>>();
 
@@ -24,7 +24,7 @@ pub struct MemoryColumns<T> {
     /// The LE bit decomp of the least significant byte of address aligned.
     pub aa_least_sig_byte_decomp: [T; 6],
     pub addr_offset: T,
-    pub memory_access: MemoryReadWriteCols<T>,
+    pub memory_access: MemoryWriteCols<T>,
 
     pub offset_is_one: T,
     pub offset_is_two: T,

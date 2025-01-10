@@ -3,7 +3,7 @@ use crate::{
     utils::{get_msb, get_quotient_and_remainder, is_signed_operation},
     Executor, Opcode,
 };
-use rwasm::engine::bytecode::Instruction;
+use rwasm::engine::{bytecode::Instruction, Instr};
 
 /// Emits the dependencies for division and remainder operations.
 #[allow(clippy::too_many_lines)]
@@ -116,69 +116,69 @@ pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
 /// Emit the dependencies for CPU events.
 #[allow(clippy::too_many_lines)]
 pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
-    // if matches!(
-    //     event.instruction.opcode,
-    //     Opcode::LB
-    //         | Opcode::LH
-    //         | Opcode::LW
-    //         | Opcode::LBU
-    //         | Opcode::LHU
-    //         | Opcode::SB
-    //         | Opcode::SH
-    //         | Opcode::SW
-    // ) {
-    //     let memory_addr = event.b.wrapping_add(event.c);
-    //     // Add event to ALU check to check that addr == b + c
-    //     let add_event = AluEvent {
-    //         lookup_id: event.memory_add_lookup_id,
-    //         shard: event.shard,
-    //         clk: event.clk,
-    //         opcode: Opcode::ADD,
-    //         a: memory_addr,
-    //         b: event.b,
-    //         c: event.c,
-    //         sub_lookups: create_alu_lookups(),
-    //     };
-    //     executor.record.add_events.push(add_event);
-    //     let addr_offset = (memory_addr % 4_u32) as u8;
-    //     let mem_value = event.memory_record.unwrap().value();
+    if matches!(
+        event.instruction,
+        Instruction::I32Load(_)
+            |  Instruction::I32Load16S(_)
+            | Instruction::I32Load16U(_)
+            | Instruction::I32Load8S(_)
+            |  Instruction::I32Load8U(_)
+            | Instruction::I32Store(_)
+            | Instruction::I32Store16(_)
+            | Instruction::I32Store8(_)
+    ) {
+        let memory_addr = event.arg1.wrapping_add(event.arg2);
+        // Add event to ALU check to check that addr == b + c
+        let add_event = AluEvent {
+            lookup_id: event.memory_add_lookup_id,
+            shard: event.shard,
+            clk: event.clk,
+            opcode: Opcode::ADD,
+            a: memory_addr,
+            b: event.arg1,
+            c: event.arg2,
+            sub_lookups: create_alu_lookups(),
+        };
+        executor.record.add_events.push(add_event);
+        let addr_offset = (memory_addr % 4_u32) as u8;
+        let mem_value = event.res_record.unwrap().value;
 
-    //     if matches!(event.instruction.opcode, Opcode::LB | Opcode::LH) {
-    //         let (unsigned_mem_val, most_sig_mem_value_byte, sign_value) =
-    //             match event.instruction.opcode {
-    //                 Opcode::LB => {
-    //                     let most_sig_mem_value_byte = mem_value.to_le_bytes()[addr_offset as usize];
-    //                     let sign_value = 256;
-    //                     (most_sig_mem_value_byte as u32, most_sig_mem_value_byte, sign_value)
-    //                 }
-    //                 Opcode::LH => {
-    //                     let sign_value = 65536;
-    //                     let unsigned_mem_val = match (addr_offset >> 1) % 2 {
-    //                         0 => mem_value & 0x0000FFFF,
-    //                         1 => (mem_value & 0xFFFF0000) >> 16,
-    //                         _ => unreachable!(),
-    //                     };
-    //                     let most_sig_mem_value_byte = unsigned_mem_val.to_le_bytes()[1];
-    //                     (unsigned_mem_val, most_sig_mem_value_byte, sign_value)
-    //                 }
-    //                 _ => unreachable!(),
-    //             };
+        if matches!(event.instruction, Instruction::I32Load8S(_) | Instruction::I32Load16S(_)) {
+            let (unsigned_mem_val, most_sig_mem_value_byte, sign_value) =
+                match event.instruction {
+                    Instruction::I32Load8S(_) => {
+                        let most_sig_mem_value_byte = mem_value.to_le_bytes()[addr_offset as usize];
+                        let sign_value = 256;
+                        (most_sig_mem_value_byte as u32, most_sig_mem_value_byte, sign_value)
+                    }
+                    Instruction::I32Load16S(_) => {
+                        let sign_value = 65536;
+                        let unsigned_mem_val = match (addr_offset >> 1) % 2 {
+                            0 => mem_value & 0x0000FFFF,
+                            1 => (mem_value & 0xFFFF0000) >> 16,
+                            _ => unreachable!(),
+                        };
+                        let most_sig_mem_value_byte = unsigned_mem_val.to_le_bytes()[1];
+                        (unsigned_mem_val, most_sig_mem_value_byte, sign_value)
+                    }
+                    _ => unreachable!(),
+                };
 
-    //         if most_sig_mem_value_byte >> 7 & 0x01 == 1 {
-    //             let sub_event = AluEvent {
-    //                 lookup_id: event.memory_sub_lookup_id,
-    //                 shard: event.shard,
-    //                 clk: event.clk,
-    //                 opcode: Opcode::SUB,
-    //                 a: event.a,
-    //                 b: unsigned_mem_val,
-    //                 c: sign_value,
-    //                 sub_lookups: create_alu_lookups(),
-    //             };
-    //             executor.record.add_events.push(sub_event);
-    //         }
-    //     }
-    // }
+            if most_sig_mem_value_byte >> 7 & 0x01 == 1 {
+                let sub_event = AluEvent {
+                    lookup_id: event.memory_sub_lookup_id,
+                    shard: event.shard,
+                    clk: event.clk,
+                    opcode: Opcode::SUB,
+                    a: event.res,
+                    b: unsigned_mem_val,
+                    c: sign_value,
+                    sub_lookups: create_alu_lookups(),
+                };
+                executor.record.add_events.push(sub_event);
+            }
+        }
+    }
      if matches!(
         event.instruction,
         Instruction::I32GeS |Instruction::I32GeU|

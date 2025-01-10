@@ -52,3 +52,4 @@ pub fn rwasm_ins_to_sp1_alu(ins:&Instruction)->Option<Opcode>{
          _=>{None}
     }
 }
+
