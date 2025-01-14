@@ -490,7 +490,7 @@ impl<'a> Executor<'a> {
     fn write_back_res_to_memory(&mut self,res:u32,addr:u32,next_sp:u32)->MemoryWriteRecord{
         self.state.clk+=4;
         self.state.sp= next_sp;
-        self.mw(self.state.sp, res, self.shard(),self.state.clk, None)
+        self.mw(addr, res, self.shard(),self.state.clk, None)
         
     }
 
@@ -499,9 +499,9 @@ impl<'a> Executor<'a> {
             match instruction{
                 Instruction::I32Load(_)|
                 Instruction::I32Load16S(_)|
-                Instruction::I32Load16S(_)|
-                Instruction::I32Load16S(_)|
-                Instruction::I32Load16S(_)=>{
+                Instruction::I32Load16U(_)|
+                Instruction::I32Load8S(_)|
+                Instruction::I32Load8U(_)=>{
                     let arg1_record=self.fetch_unary_op_data().unwrap();
                     let raw_addr = arg1_record.value;
                     let addr = offset.checked_add(raw_addr);  
@@ -510,9 +510,6 @@ impl<'a> Executor<'a> {
                             let sp = self.state.sp;
                             let clk = self.state.clk;
                             let shard = self.shard();
-                            if addr !=align(addr){
-                                return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, offset))
-                            }
                             let arg2_record = self.mr(align(addr), shard, clk, None);
             
                             return  Ok((arg1_record,arg2_record,addr));
@@ -887,7 +884,7 @@ impl<'a> Executor<'a> {
                             _ => unreachable!(),
                         };
                         res = value;
-                        
+                        println!("full:{},memoery:{},res:{}",full_value,memory_value,res);
                         next_sp = sp-4;
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
                         res_is_writtten_back_to_stack=false;
@@ -2404,5 +2401,215 @@ mod tests {
     }
     fn neg(a: u32) -> u32 {
         u32::MAX - a + 1
+    }
+
+    #[test]
+    fn test_load32() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(addr, x_value);
+
+        let instructions = vec![
+            Instruction::I32Load(0.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
+    }
+
+    #[test]
+    fn test_load16u() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0005;
+      
+        let y_value: u32 = 0x0000_1234;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, addr);
+        mem.insert(addr, x_value);
+
+        let instructions = vec![
+            Instruction::I32Load16U(0.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FFFF);
+    }
+
+    #[test]
+    fn test_load16s() {
+        let sp_value: u32 = SP_START;
+        let x_value:u32 = (-5i16) as u16 as u32 &0xFFFF_0000;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, addr);
+        mem.insert(addr, x_value);
+
+        let instructions = vec![
+            Instruction::I32Load16S(0.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FFFF);
+    }
+
+    #[test]
+    fn test_load8u() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_FF05;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, addr);
+        mem.insert(addr, x_value);
+
+        let instructions = vec![
+            Instruction::I32Load8U(0.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_00FF);
+    }
+
+    #[test]
+    fn test_load8s() {
+        let sp_value: u32 = SP_START;
+        let x_value:u32 = (((-5i8) as u8 as u32)<<8)&0xFFFF_00FF;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, addr);
+        mem.insert(addr, x_value);
+
+        let instructions = vec![
+            Instruction::I32Load8S(1.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FF00);
+    }
+
+
+    #[test]
+    fn test_store() {
+        let sp_value: u32 = SP_START;
+        let x_value:u32 =5;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, x_value);
+      
+
+        let instructions = vec![
+            Instruction::I32Store(0.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
+    }
+
+    #[test]
+    fn test_store16() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0005;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, x_value);
+      
+
+        let instructions = vec![
+            Instruction::I32Store16(0.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value&0x0000_FFFF);
+    }
+
+    #[test]
+    fn test_store8() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0005;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value-4, x_value);
+      
+
+        let instructions = vec![
+            Instruction::I32Store8(1.into()), // 5 and 37 = 32
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value&0x0000_00FF)<<8);
     }
 }
