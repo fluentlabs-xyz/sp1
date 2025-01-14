@@ -58,7 +58,7 @@ pub trait MemoryAirBuilder: BaseAirBuilder {
         self.receive(
             AirInteraction::new(current_values, do_check.clone(), InteractionKind::Memory),
             InteractionScope::Local,
-        );
+        );  
     }
 
     /// Constraints a memory read or write to a slice of `MemoryAccessCols`.

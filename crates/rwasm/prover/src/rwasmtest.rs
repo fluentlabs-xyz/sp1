@@ -161,6 +161,44 @@ mod tests {
             Instruction::I32ShrS,
             Instruction::I32ShrU,
         ];
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        program
+    }
+
+        fn build_elf4() -> Program {
+            /*
+             let t0 = Register::X5;
+                   let syscall_id = self.register(t0);
+                   c = self.rr(Register::X11, MemoryAccessPosition::C);
+                   b = self.rr(Register::X10, MemoryAccessPosition::B);
+                   let syscall = SyscallCode::from_u32(syscall_id);
+            */
+    
+            let sp_value: u32 = SP_START;
+            let addr: u32 = 0x10000;
+            let x_value: u32 = 0x01_32_FF_31;
+            let y_value: u32 = 0x2;
+            let z1_value: u32 = 0x1;
+            let z2_value: u32 = 0x2;
+            let z3_value: u32 = 0x1;
+            let z4_value: u32 = 0x2;
+            let z5_value: u32 = 0x1;
+    
+    
+            let mut mem = HashMap::new();
+            mem.insert(sp_value, addr);
+            mem.insert(addr, x_value);
+           
+            println!("{:?}", mem);
+            let instructions = vec![
+                Instruction::I32Load(0.into()),
+            ];
 
         let program = Program {
             instructions,
@@ -235,6 +273,35 @@ mod tests {
     #[test]
     fn test_rwasm_proof3() {
         let mut program = build_elf3();
+        setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
+
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
+
+    #[test]
+    fn test_rwasm_proof4() {
+        let mut program = build_elf4();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();

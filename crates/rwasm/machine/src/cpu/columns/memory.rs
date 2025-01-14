@@ -24,7 +24,7 @@ pub struct MemoryColumns<T> {
     /// The LE bit decomp of the least significant byte of address aligned.
     pub aa_least_sig_byte_decomp: [T; 6],
     pub addr_offset: T,
-    pub memory_access: MemoryWriteCols<T>,
+    pub memory_access: MemoryReadWriteCols<T>,
 
     pub offset_is_one: T,
     pub offset_is_two: T,

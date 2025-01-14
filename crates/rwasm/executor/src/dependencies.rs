@@ -3,7 +3,7 @@ use crate::{
     utils::{get_msb, get_quotient_and_remainder, is_signed_operation},
     Executor, Opcode,
 };
-use rwasm::engine::{bytecode::Instruction, Instr};
+use rwasm::{engine::{bytecode::Instruction, Instr}, rwasm::InstructionExtra};
 
 /// Emits the dependencies for division and remainder operations.
 #[allow(clippy::too_many_lines)]
@@ -127,7 +127,8 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
             | Instruction::I32Store16(_)
             | Instruction::I32Store8(_)
     ) {
-        let memory_addr = event.arg1.wrapping_add(event.arg2);
+        let offset = event.instruction.aux_value().unwrap().into();
+        let memory_addr = event.arg1.wrapping_add(offset);
         // Add event to ALU check to check that addr == b + c
         let add_event = AluEvent {
             lookup_id: event.memory_add_lookup_id,
@@ -136,7 +137,7 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
             opcode: Opcode::ADD,
             a: memory_addr,
             b: event.arg1,
-            c: event.arg2,
+            c: offset,
             sub_lookups: create_alu_lookups(),
         };
         executor.record.add_events.push(add_event);
@@ -334,3 +335,4 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
 }
 
 // TODO: when we have jump instruction reuse this.
+

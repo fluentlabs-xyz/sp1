@@ -11,7 +11,7 @@ use crate::{
     memory::MemoryCols,
     operations::BabyBearWordRangeChecker,
 };
-use sp1_rwasm_executor::{events::MemoryAccessPosition, Opcode};
+use sp1_rwasm_executor::{ Opcode};
 
 impl CpuChip {
     /// Computes whether the opcode is a memory instruction.
@@ -24,6 +24,9 @@ impl CpuChip {
             + opcode_selectors.is_i32load16u
             + opcode_selectors.is_i32load8s
             + opcode_selectors.is_i32load8u
+            + opcode_selectors.is_i32store 
+            + opcode_selectors.is_i32store16
+            + opcode_selectors.is_i32store8
     }
 
     /// Computes whether the opcode is a load instruction.
@@ -68,7 +71,7 @@ impl CpuChip {
             AB::Expr::from_canonical_u32(Opcode::ADD as u32),
             memory_columns.addr_word,
             local.op_arg1_val(),
-            local.op_arg2_val(),
+            local.instruction.aux_val,
             local.shard,
             memory_columns.addr_word_nonce,
             is_memory_instruction.clone(),
@@ -121,11 +124,17 @@ impl CpuChip {
         // value into the memory columns.
         builder.eval_memory_access(
             local.shard,
-            local.clk + AB::F::from_canonical_u32(MemoryAccessPosition::Memory as u32),
-            memory_columns.addr_aligned,
-            &memory_columns.memory_access,
+            local.clk + AB::Expr::from_canonical_u8(4),
+            local.sp,
+            &local.op_res_access,
             is_memory_instruction.clone(),
         );
+
+        builder.eval_memory_access(local.shard, 
+        local.clk,
+        memory_columns.addr_aligned,
+         &memory_columns.memory_access,
+         is_memory_instruction.clone());
 
         // On memory load instructions, make sure that the memory value is not changed.
         builder.when(self.is_load_instruction::<AB>(&local.selectors)).assert_word_eq(

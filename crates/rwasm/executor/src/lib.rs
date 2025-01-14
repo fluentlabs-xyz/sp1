@@ -20,7 +20,7 @@
 #![warn(missing_docs)]
 
 mod context;
-mod dependencies;
+pub mod dependencies;
 mod disassembler;
 pub mod events;
 mod executor;

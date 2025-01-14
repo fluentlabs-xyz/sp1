@@ -16,7 +16,7 @@ use crate::{
     dependencies::{emit_cpu_dependencies, emit_divrem_dependencies},
     events::{
         create_alu_lookup_id, create_alu_lookups, AluEvent, CpuEvent, LookupId,
-        MemoryAccessPosition, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
+        MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
         MemoryRecord, MemoryWriteRecord, SyscallEvent,
     },
     hook::{HookEnv, HookRegistry},
@@ -296,8 +296,8 @@ impl<'a> Executor<'a> {
 
     /// Get the current timestamp for a given memory access position.
     #[must_use]
-    pub const fn timestamp(&self, position: &MemoryAccessPosition) -> u32 {
-        self.state.clk + *position as u32
+    pub const fn timestamp(&self) -> u32 {
+        self.state.clk 
     }
 
     /// Get the current shard.
@@ -2485,7 +2485,7 @@ mod tests {
     #[test]
     fn test_load8u() {
         let sp_value: u32 = SP_START;
-        let x_value: u32 = 0xFFFF_FF05;
+        let x_value: u32 = 0xFFFF_05FF;
         let addr :u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
@@ -2505,7 +2505,7 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_00FF);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FF05>>8);
     }
 
     #[test]

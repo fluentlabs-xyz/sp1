@@ -132,29 +132,55 @@ impl CpuChip {
             println!("arg_1 record:{:?}",record);
             cols.op_arg1_access.populate(record, blu_events);
         }
-        if let Some(record) = event.arg2_record {
-            println!("arg_2 record:{:?}",record);
-            cols.op_arg2_access.populate(record, blu_events);
-        }
-        if let Some(record) = event.res_record {
-            println!("arg_res record:{:?}",record);
-            cols.op_res_access.populate(record, blu_events);
 
+        if matches!(
+            event.instruction,
+            Instruction::I32Load(_)
+                | Instruction::I32Load16S(_)
+                | Instruction::I32Load16U(_)
+                | Instruction::I32Load8S(_)
+                | Instruction::I32Load8U(_)
+                | Instruction::I32Store(_)
+                | Instruction::I32Store16(_)
+                | Instruction::I32Store8(_)
+        ){
             let memory_columns = cols.opcode_specific_columns.memory_mut();
-            if matches!(
-                event.instruction,
+            if matches!( event.instruction,
                 Instruction::I32Load(_)
                     | Instruction::I32Load16S(_)
                     | Instruction::I32Load16U(_)
                     | Instruction::I32Load8S(_)
-                    | Instruction::I32Load8U(_)
-                    | Instruction::I32Store(_)
-                    | Instruction::I32Store16(_)
-                    | Instruction::I32Store8(_)
-            ) {
-                memory_columns.memory_access.populate(record, blu_events)
+                    | Instruction::I32Load8U(_)){
+                        if let Some(record) = event.arg2_record {
+                            println!("arg_2 record:{:?}",record);
+                            memory_columns.memory_access.populate(MemoryRecordEnum::Read(record), blu_events)
+                        }
+                        if let Some(record) = event.res_record {
+                            println!("arg_res record:{:?}",record);
+                            cols.op_res_access.populate(record, blu_events);
+                        }
+                    } else{
+                        if let Some(record) = event.arg2_record {
+                            println!("arg_2 record:{:?}",record);
+                            cols.op_arg2_access.populate(record, blu_events);
+                        }
+                        if let Some(record) = event.res_record {
+                            println!("arg_res record:{:?}",record);
+                            memory_columns.memory_access.populate(MemoryRecordEnum::Write(record), blu_events)
+                        }
+                    }
+
+        } else{
+            if let Some(record) = event.arg2_record {
+                println!("arg_2 record:{:?}",record);
+                cols.op_arg2_access.populate(record, blu_events);
+            }
+            if let Some(record) = event.res_record {
+                println!("arg_res record:{:?}",record);
+                cols.op_res_access.populate(record, blu_events);
             }
         }
+
 
 
           // Populate memory accesses for reading from memory.
@@ -240,12 +266,13 @@ impl CpuChip {
             return;
         }
       
-
-        let offset :u32= event.instruction.aux_value().unwrap().into();
-
+        let offset = event.instruction.aux_value().unwrap().into();
+        println!("ins:{:?}",event.instruction);
+        println!("memoryoffset:{}",offset);
         // Populate addr_word and addr_aligned columns.
         let memory_columns = cols.opcode_specific_columns.memory_mut();
         let memory_addr = event.arg1.wrapping_add(offset);
+        println!("memor_addr:{}",memory_addr);
         let aligned_addr = memory_addr - memory_addr % WORD_SIZE as u32;
         memory_columns.addr_word = memory_addr.into();
         memory_columns.addr_word_range_checker.populate(memory_addr);

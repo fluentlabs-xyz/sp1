@@ -52,11 +52,23 @@ where
         builder.when(local.is_real).assert_bool(local.instruction.is_unary);
         builder.when(local.is_real).assert_bool(local.instruction.is_binary);
         builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary);
-        // // Compute some flags for which type of instruction we are dealing with.
-        // let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
+        // Compute some flags for which type of instruction we are dealing with.
+        let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
+        let is_memory_load: AB::Expr = self.is_load_instruction::<AB>(&local.selectors);
+        let is_memory_store: AB::Expr = self.is_store_instruction::<AB>(&local.selectors);
         // let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
 
-        let is_memory_instruction: AB::Expr =local.selectors.is_unimpl.into();
+
+
+        // Memory instructions.
+        self.eval_memory_address_and_access::<AB>(builder, local, 
+            is_memory_instruction.clone(),
+            // is_memory_load.clone(),
+            // is_memory_store.clone()
+        );
+        self.eval_memory_load::<AB>(builder, local);
+        self.eval_memory_store::<AB>(builder, local);
+ 
         let is_branch_instruction: AB::Expr = local.selectors.is_unimpl.into();
         self.eval_alu_ops(builder, local);
 
@@ -417,10 +429,13 @@ impl CpuChip {
         builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real);
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
         &local.op_arg2_access, local.instruction.is_binary);
+        
         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
          local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_binary);
          builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
          local.sp, &local.op_res_access, local.instruction.is_unary);
+         
+        
           
         // make sure the result is correclty write into memory
         builder.assert_word_eq(local.res, *local.op_res_access.value());

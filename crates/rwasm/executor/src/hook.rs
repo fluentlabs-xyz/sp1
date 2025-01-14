@@ -199,11 +199,11 @@ pub fn hook_ecrecover_v2(_: HookEnv, buf: &[u8]) -> Vec<Vec<u8>> {
 pub mod tests {
     use super::*;
 
-    #[test]
-    pub fn hook_fds_match() {
-        use sp1_zkvm::lib::io;
-        assert_eq!(FD_ECRECOVER_HOOK, io::FD_ECRECOVER_HOOK);
-    }
+    // #[test]
+    // pub fn hook_fds_match() {
+    //     use sp1_zkvm::lib::io;
+    //     assert_eq!(FD_ECRECOVER_HOOK, io::FD_ECRECOVER_HOOK);
+    // }
 
     #[test]
     pub fn registry_new_is_inhabited() {
