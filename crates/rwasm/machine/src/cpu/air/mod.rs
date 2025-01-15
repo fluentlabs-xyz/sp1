@@ -51,7 +51,8 @@ where
 
         builder.when(local.is_real).assert_bool(local.instruction.is_unary);
         builder.when(local.is_real).assert_bool(local.instruction.is_binary);
-        builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary);
+        builder.when(local.is_real).assert_bool(local.instruction.is_memory);
+        // builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary+local.instruction.is_memory);
         // Compute some flags for which type of instruction we are dealing with.
         let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
         let is_memory_load: AB::Expr = self.is_load_instruction::<AB>(&local.selectors);
@@ -63,8 +64,8 @@ where
         // Memory instructions.
         self.eval_memory_address_and_access::<AB>(builder, local, 
             is_memory_instruction.clone(),
-            // is_memory_load.clone(),
-            // is_memory_store.clone()
+            is_memory_load.clone(),
+            is_memory_store.clone()
         );
         self.eval_memory_load::<AB>(builder, local);
         self.eval_memory_store::<AB>(builder, local);

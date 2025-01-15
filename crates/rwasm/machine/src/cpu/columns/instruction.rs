@@ -16,6 +16,7 @@ pub struct InstructionCols<T> {
     pub opcode: T,
     pub is_unary: T,
     pub is_binary: T,
+    pub is_memory: T,
     pub aux_val: Word<T>,
 }
 
@@ -29,9 +30,17 @@ impl<F: PrimeField> InstructionCols<F> {
         }
         self.is_unary = F::from_bool(instruction.is_unary_instruction());
         self.is_binary = F::from_bool(instruction.is_binary_instruction());
+        self.is_memory = F::from_bool(instruction.is_memory_instruction());
+        println!("binary:{}",instruction.is_binary_instruction());
+        println!("unary:{}",instruction.is_unary_instruction());
+        println!("memory:{}",instruction.is_memory_instruction());
+        if let Some(aux_val) = instruction.aux_value(){
+            let aux_val:u32 = aux_val.into();
+            self.aux_val = aux_val.into();
+        } else{
+            self.aux_val = 0.into()
+        }
         
-        let aux_val: u32 = instruction.aux_value().unwrap().into();
-        self.aux_val = aux_val.into();
     }
 }
 

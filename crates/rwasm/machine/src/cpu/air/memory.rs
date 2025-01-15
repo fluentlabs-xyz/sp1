@@ -62,10 +62,12 @@ impl CpuChip {
         builder: &mut AB,
         local: &CpuCols<AB::Var>,
         is_memory_instruction: AB::Expr,
+        is_memory_load: AB::Expr,
+        is_memory_store: AB::Expr,
     ) {
         // Get the memory specific columns.
         let memory_columns = local.opcode_specific_columns.memory();
-
+        // self.bad_eval_(builder, local);
         // Send to the ALU table to verify correct calculation of addr_word.
         builder.send_alu(
             AB::Expr::from_canonical_u32(Opcode::ADD as u32),
@@ -127,14 +129,28 @@ impl CpuChip {
             local.clk + AB::Expr::from_canonical_u8(4),
             local.sp,
             &local.op_res_access,
-            is_memory_instruction.clone(),
+            is_memory_load.clone(),
         );
 
         builder.eval_memory_access(local.shard, 
         local.clk,
         memory_columns.addr_aligned,
          &memory_columns.memory_access,
-         is_memory_instruction.clone());
+         is_memory_load.clone());
+        
+         builder.eval_memory_access(
+            local.shard,
+            local.clk + AB::Expr::from_canonical_u8(4),
+            local.sp,
+            &memory_columns.memory_access,
+            is_memory_store.clone(),
+        );
+
+        builder.eval_memory_access(local.shard, 
+        local.clk,
+        memory_columns.addr_aligned,
+         &local.op_arg2_access,
+         is_memory_store.clone());
 
         // On memory load instructions, make sure that the memory value is not changed.
         builder.when(self.is_load_instruction::<AB>(&local.selectors)).assert_word_eq(
@@ -158,6 +174,17 @@ impl CpuChip {
         // If it's a signed operation (such as LB or LH), then we need verify the bit decomposition
         // of the most significant byte to get it's sign.
         self.eval_most_sig_byte_bit_decomp(builder, memory_columns, local, &local.unsigned_mem_val);
+
+       
+    }
+
+     /// Evaluates constraints related to loading from memory.
+     pub(crate) fn bad_eval_<AB: SP1AirBuilder>(
+        &self,
+        builder: &mut AB,
+        local: &CpuCols<AB::Var>,
+    ) {
+        builder.assert_eq(AB::Expr::one(), AB::Expr::zero());
 
        
     }

@@ -182,22 +182,27 @@ mod tests {
     
             let sp_value: u32 = SP_START;
             let addr: u32 = 0x10000;
-            let x_value: u32 = 0x01_32_FF_31;
-            let y_value: u32 = 0x2;
-            let z1_value: u32 = 0x1;
-            let z2_value: u32 = 0x2;
-            let z3_value: u32 = 0x1;
-            let z4_value: u32 = 0x2;
-            let z5_value: u32 = 0x1;
+            let addr_2: u32 = 0x10004;
+            let addr_3: u32 = 0x10008;
+            let x_value: u32 = 0x10004;
+            let x_2_value: u32 = 0x10008;
+            let x_3_value: u32 = 0x1000C;
+            
     
     
             let mut mem = HashMap::new();
             mem.insert(sp_value, addr);
+            mem.insert(sp_value-4, addr_2);
+            mem.insert(sp_value-8, addr_3);
             mem.insert(addr, x_value);
+            mem.insert(addr_2, x_2_value);
+            mem.insert(addr_3, x_3_value);
            
             println!("{:?}", mem);
             let instructions = vec![
-                Instruction::I32Load(0.into()),
+                // Instruction::I32Load(0.into()),
+                Instruction::I32Load16U(0.into()),
+                
             ];
 
         let program = Program {
