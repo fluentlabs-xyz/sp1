@@ -200,8 +200,9 @@ mod tests {
            
             println!("{:?}", mem);
             let instructions = vec![
-                // Instruction::I32Load(0.into()),
+                Instruction::I32Load(0.into()),
                 Instruction::I32Load16U(0.into()),
+                Instruction::I32Load8U(0x10000.into()),
                 
             ];
 

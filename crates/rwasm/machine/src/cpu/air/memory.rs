@@ -67,7 +67,6 @@ impl CpuChip {
     ) {
         // Get the memory specific columns.
         let memory_columns = local.opcode_specific_columns.memory();
-        // self.bad_eval_(builder, local);
         // Send to the ALU table to verify correct calculation of addr_word.
         builder.send_alu(
             AB::Expr::from_canonical_u32(Opcode::ADD as u32),
@@ -171,20 +170,9 @@ impl CpuChip {
         // Verify the unsigned_mem_value column.
         self.eval_unsigned_mem_value(builder, memory_columns, local);
 
-        // If it's a signed operation (such as LB or LH), then we need verify the bit decomposition
-        // of the most significant byte to get it's sign.
-        self.eval_most_sig_byte_bit_decomp(builder, memory_columns, local, &local.unsigned_mem_val);
-
-       
-    }
-
-     /// Evaluates constraints related to loading from memory.
-     pub(crate) fn bad_eval_<AB: SP1AirBuilder>(
-        &self,
-        builder: &mut AB,
-        local: &CpuCols<AB::Var>,
-    ) {
-        builder.assert_eq(AB::Expr::one(), AB::Expr::zero());
+        // // If it's a signed operation (such as LB or LH), then we need verify the bit decomposition
+        // // of the most significant byte to get it's sign.
+        // self.eval_most_sig_byte_bit_decomp(builder, memory_columns, local, &local.unsigned_mem_val);
 
        
     }
