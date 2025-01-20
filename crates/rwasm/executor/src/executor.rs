@@ -494,6 +494,8 @@ impl<'a> Executor<'a> {
         
     }
 
+    
+
     fn load_memory_value(&mut self,instruction: &Instruction,offset:u32)->
         Result<(MemoryReadRecord,MemoryReadRecord,u32),ExecutionError>{
             match instruction{
@@ -723,9 +725,32 @@ impl<'a> Executor<'a> {
             Instruction::LocalGet(local_depth) => todo!(),
             Instruction::LocalSet(local_depth) => todo!(),
             Instruction::LocalTee(local_depth) => todo!(),
-            Instruction::Br(branch_offset) => todo!(),
-            Instruction::BrIfEqz(branch_offset) => todo!(),
-            Instruction::BrIfNez(branch_offset) => todo!(),
+            Instruction::Br(branch_offset) => {
+                next_pc =( pc as i32 +  branch_offset.to_i32()) as u32;
+                res_is_writtten_back_to_stack = false;
+                println!("pc:{}, next_pc:{}",pc,next_pc);
+            },
+            Instruction::BrIfEqz(branch_offset) => {
+                
+                arg1_record = self.fetch_unary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                if arg1 ==0{
+                    next_pc =( pc as i32 + branch_offset.to_i32()) as u32;
+                }
+                next_sp = sp-4;
+                self.state.sp = next_sp;
+                println!("BrIfEqz top:{}, offset:{} ,pc:{},next pc:{}",arg1,branch_offset.to_i32(),pc,next_pc);
+            },
+            Instruction::BrIfNez(branch_offset) => {
+                arg1_record = self.fetch_unary_op_data();
+                arg1 = arg1_record.unwrap().value;
+                if arg1 !=0{
+                    next_pc =( pc as i32 + branch_offset.to_i32()) as u32;
+                }
+                next_sp = sp-4;
+                self.state.sp = next_sp;
+                println!("BrIfNqz top:{}, offset:{} ,pc:{},next pc:{}",arg1,branch_offset.to_i32(),pc,next_pc);
+            },
             Instruction::BrAdjust(branch_offset) => todo!(),
             Instruction::BrAdjustIfNez(branch_offset) => todo!(),
             Instruction::BrTable(branch_table_targets) => todo!(),
@@ -1716,7 +1741,7 @@ fn log2_ceil_usize(n: usize) -> usize {
 mod tests {
     use crate::{Executor, Program, SP_START};
     use hashbrown::HashMap;
-    use rwasm::engine::bytecode::Instruction;
+    use rwasm::engine::bytecode::{BranchOffset, Instruction};
     use sp1_stark::SP1CoreOpts;
 
     #[test]
@@ -2612,4 +2637,93 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value&0x0000_00FF)<<8);
     }
+    #[test]
+    fn test_br(){
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0005;
+       
+        let mut mem = HashMap::new();
+        
+        mem.insert(sp_value, x_value);
+      
+
+       
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1;
+        let addr :u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value-4, x_value);
+        mem.insert(sp_value-8, x_value);
+        mem.insert(sp_value-12, x_value);
+
+        let instructions = vec![
+            Instruction::Br(2.into()),
+            Instruction::I32Shl,
+            Instruction::I32Shl,
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
+        
+    }
+    #[test]
+    fn build_elf_branching(){
+        /*
+        let t0 = Register::X5;
+            let syscall_id = self.register(t0);
+            c = self.rr(Register::X11, MemoryAccessPosition::C);
+            b = self.rr(Register::X10, MemoryAccessPosition::B);
+            let syscall = SyscallCode::from_u32(syscall_id);
+        */
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x0;
+        let x_2_value: u32 = 0x10008;
+        let x_3_value: u32 = 0x1000C;
+        
+
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value-4, x_2_value);
+        mem.insert(sp_value-8, x_3_value);
+        
+    
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::Br(20.into()),
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::BrIfNez(12.into()),
+            Instruction::I32Add,
+            Instruction::BrIfNez(BranchOffset::from(-8i32)),
+            
+        ];
+
+    let program = Program {
+        instructions,
+        pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+        pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+        memory_image: mem,
+        preprocessed_shape: None,
+    };
+    //  memory_image: BTreeMap::new() };
+    let mut runtime = Executor::new(program, SP1CoreOpts::default());
+    runtime.run().unwrap();
+        assert_eq!(runtime.state.sp, 2);
+    runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
+    }
+
 }

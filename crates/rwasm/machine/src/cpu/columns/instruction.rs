@@ -1,7 +1,7 @@
 use p3_field::PrimeField;
-use rwasm::rwasm::InstructionExtra;
+use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
 use sp1_derive::AlignedBorrow;
-use sp1_rwasm_executor::{Instruction, Register};
+
 use sp1_stark::Word;
 use std::{iter::once, mem::size_of, vec::IntoIter};
 
@@ -14,6 +14,7 @@ pub const NUM_INSTRUCTION_COLS: usize = size_of::<InstructionCols<u8>>();
 pub struct InstructionCols<T> {
     /// The opcode for this cycle.
     pub opcode: T,
+    pub is_nullary:T,
     pub is_unary: T,
     pub is_binary: T,
     pub is_memory: T,
@@ -28,15 +29,30 @@ impl<F: PrimeField> InstructionCols<F> {
             Some(sp1_op)=>{self.opcode=sp1_op.as_field();}
             None => (),
         }
+        self.is_nullary=F::from_bool(instruction.is_nullary());
         self.is_unary = F::from_bool(instruction.is_unary_instruction());
         self.is_binary = F::from_bool(instruction.is_binary_instruction());
         self.is_memory = F::from_bool(instruction.is_memory_instruction());
         println!("binary:{}",instruction.is_binary_instruction());
         println!("unary:{}",instruction.is_unary_instruction());
         println!("memory:{}",instruction.is_memory_instruction());
+        println!("braching:{}",instruction.is_branch_instruction());
         if let Some(aux_val) = instruction.aux_value(){
-            let aux_val:u32 = aux_val.into();
-            self.aux_val = aux_val.into();
+           match instruction{
+             Instruction::Br(_)|
+             Instruction::BrIfEqz(_)|
+             Instruction::BrIfNez(_)=>{
+                let aux_val:i32= aux_val.into();
+                self.aux_val = (aux_val as u32).into();
+                println!("aux_val:{}",aux_val);
+             },
+             _=>{
+                let aux_val:u32= aux_val.into();
+                self.aux_val = aux_val.into();
+                println!("aux_val:{}",aux_val);
+             }
+           }
+            
         } else{
             self.aux_val = 0.into()
         }

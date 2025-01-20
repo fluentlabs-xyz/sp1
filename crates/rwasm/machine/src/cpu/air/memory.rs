@@ -172,7 +172,7 @@ impl CpuChip {
 
         // // If it's a signed operation (such as LB or LH), then we need verify the bit decomposition
         // // of the most significant byte to get it's sign.
-        // self.eval_most_sig_byte_bit_decomp(builder, memory_columns, local, &local.unsigned_mem_val);
+        self.eval_most_sig_byte_bit_decomp(builder, memory_columns, local, &local.unsigned_mem_val);
 
        
     }

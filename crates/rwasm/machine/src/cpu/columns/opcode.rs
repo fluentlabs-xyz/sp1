@@ -27,6 +27,7 @@ pub struct OpcodeSelectorCols<T> {
     pub is_alu: T,
     pub is_ordinary_alu: T,
     pub is_comparison_alu:T,
+    pub is_branching: T,
     /// Table selectors for opcodes.
     pub is_memory:T,
     pub is_ecall: T,
@@ -55,6 +56,10 @@ pub struct OpcodeSelectorCols<T> {
     pub is_i32store:T,
     pub is_i32store16:T,
     pub is_i32store8:T,
+
+    pub is_br:T,
+    pub is_brifnez:T,
+    pub is_brifeqz:T,
 }
 
 impl<F: PrimeField> OpcodeSelectorCols<F> {
@@ -81,7 +86,7 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
         } else if instruction.is_memory_instruction() {
             self.is_memory = F::one();
         } else if instruction.is_branch_instruction() {
-            todo!()
+            self.is_branching=F::one();
         }
         match instruction{
             Instruction::I32Eqz => { self.is_i32eqz = F::one();},
@@ -104,6 +109,9 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
             Instruction::I32Store(_)=>{self.is_i32store=F::one()},
             Instruction::I32Store16(_)=>{self.is_i32store16=F::one()},
             Instruction::I32Store8(_)=>{self.is_i32store8=F::one()},
+            Instruction::Br(_)=>{self.is_br=F::one()},
+            Instruction::BrIfEqz(_)=>{self.is_brifeqz=F::one()},
+            Instruction::BrIfNez(_)=>{self.is_brifnez=F::one()},
            _=>{}
         }
 
@@ -116,12 +124,14 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let columns = vec![self.is_alu, self.is_ordinary_alu,self.is_comparison_alu,self.is_memory,self.is_ecall, self.is_auipc, self.is_unimpl,
+        let columns = vec![self.is_alu, self.is_ordinary_alu,self.is_comparison_alu,
+        self.is_branching, self.is_memory,self.is_ecall, self.is_auipc, self.is_unimpl,
         self.is_i32les,self.is_i32leu,
         self.is_i32ges,self.is_i32geu,self.is_i32gts,self.is_i32gtu,
         self.is_i32eq,self.is_i32ne,self.is_i32eqz,
         self.is_i32load,self.is_i32load16s,self.is_i32load16u,self.is_i32load8s,self.is_i32load8u,
-        self.is_i32store,self.is_i32store16,self.is_i32store8];
+        self.is_i32store,self.is_i32store16,self.is_i32store8,
+        self.is_br,self.is_brifeqz,self.is_brifnez];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS); 
         columns.into_iter()
     }

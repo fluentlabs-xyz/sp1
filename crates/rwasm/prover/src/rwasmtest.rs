@@ -17,7 +17,7 @@ mod tests {
     use std::fs::File;
     use std::io::{Read, Write};
 
-    use rwasm::engine::bytecode::Instruction;
+    use rwasm::engine::bytecode::{BranchOffset, Instruction};
     fn build_elf() -> Program {
         /*
          let t0 = Register::X5;
@@ -124,7 +124,7 @@ mod tests {
 
         program
     }
-    
+
     fn build_elf3() -> Program {
         /*
          let t0 = Register::X5;
@@ -142,7 +142,6 @@ mod tests {
         let z3_value: u32 = 0x1;
         let z4_value: u32 = 0x2;
         let z5_value: u32 = 0x1;
-
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
@@ -171,48 +170,45 @@ mod tests {
         program
     }
 
-        fn build_elf4() -> Program {
-            /*
-             let t0 = Register::X5;
-                   let syscall_id = self.register(t0);
-                   c = self.rr(Register::X11, MemoryAccessPosition::C);
-                   b = self.rr(Register::X10, MemoryAccessPosition::B);
-                   let syscall = SyscallCode::from_u32(syscall_id);
-            */
-    
-            let sp_value: u32 = SP_START;
-            let addr: u32 = 0x10000;
-            let addr_2: u32 = 0x10004;
-            let addr_3: u32 = 0x10008;
-            let addr_4: u32 = 0x1000C;
-            let addr_5: u32 = 0x10010;
-            let x_value: u32 = 0x10004;
-            let x_2_value: u32 = 0x10008;
-            let x_3_value: u32 = 0x1000C;
-            
-    
-    
-            let mut mem = HashMap::new();
-            mem.insert(sp_value, addr);
-            mem.insert(sp_value-4, addr_2);
-            mem.insert(sp_value-8, 0x10000);
-            mem.insert(sp_value-12, addr_3);
-            mem.insert(sp_value-16, 0x10000);
-            mem.insert(addr, x_value);
-            mem.insert(addr_2, x_2_value);
-            mem.insert(addr_3, x_3_value);
-           
-            println!("{:?}", mem);
-            let instructions = vec![
-                Instruction::I32Load(0.into()),
-                Instruction::I32Load16U(0.into()),
-                Instruction::I32Add,
-                Instruction::I32Load8U(0x10000.into()),
-                Instruction::I32Add,
-                Instruction::I32Load16S(0.into()),
-                Instruction::I32Load8S(0.into()),
-                
-            ];
+    fn build_elf4() -> Program {
+        /*
+         let t0 = Register::X5;
+               let syscall_id = self.register(t0);
+               c = self.rr(Register::X11, MemoryAccessPosition::C);
+               b = self.rr(Register::X10, MemoryAccessPosition::B);
+               let syscall = SyscallCode::from_u32(syscall_id);
+        */
+
+        let sp_value: u32 = SP_START;
+        let addr: u32 = 0x10000;
+        let addr_2: u32 = 0x10004;
+        let addr_3: u32 = 0x10008;
+        let addr_4: u32 = 0x1000C;
+        let addr_5: u32 = 0x10010;
+        let x_value: u32 = 0x10004;
+        let x_2_value: u32 = 0x10008;
+        let x_3_value: u32 = 0x1000C;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value - 4, addr_2);
+        mem.insert(sp_value - 8, 0x10000);
+        mem.insert(sp_value - 12, addr_3);
+        mem.insert(sp_value - 16, 0x10000);
+        mem.insert(addr, x_value);
+        mem.insert(addr_2, x_2_value);
+        mem.insert(addr_3, x_3_value);
+
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::I32Load(0.into()),
+            Instruction::I32Load16U(0.into()),
+            Instruction::I32Add,
+            Instruction::I32Load8U(0x10000.into()),
+            Instruction::I32Add,
+            Instruction::I32Load16S(0.into()),
+            Instruction::I32Load8S(0.into()),
+        ];
 
         let program = Program {
             instructions,
@@ -246,37 +242,76 @@ mod tests {
         let x_3_value: u32 = 0x1000C;
         let x_3_value: u32 = 0x1000C;
         let x_3_value: u32 = 0x1000C;
-        
-
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, x_value);
-        mem.insert(sp_value-8, addr_2);
-        mem.insert(sp_value-12, x_2_value);
-        mem.insert(sp_value-16, addr_3);
-        mem.insert(sp_value-20, x_3_value);
-        
-       
+        mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value - 8, addr_2);
+        mem.insert(sp_value - 12, x_2_value);
+        mem.insert(sp_value - 16, addr_3);
+        mem.insert(sp_value - 20, x_3_value);
+
         println!("{:?}", mem);
         let instructions = vec![
-           Instruction::I32Store(0.into()),
-           Instruction::I32Store16(0.into()),
-           Instruction::I32Store8(0.into()),
-            
+            Instruction::I32Store(0.into()),
+            Instruction::I32Store16(0.into()),
+            Instruction::I32Store8(0.into()),
         ];
 
-    let program = Program {
-        instructions,
-        pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-        pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-        memory_image: mem,
-        preprocessed_shape: None,
-    };
-    //  memory_image: BTreeMap::new() };
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
 
-    program
-}
+        program
+    }
+
+    fn build_elf_branching() -> Program {
+        /*
+        let t0 = Register::X5;
+            let syscall_id = self.register(t0);
+            c = self.rr(Register::X11, MemoryAccessPosition::C);
+            b = self.rr(Register::X10, MemoryAccessPosition::B);
+            let syscall = SyscallCode::from_u32(syscall_id);
+        */
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x0;
+        let x_2_value: u32 = 0x10008;
+        let x_3_value: u32 = 0x1000C;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, x_2_value);
+        mem.insert(sp_value - 8, x_3_value);
+
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::Br(20.into()),
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::BrIfNez(12.into()),
+            Instruction::I32Add,
+            Instruction::BrIfNez(BranchOffset::from(-8i32)),
+            Instruction::I32Add,
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
+
+        program
+    }
 
     #[test]
     fn test_rwasm_proof1() {
@@ -397,6 +432,35 @@ mod tests {
     #[test]
     fn test_rwasm_proof5() {
         let mut program = build_elf4();
+        setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
+
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
+
+    #[test]
+    fn test_rwasm_branching() {
+        let mut program = build_elf_branching();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();

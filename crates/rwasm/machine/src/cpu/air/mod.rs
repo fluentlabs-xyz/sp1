@@ -70,11 +70,11 @@ where
         self.eval_memory_load::<AB>(builder, local);
         self.eval_memory_store::<AB>(builder, local);
  
-        let is_branch_instruction: AB::Expr = local.selectors.is_unimpl.into();
+        let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
         self.eval_alu_ops(builder, local);
 
-        // // Branch instructions.
-        // self.eval_branch_ops::<AB>(builder, is_branch_instruction.clone(), local, next);
+        // Branch instructions.
+        self.eval_branch_ops::<AB>(builder, is_branch_instruction.clone(), local, next);
 
         // // Jump instructions.
         // self.eval_jump_ops::<AB>(builder, local, next);
@@ -110,7 +110,7 @@ where
 
         //check op memory access
         
-        self.eval_binary_op_memory(builder, local);
+        self.eval_op_memory(builder, local);
         // Check that the is_real flag is correct.
         self.eval_is_real(builder, local, next);
     }
@@ -280,9 +280,13 @@ impl CpuChip {
         // We already assert that `local.clk < 2^24`. `num_extra_cycles` is an entry of a word and
         // therefore less than `2^8`, this means that the sum cannot overflow in a 31 bit field.
         let expected_next_clk = local.clk + AB::Expr::from_canonical_u32(8);
+        let expected_next_clk_branching = local.clk + AB::Expr::from_canonical_u32(4);
         // +  num_extra_cycles.clone()
 
-        builder.when_transition().when(next.is_real).assert_eq(expected_next_clk.clone(), next.clk);
+        builder.when_transition().when(next.is_real*(AB::Expr::one()-local.selectors.is_branching))
+        .assert_eq(expected_next_clk.clone(), next.clk);
+    builder.when_transition().when(next.is_real*local.selectors.is_branching)
+        .assert_eq(expected_next_clk_branching.clone(), next.clk);
 
         // Range check that the clk is within 24 bits using it's limb values.
         builder.eval_range_check_24bits(
@@ -417,7 +421,7 @@ impl CpuChip {
         builder.when_transition().when_not(local.is_real).assert_zero(next.is_real);
     }
 
-    fn eval_binary_op_memory<AB: SP1AirBuilder>(
+    fn eval_op_memory<AB: SP1AirBuilder>(
         &self,
         builder: &mut AB,
         local: &CpuCols<AB::Var>,
@@ -427,7 +431,7 @@ impl CpuChip {
         //make sure the memory access are correct
         //always need to check arg1
         //only check arg2 if instruction is binary
-        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real);
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary);
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
         &local.op_arg2_access, local.instruction.is_binary);
         
