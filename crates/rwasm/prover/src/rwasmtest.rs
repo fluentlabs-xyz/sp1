@@ -431,7 +431,7 @@ mod tests {
 
     #[test]
     fn test_rwasm_proof5() {
-        let mut program = build_elf4();
+        let mut program = build_elf5();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();
