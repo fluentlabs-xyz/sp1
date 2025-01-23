@@ -161,6 +161,7 @@ impl CpuChip {
                         }
                     } else{
                         if let Some(record) = event.arg2_record {
+                            println!("populate store");
                             println!("arg_2 record:{:?}",record);
                             cols.op_arg2_access.populate(record, blu_events);
                         }

@@ -16,8 +16,8 @@ use crate::{
     dependencies::{emit_cpu_dependencies, emit_divrem_dependencies},
     events::{
         create_alu_lookup_id, create_alu_lookups, AluEvent, CpuEvent, LookupId,
-        MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
-        MemoryRecord, MemoryWriteRecord, SyscallEvent,
+        MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord, MemoryRecord,
+        MemoryWriteRecord, SyscallEvent,
     },
     hook::{HookEnv, HookRegistry},
     memory::{Entry, PagedMemory},
@@ -297,7 +297,7 @@ impl<'a> Executor<'a> {
     /// Get the current timestamp for a given memory access position.
     #[must_use]
     pub const fn timestamp(&self) -> u32 {
-        self.state.clk 
+        self.state.clk
     }
 
     /// Get the current shard.
@@ -487,46 +487,42 @@ impl<'a> Executor<'a> {
         self.mw(self.state.sp, res, self.shard(), self.state.clk, None)
     }
 
-    fn write_back_res_to_memory(&mut self,res:u32,addr:u32,next_sp:u32)->MemoryWriteRecord{
-        self.state.clk+=4;
-        self.state.sp= next_sp;
-        self.mw(addr, res, self.shard(),self.state.clk, None)
-        
+    fn write_back_res_to_memory(&mut self, res: u32, addr: u32, next_sp: u32) -> MemoryWriteRecord {
+        self.state.clk += 4;
+        self.state.sp = next_sp;
+        self.mw(addr, res, self.shard(), self.state.clk, None)
     }
 
-    
+    fn load_memory_value(
+        &mut self,
+        instruction: &Instruction,
+        offset: u32,
+    ) -> Result<(MemoryReadRecord, MemoryReadRecord, u32), ExecutionError> {
+        match instruction {
+            Instruction::I32Load(_)
+            | Instruction::I32Load16S(_)
+            | Instruction::I32Load16U(_)
+            | Instruction::I32Load8S(_)
+            | Instruction::I32Load8U(_) => {
+                let arg1_record = self.fetch_unary_op_data().unwrap();
+                let raw_addr = arg1_record.value;
+                let addr = offset.checked_add(raw_addr);
+                match addr {
+                    Some(addr) => {
+                        let sp = self.state.sp;
+                        let clk = self.state.clk;
+                        let shard = self.shard();
+                        let arg2_record = self.mr(align(addr), shard, clk, None);
 
-    fn load_memory_value(&mut self,instruction: &Instruction,offset:u32)->
-        Result<(MemoryReadRecord,MemoryReadRecord,u32),ExecutionError>{
-            match instruction{
-                Instruction::I32Load(_)|
-                Instruction::I32Load16S(_)|
-                Instruction::I32Load16U(_)|
-                Instruction::I32Load8S(_)|
-                Instruction::I32Load8U(_)=>{
-                    let arg1_record=self.fetch_unary_op_data().unwrap();
-                    let raw_addr = arg1_record.value;
-                    let addr = offset.checked_add(raw_addr);  
-                    match addr {
-                        Some(addr)=>{
-                            let sp = self.state.sp;
-                            let clk = self.state.clk;
-                            let shard = self.shard();
-                            let arg2_record = self.mr(align(addr), shard, clk, None);
-            
-                            return  Ok((arg1_record,arg2_record,addr));
-                           
-                        }
-                        None => {return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, offset))}
+                        return Ok((arg1_record, arg2_record, addr));
                     }
+                    None => return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, offset)),
                 }
-                _=>unreachable!()
-
             }
-            todo!()
+            _ => unreachable!(),
+        }
+        todo!()
     }
-
- 
 
     /// Emit a CPU event.
     #[allow(clippy::too_many_arguments)]
@@ -656,8 +652,6 @@ impl<'a> Executor<'a> {
         self.record.syscall_events.push(syscall_event);
     }
 
-   
-
     /// Fetch the instruction at the current program counter.
     #[inline]
     fn fetch(&self) -> Instruction {
@@ -726,31 +720,42 @@ impl<'a> Executor<'a> {
             Instruction::LocalSet(local_depth) => todo!(),
             Instruction::LocalTee(local_depth) => todo!(),
             Instruction::Br(branch_offset) => {
-                next_pc =( pc as i32 +  branch_offset.to_i32()) as u32;
+                next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 res_is_writtten_back_to_stack = false;
-                println!("pc:{}, next_pc:{}",pc,next_pc);
-            },
+                println!("pc:{}, next_pc:{}", pc, next_pc);
+            }
             Instruction::BrIfEqz(branch_offset) => {
-                
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
-                if arg1 ==0{
-                    next_pc =( pc as i32 + branch_offset.to_i32()) as u32;
+                if arg1 == 0 {
+                    next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 }
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 self.state.sp = next_sp;
-                println!("BrIfEqz top:{}, offset:{} ,pc:{},next pc:{}",arg1,branch_offset.to_i32(),pc,next_pc);
-            },
+                println!(
+                    "BrIfEqz top:{}, offset:{} ,pc:{},next pc:{}",
+                    arg1,
+                    branch_offset.to_i32(),
+                    pc,
+                    next_pc
+                );
+            }
             Instruction::BrIfNez(branch_offset) => {
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
-                if arg1 !=0{
-                    next_pc =( pc as i32 + branch_offset.to_i32()) as u32;
+                if arg1 != 0 {
+                    next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 }
-                next_sp = sp-4;
+                next_sp = sp - 4;
                 self.state.sp = next_sp;
-                println!("BrIfNqz top:{}, offset:{} ,pc:{},next pc:{}",arg1,branch_offset.to_i32(),pc,next_pc);
-            },
+                println!(
+                    "BrIfNqz top:{}, offset:{} ,pc:{},next pc:{}",
+                    arg1,
+                    branch_offset.to_i32(),
+                    pc,
+                    next_pc
+                );
+            }
             Instruction::BrAdjust(branch_offset) => todo!(),
             Instruction::BrAdjustIfNez(branch_offset) => todo!(),
             Instruction::BrTable(branch_table_targets) => todo!(),
@@ -771,64 +776,62 @@ impl<'a> Executor<'a> {
             Instruction::GlobalSet(global_idx) => todo!(),
             Instruction::I32Load(address_offset) => {
                 let offset = address_offset.into_inner();
-                match self.load_memory_value(instruction,offset){
-                    Ok(read_records)=>{
-                        let addr= read_records.2;
+                match self.load_memory_value(instruction, offset) {
+                    Ok(read_records) => {
+                        let addr = read_records.2;
                         if addr % 4 != 0 {
                             return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
                         }
-                        res=read_records.1.value;
-                        res_is_writtten_back_to_stack=true;
-                        arg1 =read_records.0.value;
-                        arg2 =read_records.1.value;
-                        arg1_record=Some(read_records.0);
-                        arg2_record=Some(read_records.1);
+                        res = read_records.1.value;
+                        res_is_writtten_back_to_stack = true;
+                        arg1 = read_records.0.value;
+                        arg2 = read_records.1.value;
+                        arg1_record = Some(read_records.0);
+                        arg2_record = Some(read_records.1);
                     }
-                    Err(err) =>return Err(err) ,
+                    Err(err) => return Err(err),
                 }
-            },
+            }
             Instruction::F32Load(address_offset) => todo!(),
             Instruction::F64Load(address_offset) => todo!(),
             Instruction::I32Load8S(address_offset) => {
                 let offset = address_offset.into_inner();
-                match self.load_memory_value(instruction,offset){
-                    Ok(read_records)=>{
+                match self.load_memory_value(instruction, offset) {
+                    Ok(read_records) => {
                         let addr = read_records.2;
                         let value = (read_records.1.value).to_le_bytes()[(addr % 4) as usize];
                         res = ((value as i8) as i32) as u32;
-                        res_is_writtten_back_to_stack= true;
-                        arg1 =read_records.0.value;
-                        arg2 =read_records.1.value;
-                        arg1_record=Some(read_records.0);
-                        arg2_record=Some(read_records.1);
-                    },
-                    Err(err) =>return Err(err) ,
+                        res_is_writtten_back_to_stack = true;
+                        arg1 = read_records.0.value;
+                        arg2 = read_records.1.value;
+                        arg1_record = Some(read_records.0);
+                        arg2_record = Some(read_records.1);
+                    }
+                    Err(err) => return Err(err),
                 }
-              
-            },
+            }
             Instruction::I32Load8U(address_offset) => {
                 let offset = address_offset.into_inner();
-                match self.load_memory_value(instruction,offset){
-                    Ok(read_records)=>{
+                match self.load_memory_value(instruction, offset) {
+                    Ok(read_records) => {
                         let addr = read_records.2;
                         let value = (read_records.1.value).to_le_bytes()[(addr % 4) as usize];
-                        res =value as u32;
-                        res_is_writtten_back_to_stack= true;
-                        arg1 =read_records.0.value;
-                        arg2 =read_records.1.value;
-                        arg1_record=Some(read_records.0);
-                        arg2_record=Some(read_records.1);
-                    },
-                    Err(err) =>return Err(err) ,
-               
+                        res = value as u32;
+                        res_is_writtten_back_to_stack = true;
+                        arg1 = read_records.0.value;
+                        arg2 = read_records.1.value;
+                        arg1_record = Some(read_records.0);
+                        arg2_record = Some(read_records.1);
+                    }
+                    Err(err) => return Err(err),
+                }
             }
-        }
             Instruction::I32Load16S(address_offset) => {
                 let offset = address_offset.into_inner();
-                match self.load_memory_value(instruction,offset){
-                    Ok(read_records)=>{
+                match self.load_memory_value(instruction, offset) {
+                    Ok(read_records) => {
                         let addr = read_records.2;
-                        let memory_read_value =read_records.1.value;
+                        let memory_read_value = read_records.1.value;
                         if addr % 2 != 0 {
                             return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
                         }
@@ -838,23 +841,21 @@ impl<'a> Executor<'a> {
                             _ => unreachable!(),
                         };
                         res = ((value as i16) as i32) as u32;
-                        res_is_writtten_back_to_stack=true;
-                        arg1 =read_records.0.value;
-                        arg2 =read_records.1.value;
-                        arg1_record=Some(read_records.0);
-                        arg2_record=Some(read_records.1);
-
+                        res_is_writtten_back_to_stack = true;
+                        arg1 = read_records.0.value;
+                        arg2 = read_records.1.value;
+                        arg1_record = Some(read_records.0);
+                        arg2_record = Some(read_records.1);
                     }
-                    Err(err) =>return Err(err) ,
+                    Err(err) => return Err(err),
                 }
-               
-            },
+            }
             Instruction::I32Load16U(address_offset) => {
                 let offset = address_offset.into_inner();
-                match self.load_memory_value(instruction,offset){
-                    Ok(read_records)=>{
+                match self.load_memory_value(instruction, offset) {
+                    Ok(read_records) => {
                         let addr = read_records.2;
-                        let memory_read_value =read_records.1.value;
+                        let memory_read_value = read_records.1.value;
                         if addr % 2 != 0 {
                             return Err(ExecutionError::InvalidMemoryAccess(Opcode::LHU, addr));
                         }
@@ -863,69 +864,70 @@ impl<'a> Executor<'a> {
                             1 => (memory_read_value & 0xFFFF_0000) >> 16,
                             _ => unreachable!(),
                         };
-                        res = (value as u16)as u32;
-                        res_is_writtten_back_to_stack=true;
-                        arg1 =read_records.0.value;
-                        arg2 =read_records.1.value;
-                        arg1_record=Some(read_records.0);
-                        arg2_record=Some(read_records.1);
-
+                        res = (value as u16) as u32;
+                        res_is_writtten_back_to_stack = true;
+                        arg1 = read_records.0.value;
+                        arg2 = read_records.1.value;
+                        arg1_record = Some(read_records.0);
+                        arg2_record = Some(read_records.1);
                     }
-                    Err(err) =>return Err(err) ,
+                    Err(err) => return Err(err),
                 }
-                
-            },
+            }
             Instruction::I32Store(address_offset) => {
-                (arg1_record,arg2_record)=self.fetch_binary_op_data();
-                let value  = arg2_record.unwrap().value;
-                
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
+                let value = arg2_record.unwrap().value;
+
                 arg1 = arg1_record.unwrap().value;
-                match arg1.checked_add(address_offset.into_inner()){
-                    Some(addr)=>{
+                match arg1.checked_add(address_offset.into_inner()) {
+                    Some(addr) => {
                         res = value;
-                        next_sp = sp-4;
+                        next_sp = sp - 8;
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
-                        res_is_writtten_back_to_stack=false;
-                    },
-                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, 0u32));}
+                        res_is_writtten_back_to_stack = false;
+                    }
+                    None => {
+                        return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, 0u32));
+                    }
                 }
-              
-            },
+            }
             Instruction::I32Store8(address_offset) => {
-                (arg1_record,arg2_record)=self.fetch_binary_op_data();
-                
-                let raw_addr =arg1_record.unwrap().value;
-                let full_value  = arg2_record.unwrap().value;
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
+
+                let raw_addr = arg1_record.unwrap().value;
+                let full_value = arg2_record.unwrap().value;
                 arg1 = arg1_record.unwrap().value;
-               
-                match raw_addr.checked_add(address_offset.into_inner()){
-                    Some(addr)=>{
+
+                match raw_addr.checked_add(address_offset.into_inner()) {
+                    Some(addr) => {
                         let memory_value = self.word(align(addr));
                         let value = match addr % 4 {
                             0 => (full_value & 0x0000_00FF) + (memory_value & 0xFFFF_FF00),
                             1 => ((full_value & 0x0000_00FF) << 8) + (memory_value & 0xFFFF_00FF),
                             2 => ((full_value & 0x0000_00FF) << 16) + (memory_value & 0xFF00_FFFF),
-                            3 => ((full_value& 0x0000_00FF) << 24) + (memory_value & 0x00FF_FFFF),
+                            3 => ((full_value & 0x0000_00FF) << 24) + (memory_value & 0x00FF_FFFF),
                             _ => unreachable!(),
                         };
                         res = value;
-                        println!("full:{},memoery:{},res:{}",full_value,memory_value,res);
-                        next_sp = sp-4;
+                        println!("full:{},memoery:{},res:{}", full_value, memory_value, res);
+                        next_sp = sp - 8;
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
-                        res_is_writtten_back_to_stack=false;
-                    },
-                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));}
+                        res_is_writtten_back_to_stack = false;
+                    }
+                    None => {
+                        return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));
+                    }
                 }
-            },
+            }
             Instruction::I32Store16(address_offset) => {
-                (arg1_record,arg2_record)=self.fetch_binary_op_data();
-                
-                let raw_addr =arg1_record.unwrap().value;
-                let full_value  = arg2_record.unwrap().value;
+                (arg1_record, arg2_record) = self.fetch_binary_op_data();
+
+                let raw_addr = arg1_record.unwrap().value;
+                let full_value = arg2_record.unwrap().value;
                 arg1 = arg1_record.unwrap().value;
-               
-                match raw_addr.checked_add(address_offset.into_inner()){
-                    Some(addr)=>{
+
+                match raw_addr.checked_add(address_offset.into_inner()) {
+                    Some(addr) => {
                         let memory_value = self.word(align(addr));
                         let value = match addr % 2 {
                             0 => (full_value & 0x0000_FFFF) + (memory_value & 0xFFFF_0000),
@@ -933,14 +935,16 @@ impl<'a> Executor<'a> {
                             _ => unreachable!(),
                         };
                         res = value;
-                        
-                        next_sp = sp-4;
+
+                        next_sp = sp - 8;
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
-                        res_is_writtten_back_to_stack=false;
-                    },
-                    None=>{ return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));}
+                        res_is_writtten_back_to_stack = false;
+                    }
+                    None => {
+                        return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));
+                    }
                 }
-            },
+            }
             Instruction::MemorySize => todo!(),
             Instruction::MemoryGrow => todo!(),
             Instruction::MemoryFill => todo!(),
@@ -964,7 +968,10 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 res = (arg1 == 0) as u32;
                 res_is_writtten_back_to_stack = true;
-                println!("arg1_record:{:?} res: {} has_res: {}", arg1_record, res, res_is_writtten_back_to_stack);
+                println!(
+                    "arg1_record:{:?} res: {} has_res: {}",
+                    arg1_record, res, res_is_writtten_back_to_stack
+                );
             }
             Instruction::I32Eq => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1229,9 +1236,8 @@ impl<'a> Executor<'a> {
             _ => todo!(),
         }
 
-
-        if res_is_writtten_back_to_stack{
-            res_record=Some(self.write_back_res_to_stack(res, next_sp));
+        if res_is_writtten_back_to_stack {
+            res_record = Some(self.write_back_res_to_stack(res, next_sp));
         }
 
         // Update the program counter.
@@ -1664,8 +1670,6 @@ impl<'a> Executor<'a> {
                 None => &MemoryRecord { value: 0, shard: 0, timestamp: 0 },
             };
 
-            println!("add_0_record{:?}", addr_0_record);
-            println!("add_0_final_record{:?}", addr_0_final_record);
             memory_finalize_events
                 .push(MemoryInitializeFinalizeEvent::finalize_from_record(0, addr_0_final_record));
 
@@ -2432,7 +2436,7 @@ mod tests {
     fn test_load32() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 5;
-        let addr :u32 = 0x10000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
         mem.insert(addr, x_value);
@@ -2457,12 +2461,12 @@ mod tests {
     fn test_load16u() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
-      
+
         let y_value: u32 = 0x0000_1234;
-        let addr :u32 = 0x10000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, addr);
+        mem.insert(sp_value - 4, addr);
         mem.insert(addr, x_value);
 
         let instructions = vec![
@@ -2478,17 +2482,20 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FFFF);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_FFFF
+        );
     }
 
     #[test]
     fn test_load16s() {
         let sp_value: u32 = SP_START;
-        let x_value:u32 = (-5i16) as u16 as u32 &0xFFFF_0000;
-        let addr :u32 = 0x10000;
+        let x_value: u32 = (-5i16) as u16 as u32 & 0xFFFF_0000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, addr);
+        mem.insert(sp_value - 4, addr);
         mem.insert(addr, x_value);
 
         let instructions = vec![
@@ -2504,17 +2511,20 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FFFF);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_FFFF
+        );
     }
 
     #[test]
     fn test_load8u() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_05FF;
-        let addr :u32 = 0x10000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, addr);
+        mem.insert(sp_value - 4, addr);
         mem.insert(addr, x_value);
 
         let instructions = vec![
@@ -2530,17 +2540,20 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FF05>>8);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_FF05 >> 8
+        );
     }
 
     #[test]
     fn test_load8s() {
         let sp_value: u32 = SP_START;
-        let x_value:u32 = (((-5i8) as u8 as u32)<<8)&0xFFFF_00FF;
-        let addr :u32 = 0x10000;
+        let x_value: u32 = (((-5i8) as u8 as u32) << 8) & 0xFFFF_00FF;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, addr);
+        mem.insert(sp_value - 4, addr);
         mem.insert(addr, x_value);
 
         let instructions = vec![
@@ -2556,19 +2569,20 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value&0x0000_FF00);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_FF00
+        );
     }
-
 
     #[test]
     fn test_store() {
         let sp_value: u32 = SP_START;
-        let x_value:u32 =5;
-        let addr :u32 = 0x10000;
+        let x_value: u32 = 5;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, x_value);
-      
+        mem.insert(sp_value - 4, x_value);
 
         let instructions = vec![
             Instruction::I32Store(0.into()), // 5 and 37 = 32
@@ -2590,11 +2604,10 @@ mod tests {
     fn test_store16() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
-        let addr :u32 = 0x10000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, x_value);
-      
+        mem.insert(sp_value - 4, x_value);
 
         let instructions = vec![
             Instruction::I32Store16(0.into()), // 5 and 37 = 32
@@ -2609,18 +2622,17 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value&0x0000_FFFF);
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value & 0x0000_FFFF);
     }
 
     #[test]
     fn test_store8() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
-        let addr :u32 = 0x10000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
-        mem.insert(sp_value-4, x_value);
-      
+        mem.insert(sp_value - 4, x_value);
 
         let instructions = vec![
             Instruction::I32Store8(1.into()), // 5 and 37 = 32
@@ -2635,33 +2647,28 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value&0x0000_00FF)<<8);
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value & 0x0000_00FF) << 8);
     }
     #[test]
-    fn test_br(){
+    fn test_br() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
-       
-        let mut mem = HashMap::new();
-        
-        mem.insert(sp_value, x_value);
-      
 
-       
+        let mut mem = HashMap::new();
+
+        mem.insert(sp_value, x_value);
+
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
-        let addr :u32 = 0x10000;
+        let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value-4, x_value);
-        mem.insert(sp_value-8, x_value);
-        mem.insert(sp_value-12, x_value);
+        mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value - 8, x_value);
+        mem.insert(sp_value - 12, x_value);
 
-        let instructions = vec![
-            Instruction::Br(2.into()),
-            Instruction::I32Shl,
-            Instruction::I32Shl,
-        ];
+        let instructions =
+            vec![Instruction::Br(2.into()), Instruction::I32Shl, Instruction::I32Shl];
 
         let program = Program {
             instructions,
@@ -2671,13 +2678,12 @@ mod tests {
             preprocessed_shape: None,
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
-        
+
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
-        
     }
     #[test]
-    fn build_elf_branching(){
+    fn build_elf_branching() {
         /*
         let t0 = Register::X5;
             let syscall_id = self.register(t0);
@@ -2690,15 +2696,12 @@ mod tests {
         let x_value: u32 = 0x0;
         let x_2_value: u32 = 0x10008;
         let x_3_value: u32 = 0x1000C;
-        
-
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value-4, x_2_value);
-        mem.insert(sp_value-8, x_3_value);
-        
-    
+        mem.insert(sp_value - 4, x_2_value);
+        mem.insert(sp_value - 8, x_3_value);
+
         println!("{:?}", mem);
         let instructions = vec![
             Instruction::Br(20.into()),
@@ -2708,22 +2711,20 @@ mod tests {
             Instruction::BrIfNez(12.into()),
             Instruction::I32Add,
             Instruction::BrIfNez(BranchOffset::from(-8i32)),
-            
         ];
 
-    let program = Program {
-        instructions,
-        pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-        pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-        memory_image: mem,
-        preprocessed_shape: None,
-    };
-    //  memory_image: BTreeMap::new() };
-    let mut runtime = Executor::new(program, SP1CoreOpts::default());
-    runtime.run().unwrap();
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
         assert_eq!(runtime.state.sp, 2);
-    runtime.run().unwrap();
+        runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
     }
-
 }

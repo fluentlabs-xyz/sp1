@@ -237,7 +237,7 @@ mod tests {
         let addr_3: u32 = 0x10008;
         let addr_4: u32 = 0x1000C;
         let addr_5: u32 = 0x10010;
-        let x_value: u32 = 0x10004;
+        let x_value: u32 = 0x10007;
         let x_2_value: u32 = 0x10008;
         let x_3_value: u32 = 0x1000C;
         let x_3_value: u32 = 0x1000C;
@@ -431,7 +431,7 @@ mod tests {
 
     #[test]
     fn test_rwasm_proof5() {
-        let mut program = build_elf4();
+        let mut program = build_elf5();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();

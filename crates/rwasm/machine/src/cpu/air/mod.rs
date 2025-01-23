@@ -52,7 +52,9 @@ where
         builder.when(local.is_real).assert_bool(local.instruction.is_unary);
         builder.when(local.is_real).assert_bool(local.instruction.is_binary);
         builder.when(local.is_real).assert_bool(local.instruction.is_memory);
-        // builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary+local.instruction.is_memory);
+        builder.when(local.is_real).assert_bool(local.instruction.is_branching);
+        builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary+
+            local.instruction.is_memory+local.instruction.is_branching);
         // Compute some flags for which type of instruction we are dealing with.
         let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
         let is_memory_load: AB::Expr = self.is_load_instruction::<AB>(&local.selectors);
@@ -441,9 +443,9 @@ impl CpuChip {
          local.sp, &local.op_res_access, local.instruction.is_unary);
          
         
-          
+        let is_store_instruciton = self.is_store_instruction::<AB>(&local.selectors);
         // make sure the result is correclty write into memory
-        builder.assert_word_eq(local.res, *local.op_res_access.value());
+        builder.when(AB::Expr::one()-is_store_instruciton).assert_word_eq(local.res, *local.op_res_access.value());
         builder.when(local.instruction.is_binary).assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
 
     }

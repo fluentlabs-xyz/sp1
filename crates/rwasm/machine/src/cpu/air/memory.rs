@@ -140,14 +140,14 @@ impl CpuChip {
          builder.eval_memory_access(
             local.shard,
             local.clk + AB::Expr::from_canonical_u8(4),
-            local.sp,
+            memory_columns.addr_aligned,
             &memory_columns.memory_access,
             is_memory_store.clone(),
         );
 
         builder.eval_memory_access(local.shard, 
         local.clk,
-        memory_columns.addr_aligned,
+        local.sp-AB::Expr::from_canonical_u8(4),
          &local.op_arg2_access,
          is_memory_store.clone());
 
