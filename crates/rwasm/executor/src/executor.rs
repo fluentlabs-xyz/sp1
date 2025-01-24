@@ -2628,14 +2628,28 @@ mod tests {
     #[test]
     fn test_store8() {
         let sp_value: u32 = SP_START;
-        let x_value: u32 = 0xFFFF_0005;
+        let x_value: u32 = 0xFFFF_0001;
+        let y_value: u32 = 0xFFFF_0002;
+        let z_value: u32 = 0xFFFF_0003;
+        let t_value: u32 = 0xFFFF_0004;
         let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
         mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value - 8, addr);
+        mem.insert(sp_value - 12, y_value);
+
+        mem.insert(sp_value - 16, addr);
+        mem.insert(sp_value - 20, z_value);
+
+        mem.insert(sp_value - 24, addr);
+        mem.insert(sp_value - 28, t_value);
 
         let instructions = vec![
-            Instruction::I32Store8(1.into()), // 5 and 37 = 32
+            Instruction::I32Store8(0.into()),
+            Instruction::I32Store8(1.into()),
+            Instruction::I32Store8(2.into()),
+            Instruction::I32Store8(3.into()),
         ];
 
         let program = Program {
@@ -2647,7 +2661,7 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value & 0x0000_00FF) << 8);
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, ((x_value & 0x0000_00FF) + ((y_value & 0x0000_00FF)<<8) + ((z_value & 0x0000_00FF)<<16) +((t_value & 0x0000_00FF)<<24)));
     }
     #[test]
     fn test_br() {
