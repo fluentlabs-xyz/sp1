@@ -513,7 +513,6 @@ impl<'a> Executor<'a> {
                         let clk = self.state.clk;
                         let shard = self.shard();
                         let arg2_record = self.mr(align(addr), shard, clk, None);
-
                         return Ok((arg1_record, arg2_record, addr));
                     }
                     None => return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, offset)),
@@ -2432,6 +2431,106 @@ mod tests {
         u32::MAX - a + 1
     }
 
+    fn simple_memory_load_instruction_test(mut mem: HashMap<u32,u32>, instructions: Vec<Instruction>, expected: u32) {
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
+    }
+    fn simple_memory_store_instruction_test(mut mem: HashMap<u32,u32>, instructions: Vec<Instruction>, address : u32, expected: u32) {
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(address).unwrap().value, expected);
+    }
+    #[test]
+    fn test_simple_memory_instruction() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFF1_0005;
+        let y_value: u32 = 0xFFF2_0008;
+        let z_value: u32 = 0xFFF3_000a;
+        let t_value: u32 = 0xFFF4_000b;
+        let addr: u32 = 0xDD_0000;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, addr);
+        mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value -8, addr);
+        mem.insert(sp_value - 12, y_value);
+        mem.insert(sp_value -16, addr);
+        mem.insert(sp_value - 20, z_value);
+        mem.insert(sp_value -24, addr);
+        mem.insert(sp_value - 28, t_value);
+
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store(0.into()),], addr+0 ,x_value);
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store(16.into()),], addr+16 ,x_value);
+
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store16(0.into()),], addr,(x_value&0x0000_FFFF));
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store16(1.into()),], addr,(x_value&0x0000_FFFF)<<16);
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store16(0.into()), Instruction::I32Store16(1.into()),], addr,((x_value&0x0000_FFFF))+((y_value&0x0000_FFFF)<<16));
+
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(0.into()),], addr,(x_value&0x0000_00FF));
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(1.into()),], addr,(x_value&0x0000_00FF)<<8);
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(2.into()),], addr,(x_value&0x0000_00FF)<<16);
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(3.into()),], addr,(x_value&0x0000_00FF)<<24);
+
+        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(0.into()),Instruction::I32Store8(1.into()),Instruction::I32Store8(2.into()),Instruction::I32Store8(3.into())],
+                                             addr,((x_value&0x0000_00FF))+((y_value&0x0000_00FF)<<8)+((z_value&0x0000_00FF)<<16)+((t_value&0x0000_00FF)<<24));
+
+        mem.insert(addr, x_value);
+        mem.insert(addr+4, x_value + 4);
+        mem.insert(addr+8, x_value + 8);
+        mem.insert(addr+12, x_value + 12);
+        mem.insert(addr+160, x_value + 16);
+
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(0.into()),], x_value);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(4.into()),], x_value+4);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(8.into()),], x_value+8);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(12.into()),], x_value+12);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(160.into()),], x_value+16);
+
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16S(0.into()),], x_value&0x0000_FFFF);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16U(0.into()),], x_value&0x0000_FFFF);
+
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16U(2.into()),], (x_value&0xFFFF_0000)>>16);
+        let value = (x_value & 0xFFFF_0000)>>16;
+        let expected = ((value as i16) as i32) as u32;
+        println!("expected u32 {} : actual i16 {}", expected, (value as i16));
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16S(2.into()),], ((value as i16) as i32) as u32);
+
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(0.into()),], (x_value&0x0000_00FF));
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(1.into()),], (x_value&0x0000_FF)>>8);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(2.into()),], (x_value&0x00FF_FFFF)>>16);
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(3.into()),], (x_value&0xFF00_FFFF)>>24);
+
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(0.into()),], (x_value&0x0000_00FF));
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(1.into()),], (x_value&0x0000_FF)>>8);
+
+
+        let value = (x_value&0x00FF_FFFF)>>16;
+        let expected = ((value as i8) as i32) as u32;
+        println!("expected u32 {} : actual i8 {}", expected, (value as i8));
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(2.into()),], expected);
+
+        let value = (x_value&0xFF00_FFFF)>>24;
+        let expected = ((value as i8) as i32) as u32;
+        println!("expected u32 {} : actual i8 {}", expected, (value as i8));
+        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(3.into()),], expected);
+
+    }
+
     #[test]
     fn test_load32() {
         let sp_value: u32 = SP_START;
@@ -2528,7 +2627,7 @@ mod tests {
         mem.insert(addr, x_value);
 
         let instructions = vec![
-            Instruction::I32Load8U(0.into()), // 5 and 37 = 32
+            Instruction::I32Load8U(1.into()), // 5 and 37 = 32
         ];
 
         let program = Program {
@@ -2540,9 +2639,10 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
+        println!("after {}", x_value & 0x0000_05FF >> 8);
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            x_value & 0x0000_FF05 >> 8
+            (x_value & 0x0000_FF00) >> 8
         );
     }
 
@@ -2557,7 +2657,7 @@ mod tests {
         mem.insert(addr, x_value);
 
         let instructions = vec![
-            Instruction::I32Load8S(1.into()), // 5 and 37 = 32
+            Instruction::I32Load8S(3.into()), // 5 and 37 = 32
         ];
 
         let program = Program {
@@ -2571,7 +2671,7 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            x_value & 0x0000_FF00
+            x_value & 0xFF00_0000
         );
     }
 
