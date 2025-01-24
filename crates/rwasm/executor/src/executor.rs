@@ -2604,13 +2604,17 @@ mod tests {
     fn test_store16() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
+        let y_value: u32 = 0xFFFF_0008;
         let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
         mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value -8, addr);
+        mem.insert(sp_value - 12, y_value);
 
         let instructions = vec![
-            Instruction::I32Store16(0.into()), // 5 and 37 = 32
+            Instruction::I32Store16(0.into()),
+            Instruction::I32Store16(1.into()),
         ];
 
         let program = Program {
@@ -2622,7 +2626,7 @@ mod tests {
         };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value & 0x0000_FFFF);
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF)<<16));
     }
 
     #[test]
