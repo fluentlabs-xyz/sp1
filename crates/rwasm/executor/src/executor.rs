@@ -911,7 +911,7 @@ impl<'a> Executor<'a> {
                         res = value;
                         println!("full:{},memoery:{},res:{}", full_value, memory_value, res);
                         next_sp = sp - 8;
-                        res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                        res_record = Some(self.write_back_res_to_memory(res, align(addr), next_sp));
                         res_is_writtten_back_to_stack = false;
                     }
                     None => {
@@ -937,7 +937,7 @@ impl<'a> Executor<'a> {
                         res = value;
 
                         next_sp = sp - 8;
-                        res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                        res_record = Some(self.write_back_res_to_memory(res, align(addr), next_sp));
                         res_is_writtten_back_to_stack = false;
                     }
                     None => {
