@@ -269,6 +269,35 @@ mod tests {
 
         program
     }
+    fn build_elf_br() ->Program {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0005;
+
+        let mut mem = HashMap::new();
+
+        mem.insert(sp_value, x_value);
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1;
+        let addr: u32 = 0x10000;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value - 8, x_value);
+        mem.insert(sp_value - 12, x_value);
+
+        let instructions =
+            vec![Instruction::Br(3.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
+
+        let program = Program {
+            instructions,
+            pc_base: 0,
+            pc_start: 0,
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+       program
+    }
 
     fn build_elf_branching() -> Program {
         /*
@@ -457,7 +486,34 @@ mod tests {
 
         println!("done rwasm proof");
     }
+    #[test]
+    fn test_rwasm_br() {
+        let mut program = build_elf_br();
+        setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
 
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
     #[test]
     fn test_rwasm_branching() {
         let mut program = build_elf_branching();

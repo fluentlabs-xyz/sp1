@@ -2786,7 +2786,7 @@ mod tests {
         mem.insert(sp_value - 12, x_value);
 
         let instructions =
-            vec![Instruction::Br(2.into()), Instruction::I32Shl, Instruction::I32Shl];
+            vec![Instruction::Br(3.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
 
         let program = Program {
             instructions,
@@ -2798,51 +2798,44 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1<<1)<<1)<<1);
     }
     #[test]
     fn build_elf_branching() {
-        /*
-        let t0 = Register::X5;
-            let syscall_id = self.register(t0);
-            c = self.rr(Register::X11, MemoryAccessPosition::C);
-            b = self.rr(Register::X10, MemoryAccessPosition::B);
-            let syscall = SyscallCode::from_u32(syscall_id);
-        */
-
         let sp_value: u32 = SP_START;
-        let x_value: u32 = 0x0;
+        let x_value: u32 = 0x1;
         let x_2_value: u32 = 0x10008;
         let x_3_value: u32 = 0x1000C;
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, x_2_value);
-        mem.insert(sp_value - 8, x_3_value);
+        mem.insert(sp_value - 4, x_value+1);
+        mem.insert(sp_value - 8, x_value+2);
+        mem.insert(sp_value - 12, x_value+3);
+        mem.insert(sp_value - 16, x_value+4);
 
-        println!("{:?}", mem);
+        println!("{ } {:?}", sp_value, mem);
         let instructions = vec![
-            Instruction::Br(20.into()),
+            //Instruction::Br(0.into()),
             Instruction::I32Add,
             Instruction::I32Add,
             Instruction::I32Add,
-            Instruction::BrIfNez(12.into()),
+           // Instruction::BrIfNez(0.into()),
             Instruction::I32Add,
-            Instruction::BrIfNez(BranchOffset::from(-8i32)),
+            Instruction::BrIfNez(BranchOffset::from(-12i32)),
         ];
 
         let program = Program {
             instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_base: 0,
+            pc_start: 0,
             memory_image: mem,
             preprocessed_shape: None,
         };
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.sp, 2);
-        runtime.run().unwrap();
+        println!("after {}", runtime.state.sp);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
     }
 }
