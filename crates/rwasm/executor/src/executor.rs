@@ -2786,12 +2786,12 @@ mod tests {
         mem.insert(sp_value - 12, x_value);
 
         let instructions =
-            vec![Instruction::Br(3.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
+            vec![Instruction::Br(4.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
 
         let program = Program {
             instructions,
-            pc_base: 0,
-            pc_start: 0,
+            pc_base: 1,
+            pc_start: 1,
             memory_image: mem,
             preprocessed_shape: None,
         };
