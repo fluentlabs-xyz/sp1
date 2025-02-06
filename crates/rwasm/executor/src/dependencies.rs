@@ -276,54 +276,7 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
         }
     }
 
-    // if event.instruction.is_jump_instruction() {
-    //     match event.instruction.opcode {
-    //         Opcode::JAL => {
-    //             let next_pc = event.pc.wrapping_add(event.b);
-    //             let add_event = AluEvent {
-    //                 lookup_id: event.jump_jal_lookup_id,
-    //                 shard: event.shard,
-    //                 clk: event.clk,
-    //                 opcode: Opcode::ADD,
-    //                 a: next_pc,
-    //                 b: event.pc,
-    //                 c: event.b,
-    //                 sub_lookups: create_alu_lookups(),
-    //             };
-    //             executor.record.add_events.push(add_event);
-    //         }
-    //         Opcode::JALR => {
-    //             let next_pc = event.b.wrapping_add(event.c);
-    //             let add_event = AluEvent {
-    //                 lookup_id: event.jump_jalr_lookup_id,
-    //                 shard: event.shard,
-    //                 clk: event.clk,
-    //                 opcode: Opcode::ADD,
-    //                 a: next_pc,
-    //                 b: event.b,
-    //                 c: event.c,
-    //                 sub_lookups: create_alu_lookups(),
-    //             };
-    //             executor.record.add_events.push(add_event);
-    //         }
-    //         _ => unreachable!(),
-    //     }
-    // }
-
-    // if matches!(event.instruction.opcode, Opcode::AUIPC) {
-    //     let add_event = AluEvent {
-    //         lookup_id: event.auipc_lookup_id,
-    //         shard: event.shard,
-    //         clk: event.clk,
-    //         opcode: Opcode::ADD,
-    //         a: event.a,
-    //         b: event.pc,
-    //         c: event.b,
-    //         sub_lookups: create_alu_lookups(),
-    //     };
-    //     executor.record.add_events.push(add_event);
-    // }
 }
 
-// TODO: when we have jump instruction reuse this.
+
 

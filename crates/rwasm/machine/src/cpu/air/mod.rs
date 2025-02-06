@@ -2,6 +2,7 @@ pub mod branch;
 pub mod ecall;
 pub mod memory;
 pub mod register;
+pub mod local;
 
 use core::borrow::Borrow;
 use p3_air::{Air, AirBuilder, AirBuilderWithPublicValues, BaseAir};

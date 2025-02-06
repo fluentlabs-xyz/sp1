@@ -60,6 +60,11 @@ pub struct OpcodeSelectorCols<T> {
     pub is_br:T,
     pub is_brifnez:T,
     pub is_brifeqz:T,
+
+    pub is_localget:T,
+    pub is_localset:T,
+    pub is_localtee:T,
+    pub is_i32const:T,
 }
 
 impl<F: PrimeField> OpcodeSelectorCols<F> {
@@ -112,6 +117,10 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
             Instruction::Br(_)=>{self.is_br=F::one()},
             Instruction::BrIfEqz(_)=>{self.is_brifeqz=F::one()},
             Instruction::BrIfNez(_)=>{self.is_brifnez=F::one()},
+            Instruction::LocalGet(_)=>{self.is_localget=F::one()},
+            Instruction::LocalSet(_)=>{self.is_localset=F::one()},
+            Instruction::LocalTee(_)=>{self.is_localtee=F::one()},
+            Instruction::I32Const(_)=>{self.is_i32const=F::one()},
            _=>{}
         }
 
