@@ -5,6 +5,7 @@ use std::{
     sync::Arc,
 };
 
+use bincode::de;
 use hashbrown::HashMap;
 use num::Signed;
 use serde::{Deserialize, Serialize};
@@ -728,7 +729,9 @@ impl<'a> Executor<'a> {
                 let depth = local_depth.to_usize() as u32;
                 arg1_record = self.fetch_local_data(depth);
                 arg1 = arg1_record.unwrap().value;
+                arg2 = depth;
                 res = arg1;
+                next_sp = sp+4;
                 res_is_writtten_back_to_stack = true;
 
             },
@@ -736,10 +739,11 @@ impl<'a> Executor<'a> {
                 let depth = local_depth.to_usize() as u32;
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
+                arg2 = depth;
                 res = arg1;
                 next_sp =sp-4;
                 let addr = next_sp-depth;
-                self.write_back_res_to_memory(res, addr, next_sp);
+                res_record=Some(self.write_back_res_to_memory(res, addr, next_sp));
                 res_is_writtten_back_to_stack=false;
 
             },
@@ -748,9 +752,10 @@ impl<'a> Executor<'a> {
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 res = arg1;
+                arg2 = depth;
                 next_sp =sp;
                 let addr = sp-depth;
-                self.write_back_res_to_memory(res, addr, next_sp);
+                res_record=Some(self.write_back_res_to_memory(res, addr, next_sp));
                 res_is_writtten_back_to_stack=false;
 
             },
@@ -997,9 +1002,10 @@ impl<'a> Executor<'a> {
             Instruction::RefFunc(func_idx) => todo!(),
             Instruction::I32Const(untyped_value) => {
                 let res_i32:i32= (*untyped_value).into();
-                let res = res_i32 as u32;
+                res = res_i32 as u32;
                 next_sp=sp+4;
-                self.write_back_res_to_stack(res, next_sp);
+                res_is_writtten_back_to_stack = true;
+                
             },
             Instruction::ConstRef(const_ref) => todo!(),
             Instruction::I32Eqz => {

@@ -1,7 +1,6 @@
 pub mod branch;
 pub mod ecall;
 pub mod memory;
-pub mod register;
 pub mod local;
 
 use core::borrow::Borrow;
@@ -54,8 +53,10 @@ where
         builder.when(local.is_real).assert_bool(local.instruction.is_binary);
         builder.when(local.is_real).assert_bool(local.instruction.is_memory);
         builder.when(local.is_real).assert_bool(local.instruction.is_branching);
+        builder.when(local.is_real).assert_bool(local.instruction.is_local);
         builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary+
-            local.instruction.is_memory+local.instruction.is_branching);
+            local.instruction.is_memory+local.instruction.is_branching+local.instruction.is_local
+        +local.selectors.is_i32const);
         // Compute some flags for which type of instruction we are dealing with.
         let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
         let is_memory_load: AB::Expr = self.is_load_instruction::<AB>(&local.selectors);
@@ -78,10 +79,12 @@ where
 
         // Branch instructions.
         self.eval_branch_ops::<AB>(builder, is_branch_instruction.clone(), local, next);
+      
+        let is_local_set : AB::Expr = self.is_local_set::<AB>(&local.selectors);
+        //Local instructions.
+        self.eval_local::<AB>(builder,local,is_local_set);
 
-        // // Jump instructions.
-        // self.eval_jump_ops::<AB>(builder, local, next);
-
+        
         // // AUIPC instruction.
         // self.eval_auipc(builder, local);
 
@@ -368,11 +371,20 @@ impl CpuChip {
             .when(local.instruction.is_binary)
             .assert_eq(local.next_sp + AB::Expr::from_canonical_u8(4), local.sp);
 
-         //verify that sp decreses by 4 if op is binary.
+       
+
+         //verify that sp remains the same if op is unary.
          builder
          .when(local.is_real)
          .when(local.instruction.is_unary)
          .assert_eq(local.next_sp,local.sp);
+
+         //verify that sp increase by 4 if op is i32const
+         builder
+         .when(local.is_real)
+         .when(local.selectors.is_i32const)
+         .assert_eq(local.next_sp - AB::Expr::from_canonical_u8(4), local.sp);
+
     }
 
 
@@ -434,7 +446,7 @@ impl CpuChip {
         //make sure the memory access are correct
         //always need to check arg1
         //only check arg2 if instruction is binary
-        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary);
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget);
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
         &local.op_arg2_access, local.instruction.is_binary);
         
@@ -442,11 +454,14 @@ impl CpuChip {
          local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_binary);
          builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
          local.sp, &local.op_res_access, local.instruction.is_unary);
+
+         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
+         local.sp + AB::Expr::from_canonical_u8(4), &local.op_res_access, local.selectors.is_localget+local.selectors.is_i32const);
          
         
         let is_store_instruciton = self.is_store_instruction::<AB>(&local.selectors);
         // make sure the result is correclty write into memory
-        builder.when(AB::Expr::one()-is_store_instruciton).assert_word_eq(local.res, *local.op_res_access.value());
+        builder.when(AB::Expr::one()-is_store_instruciton-local.selectors.is_localset-local.selectors.is_localtee).assert_word_eq(local.res, *local.op_res_access.value());
         builder.when(local.instruction.is_binary).assert_word_eq(local.op_arg2, *local.op_arg2_access.value());
 
     }

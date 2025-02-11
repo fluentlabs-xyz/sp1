@@ -4,6 +4,7 @@ mod tests {
     use super::super::*;
 
     use hashbrown::HashMap;
+    use rwasm::engine::Instr;
     use sp1_rwasm_executor::{Opcode, Program, SP_START};
     use sp1_rwasm_machine::utils::setup_logger;
 
@@ -19,13 +20,6 @@ mod tests {
 
     use rwasm::engine::bytecode::{BranchOffset, Instruction};
     fn build_elf() -> Program {
-        /*
-         let t0 = Register::X5;
-               let syscall_id = self.register(t0);
-               c = self.rr(Register::X11, MemoryAccessPosition::C);
-               b = self.rr(Register::X10, MemoryAccessPosition::B);
-               let syscall = SyscallCode::from_u32(syscall_id);
-        */
 
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
@@ -68,13 +62,6 @@ mod tests {
     }
 
     fn build_elf2() -> Program {
-        /*
-         let t0 = Register::X5;
-               let syscall_id = self.register(t0);
-               c = self.rr(Register::X11, MemoryAccessPosition::C);
-               b = self.rr(Register::X10, MemoryAccessPosition::B);
-               let syscall = SyscallCode::from_u32(syscall_id);
-        */
 
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
@@ -126,13 +113,6 @@ mod tests {
     }
 
     fn build_elf3() -> Program {
-        /*
-         let t0 = Register::X5;
-               let syscall_id = self.register(t0);
-               c = self.rr(Register::X11, MemoryAccessPosition::C);
-               b = self.rr(Register::X10, MemoryAccessPosition::B);
-               let syscall = SyscallCode::from_u32(syscall_id);
-        */
 
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
@@ -171,14 +151,6 @@ mod tests {
     }
 
     fn build_elf4() -> Program {
-        /*
-         let t0 = Register::X5;
-               let syscall_id = self.register(t0);
-               c = self.rr(Register::X11, MemoryAccessPosition::C);
-               b = self.rr(Register::X10, MemoryAccessPosition::B);
-               let syscall = SyscallCode::from_u32(syscall_id);
-        */
-
         let sp_value: u32 = SP_START;
         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
@@ -223,14 +195,7 @@ mod tests {
     }
 
     fn build_elf5() -> Program {
-        /*
-         let t0 = Register::X5;
-               let syscall_id = self.register(t0);
-               c = self.rr(Register::X11, MemoryAccessPosition::C);
-               b = self.rr(Register::X10, MemoryAccessPosition::B);
-               let syscall = SyscallCode::from_u32(syscall_id);
-        */
-
+       
         let sp_value: u32 = SP_START;
         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
@@ -300,13 +265,6 @@ mod tests {
     }
 
     fn build_elf_branching() -> Program {
-        /*
-        let t0 = Register::X5;
-            let syscall_id = self.register(t0);
-            c = self.rr(Register::X11, MemoryAccessPosition::C);
-            b = self.rr(Register::X10, MemoryAccessPosition::B);
-            let syscall = SyscallCode::from_u32(syscall_id);
-        */
 
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x0;
@@ -342,6 +300,37 @@ mod tests {
         program
     }
 
+    fn build_elf_local_const() -> Program {
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1234;
+        let x_2_value: u32 = x_value+5;
+        let depth = 5*4;
+        let under_depth = depth-4;
+        let constant = x_value;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - depth, x_2_value);
+
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::LocalGet(depth.into()),
+            Instruction::LocalSet(under_depth.into()),
+            Instruction::LocalTee(under_depth.into()),
+            Instruction::I32Const(constant.into()),
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
+
+        program
+    }
     #[test]
     fn test_rwasm_proof1() {
         let mut program = build_elf();
@@ -517,6 +506,35 @@ mod tests {
     #[test]
     fn test_rwasm_branching() {
         let mut program = build_elf_branching();
+        setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
+
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
+
+    #[test]
+    fn test_rwasm_local() {
+        let mut program = build_elf_local_const();
         setup_logger();
         let prover: SP1Prover = SP1Prover::new();
         let mut opts = SP1ProverOpts::default();

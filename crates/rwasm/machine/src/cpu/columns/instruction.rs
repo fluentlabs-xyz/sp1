@@ -19,6 +19,7 @@ pub struct InstructionCols<T> {
     pub is_binary: T,
     pub is_memory: T,
     pub is_branching: T,
+    pub is_local:T,
     pub aux_val: Word<T>,
 }
 
@@ -35,6 +36,14 @@ impl<F: PrimeField> InstructionCols<F> {
         self.is_binary = F::from_bool(instruction.is_binary_instruction());
         self.is_memory = F::from_bool(instruction.is_memory_instruction());
         self.is_branching = F::from_bool(instruction.is_branch_instruction());
+        match instruction{
+            Instruction::LocalGet(_)|
+            Instruction::LocalSet(_)|
+            Instruction::LocalTee(_)=>{
+                self.is_branching = F::one()
+            }
+            _=>()
+        }
         println!("binary:{}",instruction.is_binary_instruction());
         println!("unary:{}",instruction.is_unary_instruction());
         println!("memory:{}",instruction.is_memory_instruction());

@@ -140,7 +140,8 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
         self.is_i32eq,self.is_i32ne,self.is_i32eqz,
         self.is_i32load,self.is_i32load16s,self.is_i32load16u,self.is_i32load8s,self.is_i32load8u,
         self.is_i32store,self.is_i32store16,self.is_i32store8,
-        self.is_br,self.is_brifeqz,self.is_brifnez];
+        self.is_br,self.is_brifeqz,self.is_brifnez,
+        self.is_localget,self.is_localset,self.is_localtee,self.is_i32const];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS); 
         columns.into_iter()
     }
