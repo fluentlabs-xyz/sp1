@@ -189,7 +189,7 @@ mod tests {
     }
 
     fn build_elf5() -> Program {
-       
+
         let sp_value: u32 = SP_START;
         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
@@ -325,233 +325,102 @@ mod tests {
 
         program
     }
+    fn build_elf_const_another() -> Program {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x12345;
+        let y_value: u32 = 0x54321;
+        let mut mem = HashMap::new();
+
+
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Add,
+        ];
+
+        let program = Program {
+            instructions,
+            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
+            memory_image: mem,
+            preprocessed_shape: None,
+        };
+        //  memory_image: BTreeMap::new() };
+
+        program
+    }
+    fn run_rwasm_prover(mut program:Program) {
+         setup_logger();
+        let prover: SP1Prover = SP1Prover::new();
+        let mut opts = SP1ProverOpts::default();
+        opts.core_opts.shard_batch_size = 1;
+        let context = SP1Context::default();
+
+        tracing::info!("setup elf");
+        let (pk, vk) = prover.setup_program(&mut program);
+
+        tracing::info!("prove core");
+        let stdin = SP1Stdin::new();
+        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+        tracing::info!("prove core finish");
+        match core_proof {
+            Ok(_) => {
+                tracing::info!("verify core");
+                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+            }
+            Err(err) => {
+                println!("{}", err);
+            }
+        }
+
+        println!("done rwasm proof");
+    }
     #[test]
     fn test_rwasm_proof1() {
-        let mut program = build_elf();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf();
+        run_rwasm_prover(program);
     }
-
     #[test]
     fn test_rwasm_proof2() {
-        let mut program = build_elf2();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf2();
+        run_rwasm_prover(program);
     }
-
     #[test]
     fn test_rwasm_proof3() {
-        let mut program = build_elf3();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf3();
+        run_rwasm_prover(program);
     }
-
     #[test]
     fn test_rwasm_proof4() {
-        let mut program = build_elf4();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf4();
+        run_rwasm_prover(program);
     }
-
     #[test]
     fn test_rwasm_proof5() {
-        let mut program = build_elf5();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf5();
+        run_rwasm_prover(program);
     }
     #[test]
     fn test_rwasm_br() {
-        let mut program = build_elf_br();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf_br();
+        run_rwasm_prover(program);
     }
     #[test]
     fn test_rwasm_branching() {
-        let mut program = build_elf_branching();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+        let program = build_elf_branching();
+        run_rwasm_prover(program);
     }
 
     #[test]
     fn test_rwasm_local() {
-        let mut program = build_elf_local_const();
-        setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
+        let program = build_elf_local_const();
+        run_rwasm_prover(program);
+    }
 
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
+    #[test]
+    fn test_rwasm_another1() {
+        let program = build_elf_const_another();
+        run_rwasm_prover(program);
     }
 }
