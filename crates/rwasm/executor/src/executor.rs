@@ -6,6 +6,7 @@ use std::{
 };
 
 use bincode::de;
+
 use hashbrown::HashMap;
 use num::Signed;
 use serde::{Deserialize, Serialize};
@@ -13,24 +14,16 @@ use sp1_stark::SP1CoreOpts;
 use thiserror::Error;
 
 use crate::{
-    context::SP1Context,
-    dependencies::{emit_cpu_dependencies, emit_divrem_dependencies},
-    events::{
+    context::SP1Context, dependencies::{emit_cpu_dependencies, emit_divrem_dependencies}, events::{
         create_alu_lookup_id, create_alu_lookups, AluEvent, CpuEvent, LookupId,
         MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord, MemoryRecord,
         MemoryWriteRecord, SyscallEvent,
-    },
-    hook::{HookEnv, HookRegistry},
-    memory::{Entry, PagedMemory},
-    record::ExecutionRecord,
-    report::ExecutionReport,
-    state::{ExecutionState, ForkState},
-    subproof::{DefaultSubproofVerifier, SubproofVerifier},
-    syscalls::{default_syscall_map, Syscall, SyscallCode, SyscallContext},
-    Opcode, Program, Register, SP_START,
+    }, hook::{HookEnv, HookRegistry}, memory::{Entry, PagedMemory}, record::ExecutionRecord, report::ExecutionReport, state::{ExecutionState, ForkState}, subproof::{DefaultSubproofVerifier, SubproofVerifier}, syscalls::{default_syscall_map, Syscall, SyscallCode, SyscallContext}, Opcode, Program, Register, FUNFRAMEP_START, SP_START
 };
 
-use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
+use rwasm::{
+    arena::ArenaIndex, engine::{bytecode::Instruction, code_map::CodeMap}, rwasm::InstructionExtra
+};
 
 /// An executor for the SP1 RISC-V zkVM.
 ///
@@ -198,7 +191,6 @@ impl<'a> Executor<'a> {
         } else {
             None
         };
-
         // Determine the maximum number of cycles for any syscall.
         let syscall_map = default_syscall_map();
         let max_syscall_cycles =
@@ -213,7 +205,6 @@ impl<'a> Executor<'a> {
             records: vec![],
             state: ExecutionState::new(program.pc_start),
             program,
-
             shard_size: (opts.shard_size as u32) * 4,
             shard_batch_size: opts.shard_batch_size as u32,
             cycle_tracker: HashMap::new(),
@@ -482,11 +473,19 @@ impl<'a> Executor<'a> {
         (Some(arg1_record), Some(arg2_record))
     }
 
-     fn fetch_local_data(&mut self,depth:u32) -> Option<MemoryReadRecord> {
+    fn fetch_local_data(&mut self, depth: u32) -> Option<MemoryReadRecord> {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(sp-depth, shard, clk, None);
+        let arg1_record = self.mr(sp - depth, shard, clk, None);
+        Some(arg1_record)
+    }
+
+    fn fetch_function_frame(&mut self, depth: u32) -> Option<MemoryReadRecord> {
+       
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let arg1_record = self.mr(FUNFRAMEP_START - depth -1, shard, clk, None);
         Some(arg1_record)
     }
 
@@ -543,6 +542,8 @@ impl<'a> Executor<'a> {
         next_pc: u32,
         sp: u32,
         next_sp: u32,
+        depth: u32,
+        next_depth:u32,
         instruction: Instruction,
         arg1: u32,
         arg2: u32,
@@ -561,6 +562,8 @@ impl<'a> Executor<'a> {
             next_pc,
             sp,
             next_sp,
+            depth,
+            next_depth,
             instruction,
             arg1,
             arg2,
@@ -675,8 +678,10 @@ impl<'a> Executor<'a> {
         let mut clk = self.state.clk;
         let mut exit_code = 0u32;
         let mut sp = self.state.sp;
+        let mut depth = self.state.funcc_depth;
         let mut next_pc = self.state.pc.wrapping_add(4);
         let mut next_sp = sp; //we do not know the next_sp until we know the operator
+        let mut next_depth = depth;
         let (mut arg1, mut arg2, mut res): (u32, u32, u32) = (0, 0, 0);
         let mut arg1_record: Option<MemoryReadRecord> = None;
         let mut arg2_record: Option<MemoryReadRecord> = None;
@@ -731,34 +736,31 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = depth;
                 res = arg1;
-                next_sp = sp+4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
-
-            },
+            }
             Instruction::LocalSet(local_depth) => {
                 let depth = local_depth.to_usize() as u32;
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 arg2 = depth;
                 res = arg1;
-                next_sp =sp-4;
-                let addr = next_sp-depth;
-                res_record=Some(self.write_back_res_to_memory(res, addr, next_sp));
-                res_is_writtten_back_to_stack=false;
-
-            },
+                next_sp = sp - 4;
+                let addr = next_sp - depth;
+                res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                res_is_writtten_back_to_stack = false;
+            }
             Instruction::LocalTee(local_depth) => {
                 let depth = local_depth.to_usize() as u32;
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 res = arg1;
                 arg2 = depth;
-                next_sp =sp;
-                let addr = sp-depth;
-                res_record=Some(self.write_back_res_to_memory(res, addr, next_sp));
-                res_is_writtten_back_to_stack=false;
-
-            },
+                next_sp = sp;
+                let addr = sp - depth;
+                res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
+                res_is_writtten_back_to_stack = false;
+            }
             Instruction::Br(branch_offset) => {
                 next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 res_is_writtten_back_to_stack = false;
@@ -801,12 +803,41 @@ impl<'a> Executor<'a> {
             Instruction::BrTable(branch_table_targets) => todo!(),
             Instruction::Unreachable => todo!(),
             Instruction::ConsumeFuel(block_fuel) => todo!(),
-            Instruction::Return(drop_keep) => todo!(),
+            Instruction::Return(drop_keep) => {
+                if depth ==0{
+                    println!("program exit 0");
+                    println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                    println!("arg1_record:{:?}",arg1_record);
+                    self.state.pc = 0;
+                    return Ok(())
+                }
+                next_depth = depth-1;
+                arg1_record = self.fetch_function_frame(next_depth);
+                arg1 = arg1_record.unwrap().value;
+                next_pc = arg1+4;
+                println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                println!("arg1_record:{:?}",arg1_record);
+                
+            },
             Instruction::ReturnIfNez(drop_keep) => todo!(),
-            Instruction::ReturnCallInternal(compiled_func) => todo!(),
+            Instruction::ReturnCallInternal(compiled_func) => {
+
+            },
             Instruction::ReturnCall(func_idx) => todo!(),
             Instruction::ReturnCallIndirect(signature_idx) => todo!(),
-            Instruction::CallInternal(compiled_func) => todo!(),
+            Instruction::CallInternal(compiled_func) => {
+               
+                let offset = self.program.index_by_offset.get(&compiled_func.to_u32());
+                next_pc= *(offset.unwrap());
+                
+                next_sp =sp;
+                next_depth = depth+1;
+                res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-self.state.funcc_depth, next_sp));
+                println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                println!("res_record:{:?}",res_record);
+              
+
+            },
             Instruction::Call(func_idx) => todo!(),
             Instruction::CallIndirect(signature_idx) => todo!(),
             Instruction::SignatureCheck(signature_idx) => todo!(),
@@ -1001,12 +1032,11 @@ impl<'a> Executor<'a> {
             Instruction::ElemDrop(element_segment_idx) => todo!(),
             Instruction::RefFunc(func_idx) => todo!(),
             Instruction::I32Const(untyped_value) => {
-                let res_i32:i32= (*untyped_value).into();
+                let res_i32: i32 = (*untyped_value).into();
                 res = res_i32 as u32;
-                next_sp=sp+4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
-                
-            },
+            }
             Instruction::ConstRef(const_ref) => todo!(),
             Instruction::I32Eqz => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1128,6 +1158,11 @@ impl<'a> Executor<'a> {
                 next_sp = sp - 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id);
+                println!("i32add");
+                println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                println!("res_record:{:?}",res_record);
+                println!("i32add")
+               
             }
             Instruction::I32Sub => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1292,6 +1327,9 @@ impl<'a> Executor<'a> {
         // Update the clk to the next cycle.
         self.state.clk += 4;
 
+        //update the depth counter
+        self.state.funcc_depth=next_depth;
+
         // Emit the CPU event for this cycle.
         if self.executor_mode == ExecutorMode::Trace {
             self.emit_cpu(
@@ -1301,6 +1339,8 @@ impl<'a> Executor<'a> {
                 next_pc,
                 sp,
                 next_sp,
+                depth,
+                next_depth,
                 *instruction,
                 arg1,
                 arg2,
@@ -1791,7 +1831,7 @@ fn log2_ceil_usize(n: usize) -> usize {
 mod tests {
     use crate::{Executor, Program, SP_START};
     use hashbrown::HashMap;
-    use rwasm::engine::bytecode::{BranchOffset, Instruction};
+    use rwasm::engine::{bytecode::{BranchOffset, Instruction}, DropKeep};
     use sp1_stark::SP1CoreOpts;
 
     #[test]
@@ -1808,13 +1848,7 @@ mod tests {
             Instruction::I32Add, // 32 + 4 = 36
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 36);
@@ -1835,13 +1869,7 @@ mod tests {
             Instruction::I32Sub, // 32 - 4 = 28
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 28);
@@ -1860,13 +1888,7 @@ mod tests {
             Instruction::I32Xor, // 5 xor 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 32);
@@ -1885,13 +1907,7 @@ mod tests {
             Instruction::I32Or, // 5 or 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 37);
@@ -1910,13 +1926,7 @@ mod tests {
             Instruction::I32And, // 5 and 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 5);
@@ -1935,13 +1945,7 @@ mod tests {
 
         let instructions = vec![Instruction::I32Add, Instruction::I32Add];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 5 - 1 + 4);
@@ -1964,13 +1968,7 @@ mod tests {
             Instruction::I32Or, // 37 or 42  = 47
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 47);
@@ -1992,13 +1990,7 @@ mod tests {
             Instruction::I32And, // 5 and 4  = 4
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 4);
@@ -2017,13 +2009,7 @@ mod tests {
             Instruction::I32Mul, // 5 * 32 = 160
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
@@ -2042,13 +2028,7 @@ mod tests {
             Instruction::I32Eq, // check whether x_value is equal y_value
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2070,13 +2050,7 @@ mod tests {
             Instruction::I32Ne,
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2093,13 +2067,7 @@ mod tests {
             Instruction::I32Eqz, // check whether x_value is zero
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
@@ -2119,14 +2087,7 @@ mod tests {
             Instruction::I32LtS, // check whether signed x_value is less than signed y_value
             Instruction::I32LtU, // check whether unsigned x_value is less than unsigned y_value
         ];
-
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2147,13 +2108,7 @@ mod tests {
             Instruction::I32GtU, // check whether unsigned x_value is greater than unsigned y_value
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
@@ -2174,13 +2129,7 @@ mod tests {
             Instruction::I32GeU, // check whether unsigned x_value is greater than or equal to unsigned y_value
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2201,13 +2150,7 @@ mod tests {
             Instruction::I32LeU, // check whether unsigned x_value is less than or equal to unsigned y_value
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2228,13 +2171,7 @@ mod tests {
             Instruction::I32DivU, // divide x_value by y_value and return quotient
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2258,13 +2195,7 @@ mod tests {
             Instruction::I32RemU, // divide x_value by y_value and return remainder
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2288,13 +2219,7 @@ mod tests {
             Instruction::I32Shl,
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2318,13 +2243,7 @@ mod tests {
             Instruction::I32ShrU, //
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2341,13 +2260,7 @@ mod tests {
         mem.insert(sp_value, x_value);
         mem.insert(sp_value - 4, y_value);
         let instructions = vec![opcode];
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
@@ -2478,26 +2391,23 @@ mod tests {
         u32::MAX - a + 1
     }
 
-    fn simple_memory_load_instruction_test(mut mem: HashMap<u32,u32>, instructions: Vec<Instruction>, expected: u32) {
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+    fn simple_memory_load_instruction_test(
+        mut mem: HashMap<u32, u32>,
+        instructions: Vec<Instruction>,
+        expected: u32,
+    ) {
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
     }
-    fn simple_memory_store_instruction_test(mut mem: HashMap<u32,u32>, instructions: Vec<Instruction>, address : u32, expected: u32) {
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+    fn simple_memory_store_instruction_test(
+        mut mem: HashMap<u32, u32>,
+        instructions: Vec<Instruction>,
+        address: u32,
+        expected: u32,
+    ) {
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(address).unwrap().value, expected);
@@ -2514,68 +2424,191 @@ mod tests {
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
         mem.insert(sp_value - 4, x_value);
-        mem.insert(sp_value -8, addr);
+        mem.insert(sp_value - 8, addr);
         mem.insert(sp_value - 12, y_value);
-        mem.insert(sp_value -16, addr);
+        mem.insert(sp_value - 16, addr);
         mem.insert(sp_value - 20, z_value);
-        mem.insert(sp_value -24, addr);
+        mem.insert(sp_value - 24, addr);
         mem.insert(sp_value - 28, t_value);
 
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store(0.into()),], addr+0 ,x_value);
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store(16.into()),], addr+16 ,x_value);
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store(0.into())],
+            addr + 0,
+            x_value,
+        );
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store(16.into())],
+            addr + 16,
+            x_value,
+        );
 
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store16(0.into()),], addr,(x_value&0x0000_FFFF));
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store16(1.into()),], addr,(x_value&0x0000_FFFF)<<16);
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store16(0.into()), Instruction::I32Store16(1.into()),], addr,((x_value&0x0000_FFFF))+((y_value&0x0000_FFFF)<<16));
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store16(0.into())],
+            addr,
+            (x_value & 0x0000_FFFF),
+        );
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store16(1.into())],
+            addr,
+            (x_value & 0x0000_FFFF) << 16,
+        );
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store16(0.into()), Instruction::I32Store16(1.into())],
+            addr,
+            (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16),
+        );
 
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(0.into()),], addr,(x_value&0x0000_00FF));
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(1.into()),], addr,(x_value&0x0000_00FF)<<8);
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(2.into()),], addr,(x_value&0x0000_00FF)<<16);
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(3.into()),], addr,(x_value&0x0000_00FF)<<24);
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store8(0.into())],
+            addr,
+            (x_value & 0x0000_00FF),
+        );
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store8(1.into())],
+            addr,
+            (x_value & 0x0000_00FF) << 8,
+        );
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store8(2.into())],
+            addr,
+            (x_value & 0x0000_00FF) << 16,
+        );
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Store8(3.into())],
+            addr,
+            (x_value & 0x0000_00FF) << 24,
+        );
 
-        simple_memory_store_instruction_test(mem.clone(), vec![Instruction::I32Store8(0.into()),Instruction::I32Store8(1.into()),Instruction::I32Store8(2.into()),Instruction::I32Store8(3.into())],
-                                             addr,((x_value&0x0000_00FF))+((y_value&0x0000_00FF)<<8)+((z_value&0x0000_00FF)<<16)+((t_value&0x0000_00FF)<<24));
+        simple_memory_store_instruction_test(
+            mem.clone(),
+            vec![
+                Instruction::I32Store8(0.into()),
+                Instruction::I32Store8(1.into()),
+                Instruction::I32Store8(2.into()),
+                Instruction::I32Store8(3.into()),
+            ],
+            addr,
+            (x_value & 0x0000_00FF)
+                + ((y_value & 0x0000_00FF) << 8)
+                + ((z_value & 0x0000_00FF) << 16)
+                + ((t_value & 0x0000_00FF) << 24),
+        );
 
         mem.insert(addr, x_value);
-        mem.insert(addr+4, x_value + 4);
-        mem.insert(addr+8, x_value + 8);
-        mem.insert(addr+12, x_value + 12);
-        mem.insert(addr+160, x_value + 16);
+        mem.insert(addr + 4, x_value + 4);
+        mem.insert(addr + 8, x_value + 8);
+        mem.insert(addr + 12, x_value + 12);
+        mem.insert(addr + 160, x_value + 16);
 
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(0.into()),], x_value);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(4.into()),], x_value+4);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(8.into()),], x_value+8);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(12.into()),], x_value+12);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load(160.into()),], x_value+16);
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(0.into())],
+            x_value,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(4.into())],
+            x_value + 4,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(8.into())],
+            x_value + 8,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(12.into())],
+            x_value + 12,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(160.into())],
+            x_value + 16,
+        );
 
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16S(0.into()),], x_value&0x0000_FFFF);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16U(0.into()),], x_value&0x0000_FFFF);
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16S(0.into())],
+            x_value & 0x0000_FFFF,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16U(0.into())],
+            x_value & 0x0000_FFFF,
+        );
 
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16U(2.into()),], (x_value&0xFFFF_0000)>>16);
-        let value = (x_value & 0xFFFF_0000)>>16;
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16U(2.into())],
+            (x_value & 0xFFFF_0000) >> 16,
+        );
+        let value = (x_value & 0xFFFF_0000) >> 16;
         let expected = ((value as i16) as i32) as u32;
         println!("expected u32 {} : actual i16 {}", expected, (value as i16));
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load16S(2.into()),], ((value as i16) as i32) as u32);
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16S(2.into())],
+            ((value as i16) as i32) as u32,
+        );
 
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(0.into()),], (x_value&0x0000_00FF));
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(1.into()),], (x_value&0x0000_FF)>>8);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(2.into()),], (x_value&0x00FF_FFFF)>>16);
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8U(3.into()),], (x_value&0xFF00_FFFF)>>24);
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(0.into())],
+            (x_value & 0x0000_00FF),
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(1.into())],
+            (x_value & 0x0000_FF) >> 8,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(2.into())],
+            (x_value & 0x00FF_FFFF) >> 16,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(3.into())],
+            (x_value & 0xFF00_FFFF) >> 24,
+        );
 
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(0.into()),], (x_value&0x0000_00FF));
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(1.into()),], (x_value&0x0000_FF)>>8);
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(0.into())],
+            (x_value & 0x0000_00FF),
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(1.into())],
+            (x_value & 0x0000_FF) >> 8,
+        );
 
-
-        let value = (x_value&0x00FF_FFFF)>>16;
+        let value = (x_value & 0x00FF_FFFF) >> 16;
         let expected = ((value as i8) as i32) as u32;
         println!("expected u32 {} : actual i8 {}", expected, (value as i8));
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(2.into()),], expected);
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(2.into())],
+            expected,
+        );
 
-        let value = (x_value&0xFF00_FFFF)>>24;
+        let value = (x_value & 0xFF00_FFFF) >> 24;
         let expected = ((value as i8) as i32) as u32;
         println!("expected u32 {} : actual i8 {}", expected, (value as i8));
-        simple_memory_load_instruction_test(mem.clone(), vec![Instruction::I32Load8S(3.into()),], expected);
-
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(3.into())],
+            expected,
+        );
     }
 
     #[test]
@@ -2590,14 +2623,7 @@ mod tests {
         let instructions = vec![
             Instruction::I32Load(0.into()), // 5 and 37 = 32
         ];
-
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
@@ -2619,13 +2645,7 @@ mod tests {
             Instruction::I32Load16U(0.into()), // 5 and 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2648,13 +2668,7 @@ mod tests {
             Instruction::I32Load16S(0.into()), // 5 and 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2677,13 +2691,7 @@ mod tests {
             Instruction::I32Load8U(1.into()), // 5 and 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         println!("after {}", x_value & 0x0000_05FF >> 8);
@@ -2707,13 +2715,7 @@ mod tests {
             Instruction::I32Load8S(3.into()), // 5 and 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2735,13 +2737,7 @@ mod tests {
             Instruction::I32Store(0.into()), // 5 and 37 = 32
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
@@ -2756,24 +2752,19 @@ mod tests {
         let mut mem = HashMap::new();
         mem.insert(sp_value, addr);
         mem.insert(sp_value - 4, x_value);
-        mem.insert(sp_value -8, addr);
+        mem.insert(sp_value - 8, addr);
         mem.insert(sp_value - 12, y_value);
 
-        let instructions = vec![
-            Instruction::I32Store16(0.into()),
-            Instruction::I32Store16(1.into()),
-        ];
+        let instructions =
+            vec![Instruction::I32Store16(0.into()), Instruction::I32Store16(1.into())];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF)<<16));
+        assert_eq!(
+            runtime.state.memory.get(addr).unwrap().value,
+            (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16)
+        );
     }
 
     #[test]
@@ -2803,16 +2794,16 @@ mod tests {
             Instruction::I32Store8(3.into()),
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, ((x_value & 0x0000_00FF) + ((y_value & 0x0000_00FF)<<8) + ((z_value & 0x0000_00FF)<<16) +((t_value & 0x0000_00FF)<<24)));
+        assert_eq!(
+            runtime.state.memory.get(addr).unwrap().value,
+            ((x_value & 0x0000_00FF)
+                + ((y_value & 0x0000_00FF) << 8)
+                + ((z_value & 0x0000_00FF) << 16)
+                + ((t_value & 0x0000_00FF) << 24))
+        );
     }
     #[test]
     fn test_br() {
@@ -2832,20 +2823,18 @@ mod tests {
         mem.insert(sp_value - 8, x_value);
         mem.insert(sp_value - 12, x_value);
 
-        let instructions =
-            vec![Instruction::Br(4.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
+        let instructions = vec![
+            Instruction::Br(4.into()),
+            Instruction::I32Shl,
+            Instruction::I32Shl,
+            Instruction::I32Shl,
+        ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1,
-            pc_start: 1,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1<<1)<<1)<<1);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1 << 1) << 1) << 1);
     }
     #[test]
     fn build_elf_branching() {
@@ -2856,29 +2845,23 @@ mod tests {
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, x_value+1);
-        mem.insert(sp_value - 8, x_value+2);
-        mem.insert(sp_value - 12, x_value+3);
-        mem.insert(sp_value - 16, x_value+4);
+        mem.insert(sp_value - 4, x_value + 1);
+        mem.insert(sp_value - 8, x_value + 2);
+        mem.insert(sp_value - 12, x_value + 3);
+        mem.insert(sp_value - 16, x_value + 4);
 
         println!("{ } {:?}", sp_value, mem);
         let instructions = vec![
-            //Instruction::Br(0.into()),
+            // Instruction::Br(24.into()),
             Instruction::I32Add,
             Instruction::I32Add,
             Instruction::I32Add,
-           // Instruction::BrIfNez(0.into()),
+            // Instruction::BrIfNez(-16i32.into()),
             Instruction::I32Add,
             Instruction::BrIfNez(BranchOffset::from(-12i32)),
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -2890,87 +2873,57 @@ mod tests {
     fn test_local_get() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
-        
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 20, x_value+5);
+        mem.insert(sp_value - 20, x_value + 5);
 
-        let instructions = vec![
-           Instruction::LocalGet(20.into()),
-          
-        ];
+        let instructions = vec![Instruction::LocalGet(20.into())];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         println!("after {}", runtime.state.sp);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + 5);
     }
 
     #[test]
     fn test_local_set() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
-        
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 16, x_value+5);
+        mem.insert(sp_value - 16, x_value + 5);
 
-        let instructions = vec![
-           Instruction::LocalSet(16.into()),
-          
-        ];
+        let instructions = vec![Instruction::LocalSet(16.into())];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         println!("after {}", runtime.state.sp);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp-16).unwrap().value, x_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
     }
 
     #[test]
     fn test_local_tee() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
-        
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 16, x_value+5);
+        mem.insert(sp_value - 16, x_value + 5);
 
-        let instructions = vec![
-           Instruction::LocalTee(16.into()),
-          
-        ];
+        let instructions = vec![Instruction::LocalTee(16.into())];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.sp, sp_value);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp-16).unwrap().value, x_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
     }
 
     #[test]
@@ -2978,28 +2931,41 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
         let y_value: u32 = 0x54321;
-        
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-       
 
-        let instructions = vec![
-           Instruction::I32Const(y_value.into()),
-          
-        ];
+        let instructions = vec![Instruction::I32Const(y_value.into())];
 
-        let program = Program {
-            instructions,
-            pc_base: 0,
-            pc_start: 0,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.sp, sp_value+4);
+        assert_eq!(runtime.state.sp, sp_value + 4);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, y_value);
+    }
+
+    #[test]
+    fn test_call_internal_and_return() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x3;
+        let y_value: u32 = 0x5;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value-4, y_value);
+        let mut functions = HashMap::new();
+        functions.insert(1, 8);
+        let instructions = vec![Instruction::CallInternal(1u32.into()),
+        Instruction::Return(DropKeep::none()),
+        Instruction::I32Add,
+        Instruction::Return(DropKeep::none())];
+
+        let program = Program::new_with_memory_and_func(instructions, mem,functions, 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value);
     }
 }

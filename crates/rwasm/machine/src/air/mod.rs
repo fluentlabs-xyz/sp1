@@ -1,11 +1,11 @@
 mod memory;
 mod program;
 mod word;
-
+mod function;
 pub use memory::*;
 pub use program::*;
 pub use word::*;
-
+pub use function::*;
 use sp1_stark::air::{BaseAirBuilder, SP1AirBuilder};
 
 /// A trait which contains methods related to memory interactions in an AIR.

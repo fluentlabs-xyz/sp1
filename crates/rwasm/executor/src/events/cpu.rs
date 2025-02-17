@@ -18,10 +18,16 @@ pub struct CpuEvent {
     pub pc: u32,
     /// The next program counter.
     pub next_pc: u32,
-
+    /// stack pointer 
     pub sp: u32,
-
+    /// stack pointer of next cycle
     pub next_sp: u32,
+
+    /// function depth:
+    pub depth:u32,
+
+    /// funnction depth for next cycle.
+    pub next_depth:u32,
     
     /// The instruction.
     pub instruction: Instruction,

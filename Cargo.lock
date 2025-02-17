@@ -6333,7 +6333,7 @@ dependencies = [
 [[package]]
 name = "rwasm"
 version = "0.30.0"
-source = "git+https://github.com/fluentlabs-xyz/rwasm.git?branch=sp1-compatible#4c6b8f302580f5a20de64e71b035847f8195d9f7"
+source = "git+https://github.com/fluentlabs-xyz/rwasm.git?branch=sp1-compatible#ddc33bb13c27db5796e0597e71b10d080c6d3f2f"
 dependencies = [
  "byteorder",
  "downcast-rs",

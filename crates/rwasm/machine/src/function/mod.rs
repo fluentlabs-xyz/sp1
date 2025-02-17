@@ -4,7 +4,7 @@ use core::{
 };
 use std::collections::HashMap;
 
-use crate::{air::ProgramAirBuilder, utils::pad_rows_fixed};
+use crate::{air::FuncCallAirBuilder, utils::pad_rows_fixed};
 use p3_air::{Air, BaseAir, PairBuilder};
 use p3_field::PrimeField;
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
@@ -12,21 +12,20 @@ use sp1_derive::AlignedBorrow;
 use sp1_rwasm_executor::{ExecutionRecord, Program};
 use sp1_stark::air::{MachineAir, SP1AirBuilder};
 
-use crate::cpu::columns::{InstructionCols, OpcodeSelectorCols};
-
 /// The number of preprocessed program columns.
-pub const NUM_PROGRAM_PREPROCESSED_COLS: usize = size_of::<ProgramPreprocessedCols<u8>>();
+pub const NUM_FUNCCALL_PREPROCESSED_COLS: usize = size_of::<ProgramPreprocessedCols<u8>>();
 
 /// The number of columns for the program multiplicities.
-pub const NUM_PROGRAM_MULT_COLS: usize = size_of::<ProgramMultiplicityCols<u8>>();
+pub const NUM_FUNCCALL_MULT_COLS: usize = size_of::<ProgramMultiplicityCols<u8>>();
 
 /// The column layout for the chip.
 #[derive(AlignedBorrow, Clone, Copy, Default)]
 #[repr(C)]
-pub struct ProgramPreprocessedCols<T> {
+pub struct FuncCallPreprocessedCols<T> {
     pub pc: T,
-    pub instruction: InstructionCols<T>,
-    pub selectors: OpcodeSelectorCols<T>,
+    pub function:T,
+    pub index_by_function:T,
+    pub depth:T,
 }
 
 /// The column layout for the chip.
@@ -190,7 +189,7 @@ mod tests {
     use sp1_rwasm_executor::{ExecutionRecord, Instruction, Opcode, Program};
     use sp1_stark::air::MachineAir;
 
-    use crate::program::{self, ProgramChip};
+    use crate::program::ProgramChip;
 
     #[test]
     fn generate_trace() {
@@ -199,7 +198,7 @@ mod tests {
         //     addi x30, x0, 37
         //     add x31, x30, x29
         let instructions = vec![];
-        let program = Program::new(instructions,0,0);
+        let program = Program::new(instructions, 0,0);
         let shard = ExecutionRecord {
             program: Arc::new(program),
             ..Default::default()

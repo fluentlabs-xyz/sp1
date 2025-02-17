@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub const SP_START: u32 = 0x2000;
+pub const FUNFRAMEP_START :u32 = SP_START +4096;
 
 /// Holds data describing the current state of a program's execution.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -41,6 +42,9 @@ pub struct ExecutionState {
     /// stack pointer start from 10000x, must be aligned i.e. sp%4 = 0
     ///
     pub sp: u32,
+    /// function call frame  depth 
+    /// 
+    pub funcc_depth:u32,
     /// Uninitialized memory addresses that have a specific value they should be initialized with.
     /// `SyscallHintRead` uses this to write hint data into uninitialized memory.
     pub uninitialized_memory: PagedMemory<u32>,
@@ -80,6 +84,7 @@ impl ExecutionState {
             clk: 0,
             sp: SP_START,
             pc: pc_start,
+            funcc_depth: 0,
             memory: PagedMemory::new_preallocated(),
             uninitialized_memory: PagedMemory::default(),
             input_stream: Vec::new(),

@@ -49,13 +49,7 @@ mod tests {
             Instruction::I32DivU,
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new(instructions,1,1);
         //  memory_image: BTreeMap::new() };
 
         program

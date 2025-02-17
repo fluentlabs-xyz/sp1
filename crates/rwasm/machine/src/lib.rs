@@ -21,9 +21,11 @@ pub mod io;
 pub mod memory;
 pub mod operations;
 pub mod program;
+pub mod function;
 pub mod riscv;
 pub mod syscall;
 pub mod utils;
+
 
 /// The global version for all components of SP1.
 ///

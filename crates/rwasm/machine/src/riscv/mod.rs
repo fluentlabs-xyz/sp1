@@ -17,7 +17,7 @@ use crate::{
 };
 use hashbrown::{HashMap, HashSet};
 use p3_field::PrimeField32;
-pub use riscv_chips::*;
+pub use rwasm_chips::*;
 use sp1_curves::weierstrass::{bls12_381::Bls12381BaseField, bn254::Bn254BaseField};
 use sp1_stark::{
     air::{InteractionScope, MachineAir, SP1_PROOF_NUM_PV_ELTS},
@@ -30,7 +30,7 @@ pub const MAX_LOG_NUMBER_OF_SHARDS: usize = 16;
 pub const MAX_NUMBER_OF_SHARDS: usize = 1 << MAX_LOG_NUMBER_OF_SHARDS;
 
 /// A module for importing all the different RISC-V chips.
-pub(crate) mod riscv_chips {
+pub(crate) mod rwasm_chips {
     pub use crate::{
         alu::{AddSubChip, BitwiseChip, DivRemChip, LtChip, MulChip, ShiftLeft, ShiftRightChip},
         bytes::ByteChip,
