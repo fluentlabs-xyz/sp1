@@ -72,7 +72,7 @@ use sp1_rwasm_executor::{ExecutionError, ExecutionReport, Executor, Program, SP1
 use sp1_rwasm_machine::{
     io::SP1Stdin,
     reduce::SP1ReduceProof,
-    riscv::{CoreShapeConfig, RiscvAir},
+    riscv::{CoreShapeConfig, RwasmAir},
     utils::{concurrency::TurnBasedSync, SP1CoreProverError},
 };
 use sp1_stark::{air::InteractionScope, MachineProvingKey, ProofShape};
@@ -168,7 +168,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
     /// Creates a new [SP1Prover] with lazily initialized components.
     pub fn uninitialized() -> Self {
         // Initialize the provers.
-        let core_machine = RiscvAir::machine(CoreSC::default());
+        let core_machine = RwasmAir::machine(CoreSC::default());
         let core_prover = C::CoreProver::new(core_machine);
 
         let compress_machine = CompressAir::compress_machine(InnerSC::default());
@@ -313,7 +313,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
             C::CoreProver,
         >(
             &self.core_prover,
-            &<C::CoreProver as MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>::DeviceProvingKey::from_host(
+            &<C::CoreProver as MachineProver<BabyBearPoseidon2, RwasmAir<BabyBear>>>::DeviceProvingKey::from_host(
                 &pk.pk,
             ),
             program,
@@ -350,7 +350,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
             C::CoreProver,
         >(
             &self.core_prover,
-            &<C::CoreProver as MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>::DeviceProvingKey::from_host(
+            &<C::CoreProver as MachineProver<BabyBearPoseidon2, RwasmAir<BabyBear>>>::DeviceProvingKey::from_host(
                 &pk.pk,
             ),
             program,

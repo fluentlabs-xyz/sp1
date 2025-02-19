@@ -9,13 +9,12 @@ use sp1_stark::{air::MachineAir, MachineRecord, ProofShape};
 use thiserror::Error;
 
 use crate::{
-    memory::{MemoryLocalChip, MemoryProgramChip, NUM_LOCAL_MEMORY_ENTRIES_PER_ROW},
-    riscv::MemoryChipType::{Finalize, Initialize},
+    function::FunccallChip, memory::{MemoryLocalChip, MemoryProgramChip, NUM_LOCAL_MEMORY_ENTRIES_PER_ROW}, riscv::MemoryChipType::{Finalize, Initialize}
 };
 
 use super::{
     AddSubChip, BitwiseChip, ByteChip, CpuChip, DivRemChip, LtChip, MemoryGlobalChip, MulChip,
-    ProgramChip, RiscvAir, ShiftLeft, ShiftRightChip, SyscallChip,
+    ProgramChip, RwasmAir, ShiftLeft, ShiftRightChip, SyscallChip,
 };
 
 #[derive(Debug, Error)]
@@ -37,11 +36,11 @@ pub enum CoreShapeError {
 /// A structure that enables fixing the shape of an executionrecord.
 pub struct CoreShapeConfig<F: PrimeField32> {
     included_shapes: Vec<HashMap<String, usize>>,
-    allowed_preprocessed_log_heights: HashMap<RiscvAir<F>, Vec<Option<usize>>>,
-    allowed_core_log_heights: Vec<HashMap<RiscvAir<F>, Vec<Option<usize>>>>,
+    allowed_preprocessed_log_heights: HashMap<RwasmAir<F>, Vec<Option<usize>>>,
+    allowed_core_log_heights: Vec<HashMap<RwasmAir<F>, Vec<Option<usize>>>>,
     maximal_core_log_heights_mask: Vec<bool>,
-    memory_allowed_log_heights: HashMap<RiscvAir<F>, Vec<Option<usize>>>,
-    precompile_allowed_log_heights: HashMap<RiscvAir<F>, (usize, Vec<usize>)>,
+    memory_allowed_log_heights: HashMap<RwasmAir<F>, Vec<Option<usize>>>,
+    precompile_allowed_log_heights: HashMap<RwasmAir<F>, (usize, Vec<usize>)>,
 }
 
 struct CoreShapeSpec {
@@ -65,7 +64,7 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
             return Err(CoreShapeError::PreprocessedShapeAlreadyFixed);
         }
 
-        let heights = RiscvAir::<F>::preprocessed_heights(program);
+        let heights = RwasmAir::<F>::preprocessed_heights(program);
         let prep_shape =
             Self::find_shape_from_allowed_heights(&heights, &self.allowed_preprocessed_log_heights)
                 .ok_or(CoreShapeError::PreprocessedShapeError)?;
@@ -76,8 +75,8 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
 
     #[inline]
     fn find_shape_from_allowed_heights(
-        heights: &[(RiscvAir<F>, usize)],
-        allowed_log_heights: &HashMap<RiscvAir<F>, Vec<Option<usize>>>,
+        heights: &[(RwasmAir<F>, usize)],
+        allowed_log_heights: &HashMap<RwasmAir<F>, Vec<Option<usize>>>,
     ) -> Option<CoreShape> {
         let shape: Option<HashMap<String, usize>> = heights
             .iter()
@@ -119,7 +118,7 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
             // If cpu is included, try to fix the shape as a core.
 
             // Get the heights of the core airs in the record.
-            let heights = RiscvAir::<F>::core_heights(record);
+            let heights = RwasmAir::<F>::core_heights(record);
 
             // Try to find a shape within the included shapes.
             for (i, allowed_log_heights) in self.allowed_core_log_heights.iter().enumerate() {
@@ -155,7 +154,7 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
         if !record.global_memory_initialize_events.is_empty()
             || !record.global_memory_finalize_events.is_empty()
         {
-            let heights = RiscvAir::<F>::get_memory_init_final_heights(record);
+            let heights = RwasmAir::<F>::get_memory_init_final_heights(record);
             let shape =
                 Self::find_shape_from_allowed_heights(&heights, &self.memory_allowed_log_heights)
                     .ok_or(CoreShapeError::ShapeError(record.stats()))?;
@@ -200,7 +199,7 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
 
     fn get_precompile_shapes(
         &self,
-        air: &RiscvAir<F>,
+        air: &RwasmAir<F>,
         mem_events_per_row: usize,
         allowed_log_height: usize,
     ) -> Vec<[(String, usize); 3]> {
@@ -210,7 +209,7 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
                 [
                     (air.name(), allowed_log_height),
                     (
-                        RiscvAir::<F>::SyscallPrecompile(SyscallChip::precompile()).name(),
+                        RwasmAir::<F>::SyscallPrecompile(SyscallChip::precompile()).name(),
                         ((1 << allowed_log_height)
                             .div_ceil(&air.rows_per_event())
                             .next_power_of_two()
@@ -218,7 +217,7 @@ impl<F: PrimeField32> CoreShapeConfig<F> {
                             .max(4),
                     ),
                     (
-                        RiscvAir::<F>::MemoryLocal(MemoryLocalChip::new()).name(),
+                        RwasmAir::<F>::MemoryLocal(MemoryLocalChip::new()).name(),
                         (((1 << allowed_log_height) * mem_events_per_row)
                             .div_ceil(NUM_LOCAL_MEMORY_ENTRIES_PER_ROW * rows_per_event)
                             .next_power_of_two()
@@ -327,11 +326,13 @@ impl<F: PrimeField32> Default for CoreShapeConfig<F> {
         // Preprocessed chip heights.
         let program_heights = vec![Some(19), Some(20), Some(21), Some(22)];
         let program_memory_heights = vec![Some(19), Some(20), Some(21), Some(22)];
+        let funccall_heights = vec![Some(19), Some(20), Some(21), Some(22)];
 
         let allowed_preprocessed_log_heights = HashMap::from([
-            (RiscvAir::Program(ProgramChip::default()), program_heights),
-            (RiscvAir::ProgramMemory(MemoryProgramChip::default()), program_memory_heights),
-            (RiscvAir::ByteLookup(ByteChip::default()), vec![Some(16)]),
+            (RwasmAir::Program(ProgramChip::default()), program_heights),
+            (RwasmAir::ProgramMemory(MemoryProgramChip::default()), program_memory_heights),
+            (RwasmAir::Funccall(FunccallChip::default()), funccall_heights),
+            (RwasmAir::ByteLookup(ByteChip::default()), vec![Some(16)]),
         ]);
 
         let core_shapes = [
@@ -660,16 +661,16 @@ impl<F: PrimeField32> Default for CoreShapeConfig<F> {
         let mut maximal_core_log_heights_mask = vec![];
         for spec in core_shapes {
             let short_allowed_log_heights = HashMap::from([
-                (RiscvAir::Cpu(CpuChip::default()), spec.cpu_height),
-                (RiscvAir::Add(AddSubChip::default()), spec.add_sub_height),
-                (RiscvAir::Bitwise(BitwiseChip::default()), spec.bitwise_height),
-                (RiscvAir::DivRem(DivRemChip::default()), spec.divrem_height),
-                (RiscvAir::Mul(MulChip::default()), spec.mul_height),
-                (RiscvAir::ShiftRight(ShiftRightChip::default()), spec.shift_right_height),
-                (RiscvAir::ShiftLeft(ShiftLeft::default()), spec.shift_left_height),
-                (RiscvAir::Lt(LtChip::default()), spec.lt_height),
-                (RiscvAir::MemoryLocal(MemoryLocalChip::new()), spec.memory_local_height),
-                (RiscvAir::SyscallCore(SyscallChip::core()), spec.syscall_core_height),
+                (RwasmAir::Cpu(CpuChip::default()), spec.cpu_height),
+                (RwasmAir::Add(AddSubChip::default()), spec.add_sub_height),
+                (RwasmAir::Bitwise(BitwiseChip::default()), spec.bitwise_height),
+                (RwasmAir::DivRem(DivRemChip::default()), spec.divrem_height),
+                (RwasmAir::Mul(MulChip::default()), spec.mul_height),
+                (RwasmAir::ShiftRight(ShiftRightChip::default()), spec.shift_right_height),
+                (RwasmAir::ShiftLeft(ShiftLeft::default()), spec.shift_left_height),
+                (RwasmAir::Lt(LtChip::default()), spec.lt_height),
+                (RwasmAir::MemoryLocal(MemoryLocalChip::new()), spec.memory_local_height),
+                (RwasmAir::SyscallCore(SyscallChip::core()), spec.syscall_core_height),
             ]);
             allowed_core_log_heights.push(short_allowed_log_heights);
             maximal_core_log_heights_mask.push(spec.is_potentially_maximal);
@@ -681,13 +682,13 @@ impl<F: PrimeField32> Default for CoreShapeConfig<F> {
         let memory_finalize_heights =
             vec![None, Some(10), Some(16), Some(18), Some(19), Some(20), Some(21)];
         let memory_allowed_log_heights = HashMap::from([
-            (RiscvAir::MemoryGlobalInit(MemoryGlobalChip::new(Initialize)), memory_init_heights),
-            (RiscvAir::MemoryGlobalFinal(MemoryGlobalChip::new(Finalize)), memory_finalize_heights),
+            (RwasmAir::MemoryGlobalInit(MemoryGlobalChip::new(Initialize)), memory_init_heights),
+            (RwasmAir::MemoryGlobalFinal(MemoryGlobalChip::new(Finalize)), memory_finalize_heights),
         ]);
 
         let mut precompile_allowed_log_heights = HashMap::new();
         let precompile_heights = (3..19).collect::<Vec<_>>();
-        for (air, mem_events_per_row) in RiscvAir::<F>::get_all_precompile_airs() {
+        for (air, mem_events_per_row) in RwasmAir::<F>::get_all_precompile_airs() {
             precompile_allowed_log_heights
                 .insert(air, (mem_events_per_row, precompile_heights.clone()));
         }
@@ -714,7 +715,7 @@ pub mod tests {
 
     pub fn try_generate_dummy_proof<
         SC: StarkGenericConfig,
-        P: MachineProver<SC, RiscvAir<SC::Val>>,
+        P: MachineProver<SC, RwasmAir<SC::Val>>,
     >(
         prover: &P,
         shape: &CoreShape,
@@ -773,27 +774,27 @@ pub mod tests {
         use sp1_stark::CpuProver;
 
         type SC = BabyBearPoseidon2;
-        type A = RiscvAir<BabyBear>;
+        type A = RwasmAir<BabyBear>;
 
         setup_logger();
 
         let preprocessed_log_heights = [
-            (RiscvAir::<BabyBear>::Program(ProgramChip::default()), 10),
-            (RiscvAir::<BabyBear>::ProgramMemory(MemoryProgramChip::default()), 10),
-            (RiscvAir::<BabyBear>::ByteLookup(ByteChip::default()), 16),
+            (RwasmAir::<BabyBear>::Program(ProgramChip::default()), 10),
+            (RwasmAir::<BabyBear>::ProgramMemory(MemoryProgramChip::default()), 10),
+            (RwasmAir::<BabyBear>::ByteLookup(ByteChip::default()), 16),
         ];
 
         let core_log_heights = [
-            (RiscvAir::<BabyBear>::Cpu(CpuChip::default()), 11),
-            (RiscvAir::<BabyBear>::DivRem(DivRemChip::default()), 11),
-            (RiscvAir::<BabyBear>::Add(AddSubChip::default()), 10),
-            (RiscvAir::<BabyBear>::Bitwise(BitwiseChip::default()), 10),
-            (RiscvAir::<BabyBear>::Mul(MulChip::default()), 10),
-            (RiscvAir::<BabyBear>::ShiftRight(ShiftRightChip::default()), 10),
-            (RiscvAir::<BabyBear>::ShiftLeft(ShiftLeft::default()), 10),
-            (RiscvAir::<BabyBear>::Lt(LtChip::default()), 10),
-            (RiscvAir::<BabyBear>::MemoryLocal(MemoryLocalChip::new()), 10),
-            (RiscvAir::<BabyBear>::SyscallCore(SyscallChip::core()), 10),
+            (RwasmAir::<BabyBear>::Cpu(CpuChip::default()), 11),
+            (RwasmAir::<BabyBear>::DivRem(DivRemChip::default()), 11),
+            (RwasmAir::<BabyBear>::Add(AddSubChip::default()), 10),
+            (RwasmAir::<BabyBear>::Bitwise(BitwiseChip::default()), 10),
+            (RwasmAir::<BabyBear>::Mul(MulChip::default()), 10),
+            (RwasmAir::<BabyBear>::ShiftRight(ShiftRightChip::default()), 10),
+            (RwasmAir::<BabyBear>::ShiftLeft(ShiftLeft::default()), 10),
+            (RwasmAir::<BabyBear>::Lt(LtChip::default()), 10),
+            (RwasmAir::<BabyBear>::MemoryLocal(MemoryLocalChip::new()), 10),
+            (RwasmAir::<BabyBear>::SyscallCore(SyscallChip::core()), 10),
         ];
 
         let height_map = preprocessed_log_heights

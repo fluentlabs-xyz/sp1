@@ -1,11 +1,11 @@
-use sp1_rwasm_machine::riscv::RiscvAir;
+use sp1_rwasm_machine::riscv::RwasmAir;
 use sp1_stark::{CpuProver, MachineProver, StarkGenericConfig};
 
 use crate::{CompressAir, CoreSC, InnerSC, OuterSC, ShrinkAir, WrapAir};
 
 pub trait SP1ProverComponents: Send + Sync {
     /// The prover for making SP1 core proofs.
-    type CoreProver: MachineProver<CoreSC, RiscvAir<<CoreSC as StarkGenericConfig>::Val>>
+    type CoreProver: MachineProver<CoreSC, RwasmAir<<CoreSC as StarkGenericConfig>::Val>>
         + Send
         + Sync;
 
@@ -28,7 +28,7 @@ pub trait SP1ProverComponents: Send + Sync {
 pub struct DefaultProverComponents;
 
 impl SP1ProverComponents for DefaultProverComponents {
-    type CoreProver = CpuProver<CoreSC, RiscvAir<<CoreSC as StarkGenericConfig>::Val>>;
+    type CoreProver = CpuProver<CoreSC, RwasmAir<<CoreSC as StarkGenericConfig>::Val>>;
     type CompressProver = CpuProver<InnerSC, CompressAir<<InnerSC as StarkGenericConfig>::Val>>;
     type ShrinkProver = CpuProver<InnerSC, ShrinkAir<<InnerSC as StarkGenericConfig>::Val>>;
     type WrapProver = CpuProver<OuterSC, WrapAir<<OuterSC as StarkGenericConfig>::Val>>;

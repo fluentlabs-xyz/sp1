@@ -1,5 +1,5 @@
 use crate::{
-    events::{create_alu_lookups, AluEvent, CpuEvent},
+    events::{create_alu_lookups, AluEvent, CpuEvent, FunccallEvent},
     utils::{get_msb, get_quotient_and_remainder, is_signed_operation},
     Executor, Opcode,
 };
@@ -274,7 +274,30 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
             };
             executor.record.add_events.push(add_event);
         }
+
     }
+    if matches!(event.instruction, 
+        Instruction::CallInternal(_) |
+                Instruction::Return(_)){
+                    match event.instruction {
+                        Instruction::CallInternal(func)=>{
+                            let func_call_evnet = FunccallEvent{
+                                shard: event.shard,
+                                detph: event.depth,
+                                return_pc: event.pc,
+                                kind: crate::events::FunccallEventKind::FunctinonCallInternal,
+                                func_index: func.to_u32(),
+                                func_pc_by_index: event.next_pc,
+                            };
+                        executor.record.function_call_events.push(func_call_evnet);
+                        },
+                        Instruction::Return(_)=>{
+                            // we do not need return event. it is checked by the cpu circuit.
+                           ();
+                        },
+                        _=>()
+                    }
+                }
 
 }
 

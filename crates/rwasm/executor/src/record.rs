@@ -12,7 +12,9 @@ use serde::{Deserialize, Serialize};
 use super::{program::Program, Opcode};
 use crate::{
     events::{
-        add_sharded_byte_lookup_events, AluEvent, ByteLookupEvent, ByteRecord, CpuEvent, FunctionEvent, LookupId, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent
+        add_sharded_byte_lookup_events, AluEvent, ByteLookupEvent, ByteRecord, CpuEvent,
+        FunccallEvent, LookupId, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum,
+        PrecompileEvent, PrecompileEvents, SyscallEvent,
     },
     syscalls::SyscallCode,
     CoreShape,
@@ -52,7 +54,7 @@ pub struct ExecutionRecord {
     /// A trace of the global memory finalize events.
     pub global_memory_finalize_events: Vec<MemoryInitializeFinalizeEvent>,
     /// A trace of the function call events.
-    pub function_call_events:Vec<FunctionEvent>,
+    pub function_call_events: Vec<FunccallEvent>,
     /// A trace of all the shard's local memory events.
     pub cpu_local_memory_access: Vec<MemoryLocalEvent>,
     /// A trace of all the syscall events.

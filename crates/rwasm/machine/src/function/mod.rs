@@ -2,7 +2,7 @@ use core::{
     borrow::{Borrow, BorrowMut},
     mem::size_of,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, mem::offset_of};
 
 use crate::{air::FuncCallAirBuilder, utils::pad_rows_fixed};
 use p3_air::{Air, BaseAir, PairBuilder};
@@ -13,84 +13,79 @@ use sp1_rwasm_executor::{ExecutionRecord, Program};
 use sp1_stark::air::{MachineAir, SP1AirBuilder};
 
 /// The number of preprocessed program columns.
-pub const NUM_FUNCCALL_PREPROCESSED_COLS: usize = size_of::<ProgramPreprocessedCols<u8>>();
+pub const NUM_FUNCCALL_PREPROCESSED_COLS: usize = size_of::<FunccallPreprocessedCols<u8>>();
 
 /// The number of columns for the program multiplicities.
-pub const NUM_FUNCCALL_MULT_COLS: usize = size_of::<ProgramMultiplicityCols<u8>>();
+pub const NUM_FUNCCALL_MULT_COLS: usize = size_of::<FunccallMultiplicityCols<u8>>();
 
 /// The column layout for the chip.
 #[derive(AlignedBorrow, Clone, Copy, Default)]
 #[repr(C)]
-pub struct FuncCallPreprocessedCols<T> {
-    pub pc: T,
+pub struct FunccallPreprocessedCols<T> {
     pub function:T,
     pub index_by_function:T,
-    pub depth:T,
 }
+
+
 
 /// The column layout for the chip.
 #[derive(AlignedBorrow, Clone, Copy, Default)]
 #[repr(C)]
-pub struct ProgramMultiplicityCols<T> {
+pub struct FunccallMultiplicityCols<T> {
     pub shard: T,
     pub multiplicity: T,
 }
 
 /// A chip that implements addition for the opcodes ADD and ADDI.
 #[derive(Default)]
-pub struct ProgramChip;
+pub struct FunccallChip;
 
-impl ProgramChip {
+impl FunccallChip {
     pub const fn new() -> Self {
         Self {}
     }
 }
 
-impl<F: PrimeField> MachineAir<F> for ProgramChip {
+impl<F: PrimeField> MachineAir<F> for FunccallChip {
     type Record = ExecutionRecord;
 
     type Program = Program;
 
     fn name(&self) -> String {
-        "Program".to_string()
+        "Funccall".to_string()
     }
 
     fn preprocessed_width(&self) -> usize {
-        NUM_PROGRAM_PREPROCESSED_COLS
+        NUM_FUNCCALL_PREPROCESSED_COLS
     }
 
     fn generate_preprocessed_trace(&self, program: &Self::Program) -> Option<RowMajorMatrix<F>> {
-        debug_assert!(
-            !program.instructions.is_empty() || program.preprocessed_shape.is_some(),
-            "empty program"
-        );
         let mut rows = program
-            .instructions
+            .index_by_offset
             .iter()
             .enumerate()
-            .map(|(i, &instruction)| {
-                let pc = program.pc_base + (i as u32 * 4);
-                let mut row = [F::zero(); NUM_PROGRAM_PREPROCESSED_COLS];
-                let cols: &mut ProgramPreprocessedCols<F> = row.as_mut_slice().borrow_mut();
-                cols.pc = F::from_canonical_u32(pc);
-                cols.instruction.populate(instruction);
-                cols.selectors.populate(instruction);
-
+            .map(|(func,offset)| {
+               
+                let mut row = [F::zero(); NUM_FUNCCALL_MULT_COLS];
+                let cols: &mut FunccallPreprocessedCols<F> = row.as_mut_slice().borrow_mut();
+                cols.function =F::from_canonical_usize(func);
+                cols.index_by_function = F::from_canonical_u32(*offset);
                 row
+    
             })
             .collect::<Vec<_>>();
 
         // Pad the trace to a power of two depending on the proof shape in `input`.
         pad_rows_fixed(
             &mut rows,
-            || [F::zero(); NUM_PROGRAM_PREPROCESSED_COLS],
+            || [F::zero(); NUM_FUNCCALL_MULT_COLS],
             program.fixed_log2_rows::<F, _>(self),
         );
 
         // Convert the trace to a row major matrix.
         let trace = RowMajorMatrix::new(
             rows.into_iter().flatten().collect::<Vec<_>>(),
-            NUM_PROGRAM_PREPROCESSED_COLS,
+            NUM_FUNCCALL_MULT_COLS,
         );
 
         Some(trace)
@@ -109,25 +104,24 @@ impl<F: PrimeField> MachineAir<F> for ProgramChip {
 
         // Collect the number of times each instruction is called from the cpu events.
         // Store it as a map of PC -> count.
-        let mut instruction_counts = HashMap::new();
-        input.cpu_events.iter().for_each(|event| {
-            let pc = event.pc;
-            instruction_counts.entry(pc).and_modify(|count| *count += 1).or_insert(1);
+        let mut call_counts = HashMap::new();
+        input.function_call_events.iter().for_each(|event| {
+           
+           call_counts.entry((*event).func_index).and_modify(|count| *count += 1).or_insert(1);
         });
 
         let mut rows = input
             .program
-            .instructions
+            .index_by_offset
             .clone()
             .into_iter()
             .enumerate()
             .map(|(i, _)| {
-                let pc = input.program.pc_base + (i as u32 * 4);
-                let mut row = [F::zero(); NUM_PROGRAM_MULT_COLS];
-                let cols: &mut ProgramMultiplicityCols<F> = row.as_mut_slice().borrow_mut();
+                let mut row = [F::zero(); NUM_FUNCCALL_MULT_COLS];
+                let cols: &mut FunccallMultiplicityCols<F> = row.as_mut_slice().borrow_mut();
                 cols.shard = F::from_canonical_u32(input.public_values.execution_shard);
                 cols.multiplicity =
-                    F::from_canonical_usize(*instruction_counts.get(&pc).unwrap_or(&0));
+                    F::from_canonical_usize(*call_counts.get(&(i as u32)).unwrap_or(&0));
                 row
             })
             .collect::<Vec<_>>();
@@ -135,11 +129,11 @@ impl<F: PrimeField> MachineAir<F> for ProgramChip {
         // Pad the trace to a power of two depending on the proof shape in `input`.
         pad_rows_fixed(
             &mut rows,
-            || [F::zero(); NUM_PROGRAM_MULT_COLS],
+            || [F::zero(); NUM_FUNCCALL_MULT_COLS],
             input.fixed_log2_rows::<F, _>(self),
         );
 
-        RowMajorMatrix::new(rows.into_iter().flatten().collect::<Vec<_>>(), NUM_PROGRAM_MULT_COLS)
+        RowMajorMatrix::new(rows.into_iter().flatten().collect::<Vec<_>>(), NUM_FUNCCALL_MULT_COLS)
     }
 
     fn included(&self, _: &Self::Record) -> bool {
@@ -147,30 +141,29 @@ impl<F: PrimeField> MachineAir<F> for ProgramChip {
     }
 }
 
-impl<F> BaseAir<F> for ProgramChip {
+impl<F> BaseAir<F> for FunccallChip {
     fn width(&self) -> usize {
-        NUM_PROGRAM_MULT_COLS
+        NUM_FUNCCALL_MULT_COLS
     }
 }
 
-impl<AB> Air<AB> for ProgramChip
+impl<AB> Air<AB> for FunccallChip
 where
-    AB: SP1AirBuilder + PairBuilder,
+    AB: FuncCallAirBuilder + PairBuilder,
 {
     fn eval(&self, builder: &mut AB) {
         let main = builder.main();
         let preprocessed = builder.preprocessed();
 
         let prep_local = preprocessed.row_slice(0);
-        let prep_local: &ProgramPreprocessedCols<AB::Var> = (*prep_local).borrow();
+        let prep_local: &FunccallPreprocessedCols<AB::Var> = (*prep_local).borrow();
         let mult_local = main.row_slice(0);
-        let mult_local: &ProgramMultiplicityCols<AB::Var> = (*mult_local).borrow();
+        let mult_local: &FunccallMultiplicityCols<AB::Var> = (*mult_local).borrow();
 
         // Constrain the interaction with CPU table
-        builder.receive_program(
-            prep_local.pc,
-            prep_local.instruction,
-            prep_local.selectors,
+        builder.receive_function_call(
+            prep_local.function,
+            prep_local.index_by_function,
             mult_local.shard,
             mult_local.multiplicity,
         );
@@ -189,7 +182,7 @@ mod tests {
     use sp1_rwasm_executor::{ExecutionRecord, Instruction, Opcode, Program};
     use sp1_stark::air::MachineAir;
 
-    use crate::program::ProgramChip;
+    use crate::{function::FunccallChip, program::ProgramChip};
 
     #[test]
     fn generate_trace() {
@@ -203,7 +196,7 @@ mod tests {
             program: Arc::new(program),
             ..Default::default()
         };
-        let chip = ProgramChip::new();
+        let chip = FunccallChip::new();
         let trace: RowMajorMatrix<BabyBear> =
             chip.generate_trace(&shard, &mut ExecutionRecord::default());
         println!("{:?}", trace.values)

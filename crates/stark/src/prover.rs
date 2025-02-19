@@ -200,6 +200,7 @@ pub trait MachineProver<SC: StarkGenericConfig, A: MachineAir<SC::Val>>:
         let mut merged_prover_data = Vec::with_capacity(global_chips.len() + local_chips.len());
 
         assert!(global_traces.len() == global_chips.len());
+        println!("localtrce:{},localcips:{}",local_traces.len(),local_chips.len());
         let mut global_iter = global_traces.iter().zip(global_chips.iter()).enumerate();
         assert!(local_traces.len() == local_chips.len());
         let mut local_iter = local_traces.iter().zip(local_chips.iter()).enumerate();

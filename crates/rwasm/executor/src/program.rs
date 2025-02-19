@@ -25,7 +25,7 @@ pub struct Program {
     /// The initial memory image, useful for global constants.
     pub memory_image: HashMap<u32, u32>,    
     /// The function map
-    pub index_by_offset: HashMap<u32, u32>,
+    pub index_by_offset: Vec<u32>,
     /// The shape for the preprocessed tables.
     pub preprocessed_shape: Option<CoreShape>,
 
@@ -38,27 +38,28 @@ impl Program {
     pub fn new(instructions: Vec<Instruction>, pc_start: u32, pc_base: u32) -> Self {
         Self {
             instructions,
-            index_by_offset:HashMap::new(),
+            index_by_offset:vec![0],
             pc_start,
             pc_base,
             memory_image: HashMap::new(),
             preprocessed_shape: None,
         }
     }
+    /// Create a new [Program] with memory image .
     #[must_use]
     pub fn new_with_memory(instructions: Vec<Instruction>, memory_image:HashMap<u32,u32>,pc_start: u32, pc_base: u32) -> Self {
         Self {
             instructions,
-            index_by_offset:HashMap::new(),
+            index_by_offset:vec![0],
             pc_start,
             pc_base,
             memory_image,
             preprocessed_shape: None,
         }
     }
-
+    /// Create a new [Program] with memory image and function table.
     #[must_use]
-    pub fn new_with_memory_and_func(instructions: Vec<Instruction>, memory_image:HashMap<u32,u32>,functions:HashMap<u32,u32>,pc_start: u32, pc_base: u32) -> Self {
+    pub fn new_with_memory_and_func(instructions: Vec<Instruction>, memory_image:HashMap<u32,u32>,functions:Vec<u32>,pc_start: u32, pc_base: u32) -> Self {
         Self {
             instructions,
             index_by_offset:functions,
@@ -87,7 +88,7 @@ impl Program {
         // Return the program.
         Ok(Program {
             instructions:vec![],
-            index_by_offset: HashMap::new(),
+            index_by_offset: vec![0],
             pc_start: 0,
             pc_base: 0,
             memory_image: HashMap::new(),
@@ -126,8 +127,3 @@ impl<F: Field> MachineProgram<F> for Program {
     }
 }
 
-fn convert_index_map(funcs:HashMap<u32,u32>)->HashMap<usize,CompiledFunc>{
-    funcs.into_iter().map(|(k,v)|{
-        (k as usize,v.into())
-    }).collect()
-}

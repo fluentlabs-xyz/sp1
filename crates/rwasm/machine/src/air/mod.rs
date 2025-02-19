@@ -16,6 +16,7 @@ pub trait SP1CoreAirBuilder:
 }
 
 impl<AB: BaseAirBuilder> MemoryAirBuilder for AB {}
+impl<AB: BaseAirBuilder> FuncCallAirBuilder for AB {}
 impl<AB: BaseAirBuilder> ProgramAirBuilder for AB {}
 impl<AB: BaseAirBuilder> WordAirBuilder for AB {}
 impl<AB: BaseAirBuilder + SP1AirBuilder> SP1CoreAirBuilder for AB {}

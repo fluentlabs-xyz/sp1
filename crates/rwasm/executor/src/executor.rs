@@ -827,7 +827,7 @@ impl<'a> Executor<'a> {
             Instruction::ReturnCallIndirect(signature_idx) => todo!(),
             Instruction::CallInternal(compiled_func) => {
                
-                let offset = self.program.index_by_offset.get(&compiled_func.to_u32());
+                let offset = self.program.index_by_offset.get(compiled_func.to_u32()as usize);
                 next_pc= *(offset.unwrap());
                 
                 next_sp =sp;
@@ -2994,8 +2994,8 @@ mod tests {
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
         mem.insert(sp_value-4, y_value);
-        let mut functions = HashMap::new();
-        functions.insert(1, 8);
+        let mut functions = vec![0,8];
+       
         let instructions = vec![Instruction::CallInternal(1u32.into()),
         Instruction::Return(DropKeep::none()),
         Instruction::I32Add,

@@ -139,7 +139,7 @@ where
 mod test {
     use crate::{
         io::SP1Stdin,
-        riscv::RiscvAir,
+        riscv::RwasmAir,
         utils::{prove, setup_logger, tests::KECCAK256_ELF},
     };
     use sp1_primitives::io::SP1PublicValues;

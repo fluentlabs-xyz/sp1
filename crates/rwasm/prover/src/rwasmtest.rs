@@ -49,7 +49,7 @@ mod tests {
             Instruction::I32DivU,
         ];
 
-        let program = Program::new(instructions,1,1);
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -94,13 +94,7 @@ mod tests {
             Instruction::I32Eqz,
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -134,13 +128,7 @@ mod tests {
             Instruction::I32ShrS,
             Instruction::I32ShrU,
         ];
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         program
     }
 
@@ -176,13 +164,7 @@ mod tests {
             Instruction::I32Load8S(0.into()),
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -217,13 +199,7 @@ mod tests {
             Instruction::I32Store8(0.into()),
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -248,13 +224,7 @@ mod tests {
         let instructions =
             vec![Instruction::Br(4.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
 
-        let program = Program {
-            instructions,
-            pc_base: 1,
-            pc_start: 1,
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+            let program = Program::new_with_memory(instructions,mem,1,1);
        program
     }
 
@@ -282,13 +252,7 @@ mod tests {
             Instruction::I32Add,
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -314,13 +278,7 @@ mod tests {
             Instruction::I32Const(constant.into()),
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -339,13 +297,7 @@ mod tests {
             Instruction::I32Add,
         ];
 
-        let program = Program {
-            instructions,
-            pc_base: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            pc_start: 1, //If it's a shard with "CPU", then `start_pc` should never equal zero
-            memory_image: mem,
-            preprocessed_shape: None,
-        };
+        let program = Program::new_with_memory(instructions,mem,1,1);
         //  memory_image: BTreeMap::new() };
 
         program
