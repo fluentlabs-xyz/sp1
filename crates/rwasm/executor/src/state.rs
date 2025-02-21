@@ -14,8 +14,9 @@ use crate::{
     syscalls::SyscallCode,
     ExecutorMode, SP1ReduceProof,
 };
-
+// The starting address of satck 
 pub const SP_START: u32 = 0x2000;
+// The starting address of function frame
 pub const FUNFRAMEP_START :u32 = SP_START +4096;
 
 /// Holds data describing the current state of a program's execution.

@@ -65,6 +65,9 @@ pub struct OpcodeSelectorCols<T> {
     pub is_localset:T,
     pub is_localtee:T,
     pub is_i32const:T,
+
+    pub is_callinternal:T,
+    pub is_return:T,
 }
 
 impl<F: PrimeField> OpcodeSelectorCols<F> {
@@ -92,7 +95,7 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
             self.is_memory = F::one();
         } else if instruction.is_branch_instruction() {
             self.is_branching=F::one();
-        }
+        } 
         match instruction{
             Instruction::I32Eqz => { self.is_i32eqz = F::one();},
             Instruction::I32Eq => {self.is_i32eq=F::one()}
@@ -121,6 +124,8 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
             Instruction::LocalSet(_)=>{self.is_localset=F::one()},
             Instruction::LocalTee(_)=>{self.is_localtee=F::one()},
             Instruction::I32Const(_)=>{self.is_i32const=F::one()},
+            Instruction::CallInternal(_)=>{self.is_callinternal=F::one()},
+            Instruction::Return(_)=>(self.is_return=F::one()),
            _=>{}
         }
 
@@ -141,7 +146,8 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
         self.is_i32load,self.is_i32load16s,self.is_i32load16u,self.is_i32load8s,self.is_i32load8u,
         self.is_i32store,self.is_i32store16,self.is_i32store8,
         self.is_br,self.is_brifeqz,self.is_brifnez,
-        self.is_localget,self.is_localset,self.is_localtee,self.is_i32const];
+        self.is_localget,self.is_localset,self.is_localtee,self.is_i32const,
+        self.is_callinternal,self.is_return];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS); 
         columns.into_iter()
     }

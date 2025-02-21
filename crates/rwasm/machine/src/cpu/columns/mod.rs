@@ -53,6 +53,9 @@ pub struct CpuCols<T: Copy> {
     pub sp: T,
     
     pub next_sp: T,
+
+    pub depth :T,
+    pub next_depth:T,
     
     /// Columns related to the instruction.
     pub instruction: InstructionCols<T>,

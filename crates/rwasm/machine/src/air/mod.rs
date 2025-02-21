@@ -11,7 +11,7 @@ use sp1_stark::air::{BaseAirBuilder, SP1AirBuilder};
 /// A trait which contains methods related to memory interactions in an AIR.
 
 pub trait SP1CoreAirBuilder:
-    SP1AirBuilder + WordAirBuilder + MemoryAirBuilder + ProgramAirBuilder
+    SP1AirBuilder + WordAirBuilder + MemoryAirBuilder + ProgramAirBuilder + FuncCallAirBuilder
 {
 }
 

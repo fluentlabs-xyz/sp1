@@ -485,7 +485,7 @@ impl<'a> Executor<'a> {
        
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(FUNFRAMEP_START - depth -1, shard, clk, None);
+        let arg1_record = self.mr(FUNFRAMEP_START - depth, shard, clk, None);
         Some(arg1_record)
     }
 
@@ -804,19 +804,27 @@ impl<'a> Executor<'a> {
             Instruction::Unreachable => todo!(),
             Instruction::ConsumeFuel(block_fuel) => todo!(),
             Instruction::Return(drop_keep) => {
+                if depth >4096{
+                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, FUNFRAMEP_START-depth));
+                }
                 if depth ==0{
                     println!("program exit 0");
-                    println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                    println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                    instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                     println!("arg1_record:{:?}",arg1_record);
-                    self.state.pc = 0;
-                    return Ok(())
+                    arg1_record = self.fetch_function_frame(next_depth);
+                    arg1 = arg1_record.unwrap().value;
+                    next_pc=0;
+                } else{
+                    next_depth = depth-1;
+                    arg1_record = self.fetch_function_frame(next_depth);
+                    arg1 = arg1_record.unwrap().value;
+                    next_pc = arg1+4;
+                    println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                    instruction,sp,next_sp,pc,next_pc,depth,next_depth);
+                    println!("arg1_record:{:?}",arg1_record);
                 }
-                next_depth = depth-1;
-                arg1_record = self.fetch_function_frame(next_depth);
-                arg1 = arg1_record.unwrap().value;
-                next_pc = arg1+4;
-                println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("arg1_record:{:?}",arg1_record);
+               
                 
             },
             Instruction::ReturnIfNez(drop_keep) => todo!(),
@@ -832,8 +840,11 @@ impl<'a> Executor<'a> {
                 
                 next_sp =sp;
                 next_depth = depth+1;
+            
                 res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-self.state.funcc_depth, next_sp));
-                println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                res = res_record.unwrap().value;
+                println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                 println!("res_record:{:?}",res_record);
               
 
@@ -1159,10 +1170,10 @@ impl<'a> Executor<'a> {
                 next_sp = sp - 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id);
-                println!("i32add");
-                println!("sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",sp,next_sp,pc,next_pc,depth,next_depth);
+                println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                 println!("res_record:{:?}",res_record);
-                println!("i32add")
+             
                
             }
             Instruction::I32Sub => {

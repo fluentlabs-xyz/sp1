@@ -2,7 +2,7 @@ pub mod branch;
 pub mod ecall;
 pub mod memory;
 pub mod local;
-
+pub mod funccall;
 use core::borrow::Borrow;
 use p3_air::{Air, AirBuilder, AirBuilderWithPublicValues, BaseAir};
 use p3_field::AbstractField;
@@ -54,8 +54,11 @@ where
         builder.when(local.is_real).assert_bool(local.instruction.is_memory);
         builder.when(local.is_real).assert_bool(local.instruction.is_branching);
         builder.when(local.is_real).assert_bool(local.instruction.is_local);
+        builder.when(local.is_real).assert_bool(local.instruction.is_call);
         builder.when(local.is_real).assert_one(local.instruction.is_unary+local.instruction.is_binary+
-            local.instruction.is_memory+local.instruction.is_branching+local.instruction.is_local
+            local.instruction.is_memory+local.instruction.is_branching+
+            local.instruction.is_local+
+            local.instruction.is_call
         +local.selectors.is_i32const);
         // Compute some flags for which type of instruction we are dealing with.
         let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
@@ -73,7 +76,7 @@ where
         );
         self.eval_memory_load::<AB>(builder, local);
         self.eval_memory_store::<AB>(builder, local);
- 
+        
         let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
         self.eval_alu_ops(builder, local);
 
@@ -84,7 +87,7 @@ where
         //Local instructions.
         self.eval_local::<AB>(builder,local,is_local_set);
 
-        
+        self.eval_funccall::<AB>(builder,local,next);
         // // AUIPC instruction.
         // self.eval_auipc(builder, local);
 
@@ -446,7 +449,7 @@ impl CpuChip {
         //make sure the memory access are correct
         //always need to check arg1
         //only check arg2 if instruction is binary
-        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget);
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget-local.instruction.is_call);
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
         &local.op_arg2_access, local.instruction.is_binary);
         

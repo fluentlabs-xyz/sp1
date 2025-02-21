@@ -18,7 +18,7 @@ mod tests {
     use std::fs::File;
     use std::io::{Read, Write};
 
-    use rwasm::engine::bytecode::{BranchOffset, Instruction};
+    use rwasm::engine::bytecode::{BranchOffset, Instruction,DropKeep};
     fn build_elf() -> Program {
 
         let sp_value: u32 = SP_START;
@@ -302,6 +302,25 @@ mod tests {
 
         program
     }
+    fn build_elf_call()->Program{
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x3;
+        let y_value: u32 = 0x5;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value-4, y_value);
+        let mut functions = vec![0,12+1];
+       
+        let instructions = vec![Instruction::CallInternal(1u32.into()),
+        Instruction::Return(DropKeep::none()),
+        Instruction::I32Add,
+        Instruction::Return(DropKeep::none())];
+
+        let program = Program::new_with_memory_and_func(instructions, mem,functions, 1, 1);
+        program
+    }
+
     fn run_rwasm_prover(mut program:Program) {
          setup_logger();
         let prover: SP1Prover = SP1Prover::new();
@@ -373,6 +392,11 @@ mod tests {
     #[test]
     fn test_rwasm_another1() {
         let program = build_elf_const_another();
+        run_rwasm_prover(program);
+    }
+    #[test]
+    fn test_rwasm_call_internal_and_return (){
+        let program = build_elf_call();
         run_rwasm_prover(program);
     }
 }
