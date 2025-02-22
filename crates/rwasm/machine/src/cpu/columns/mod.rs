@@ -5,6 +5,7 @@ mod ecall;
 mod instruction;
 mod jump;
 mod memory;
+mod funccall;
 mod opcode;
 mod opcode_specific;
 pub use alu::*;
@@ -16,6 +17,7 @@ pub use jump::*;
 pub use memory::*;
 pub use opcode::*;
 pub use opcode_specific::*;
+pub use funccall::*;
 
 use p3_util::indices_arr;
 use sp1_derive::AlignedBorrow;

@@ -808,18 +808,21 @@ impl<'a> Executor<'a> {
                     return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, FUNFRAMEP_START-depth));
                 }
                 if depth ==0{
+                   
+                    arg1_record = self.fetch_function_frame(next_depth);
+                    arg1 = arg1_record.unwrap().value;
+                    next_pc=0;
+                    self.state.clk+=4;
                     println!("program exit 0");
                     println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
                     instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                     println!("arg1_record:{:?}",arg1_record);
-                    arg1_record = self.fetch_function_frame(next_depth);
-                    arg1 = arg1_record.unwrap().value;
-                    next_pc=0;
                 } else{
                     next_depth = depth-1;
                     arg1_record = self.fetch_function_frame(next_depth);
                     arg1 = arg1_record.unwrap().value;
                     next_pc = arg1+4;
+                    self.state.clk+=4;
                     println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
                     instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                     println!("arg1_record:{:?}",arg1_record);
@@ -834,13 +837,13 @@ impl<'a> Executor<'a> {
             Instruction::ReturnCall(func_idx) => todo!(),
             Instruction::ReturnCallIndirect(signature_idx) => todo!(),
             Instruction::CallInternal(compiled_func) => {
-               
+                
                 let offset = self.program.index_by_offset.get(compiled_func.to_u32()as usize);
                 next_pc= *(offset.unwrap());
                 
                 next_sp =sp;
                 next_depth = depth+1;
-            
+                
                 res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-self.state.funcc_depth, next_sp));
                 res = res_record.unwrap().value;
                 println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",

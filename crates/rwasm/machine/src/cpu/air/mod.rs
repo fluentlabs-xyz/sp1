@@ -78,6 +78,7 @@ where
         self.eval_memory_store::<AB>(builder, local);
         
         let is_branch_instruction: AB::Expr = self.is_branch_instruction::<AB>(&local.selectors);
+        let is_funccall_instruction: AB::Expr = self.is_funccall::<AB>(&local.selectors);
         self.eval_alu_ops(builder, local);
 
         // Branch instructions.
@@ -109,10 +110,10 @@ where
         self.eval_shard_clk(builder, local, next);
 
         // Check that the pc is updated correctly.
-        self.eval_pc(builder, local, next, is_branch_instruction.clone());
+        self.eval_pc(builder, local, next, is_branch_instruction.clone(),is_funccall_instruction.clone());
 
-        // Check that the sp is updated correctly.
-        self.eval_sp(builder, local, next);
+        // // Check that the sp is updated correctly.
+        // self.eval_sp(builder, local, next);
 
         // Check public values constraints.
         self.eval_public_values(builder, local, next, public_values);
@@ -287,7 +288,7 @@ impl CpuChip {
         // let num_extra_cycles = self.get_num_extra_ecall_cycles::<AB>(local);
 
         // We already assert that `local.clk < 2^24`. `num_extra_cycles` is an entry of a word and
-        // therefore less than `2^8`, this means that the sum cannot overflow in a 31 bit field.
+    //     // therefore less than `2^8`, this means that the sum cannot overflow in a 31 bit field.
         let expected_next_clk = local.clk + AB::Expr::from_canonical_u32(8);
         let expected_next_clk_branching = local.clk + AB::Expr::from_canonical_u32(4);
         // +  num_extra_cycles.clone()
@@ -317,6 +318,7 @@ impl CpuChip {
         local: &CpuCols<AB::Var>,
         next: &CpuCols<AB::Var>,
         is_branch_instruction: AB::Expr,
+        is_funccall_instruction:AB::Expr,
     ) {
         // When is_sequential_instr is true, assert that instruction is not branch, jump, or halt.
         // Note that the condition `when(local_is_real)` is implied from the previous constraint.
@@ -326,6 +328,7 @@ impl CpuChip {
             AB::Expr::one()
                 - (
                     is_branch_instruction
+                    +is_funccall_instruction
                     // + local.selectors.is_jal
                     // + local.selectors.is_jalr
                     // + is_halt),

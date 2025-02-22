@@ -24,8 +24,8 @@ impl CpuChip {
         opcode_selectors: &OpcodeSelectorCols<AB::Var>,
     ) -> AB::Expr {
         
-         opcode_selectors.is_localset 
-        + opcode_selectors.is_localtee
+         opcode_selectors.is_callinternal
+        + opcode_selectors.is_return
             
     }
 
@@ -38,7 +38,7 @@ impl CpuChip {
        
     ){
         self.eval_funccall_pc_and_sp(local, next, builder);  
-        self.eval_depth(local, next, builder);
+        // self.eval_depth(local, next, builder);
         self.eval_funccall_memory(local, builder);
         builder.send_function_call(local.instruction.aux_val.reduce::<AB>(), 
             local.next_pc,
@@ -54,7 +54,11 @@ impl CpuChip {
        
     ){
         builder.when(local.selectors.is_callinternal).assert_eq(local.pc, local.op_res_val().reduce::<AB>());
-        builder.when(local.selectors.is_return).assert_eq(local.next_pc, local.op_arg1_val().reduce::<AB>());
+        builder.when(local.selectors.is_return).
+        when_ne(local.depth,AB::Expr::zero()).assert_eq(local.next_pc, local.op_arg1_val().reduce::<AB>());
+        builder.when(local.selectors.is_return).
+        when(local.opcode_specific_columns.funccall().depth_is_zero).assert_zero(local.next_pc);
+        builder.when(local.opcode_specific_columns.funccall().depth_is_zero).assert_zero(local.depth);
         builder.when(local.selectors.is_callinternal+
         local.selectors.is_return).assert_eq(local.sp, local.next_sp);
     }

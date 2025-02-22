@@ -192,6 +192,7 @@ impl CpuChip {
         self.populate_alu(cols, event,nonce_lookup);
         self.populate_memory(cols, event, blu_events, nonce_lookup);
         self.populate_branch(cols, event, nonce_lookup);
+        self.populate_funccall(cols, event);
         // self.populate_jump(cols, event, nonce_lookup);
         // self.populate_auipc(cols, event, nonce_lookup);
         // let is_halt = self.populate_ecall(cols, event, nonce_lookup);
@@ -609,5 +610,20 @@ impl CpuChip {
             }
        }
     }
+
+    fn populate_funccall<F: PrimeField>(
+        &self,
+        cols: &mut CpuCols<F>,
+        event: &CpuEvent,
+    
+    ){
+        if event.instruction.is_call_instruction(){
+            let funccall= cols.opcode_specific_columns.funccall_mut();
+            if event.depth ==0{
+                funccall.depth_is_zero = F::one();
+            }
+        }
+      
+    } 
 
 }
