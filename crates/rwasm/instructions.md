@@ -10,20 +10,20 @@ BrAdjust(BranchOffset), // without dropkeep => drop ||
 BrAdjustIfNez(BranchOffset), // without dropkeep => drop|||
 BrTable(BranchTableTargets), // drop? how? |||
 Unreachable,| |  |
-ConsumeFuel(BlockFuel),
+ConsumeFuel(BlockFuel),| |  |
 Return(DropKeep), |Call| WIP|
-ReturnIfNez(DropKeep), // not sure
-ReturnCallInternal(CompiledFunc), // not sure
-ReturnCall(FuncIdx), // not sure
-ReturnCallIndirect(SignatureIdx), // not sure
+ReturnIfNez(DropKeep), // not sure| |  |
+ReturnCallInternal(CompiledFunc), // not sure| |  |
+ReturnCall(FuncIdx), // not sure| |  |
+ReturnCallIndirect(SignatureIdx), // not sure| |  |
 CallInternal(CompiledFunc), |Call|WIP|
-Call(FuncIdx),
-CallIndirect(SignatureIdx), // not sure
-SignatureCheck(SignatureIdx),
-Drop,
-Select,
-GlobalGet(GlobalIdx),
-GlobalSet(GlobalIdx),
+Call(FuncIdx),| |  |
+CallIndirect(SignatureIdx), // not sure| |  |
+SignatureCheck(SignatureIdx),| |  |
+Drop,| |  |
+Select,| |  |
+GlobalGet(GlobalIdx),| |  |
+GlobalSet(GlobalIdx),| |  |
 I32Load(AddressOffset), | Memory| :heavy_check_mark:|
 I32Load8S(AddressOffset),| Memory| :heavy_check_mark:|
 I32Load8U(AddressOffset),| Memory| :heavy_check_mark:|
@@ -32,21 +32,21 @@ I32Load16U(AddressOffset),| Memory| :heavy_check_mark:|
 I32Store(AddressOffset),| Memory| :heavy_check_mark:|
 I32Store8(AddressOffset),| Memory| :heavy_check_mark:|
 I32Store16(AddressOffset),| Memory| :heavy_check_mark:|
-MemorySize,
-MemoryGrow,
-MemoryFill, // precompile?
-MemoryCopy, // precompile?
-MemoryInit(DataSegmentIdx),
-DataDrop(DataSegmentIdx),
-TableSize(TableIdx), // not sure
-TableGrow(TableIdx), // not sure
-TableFill(TableIdx), // not sure
-TableGet(TableIdx), // not sure
-TableSet(TableIdx), // not sure
-TableCopy(TableIdx), // not sure
-TableInit(ElementSegmentIdx), // not sure
-ElemDrop(ElementSegmentIdx), // not sure
-RefFunc(FuncIdx),
+MemorySize,| |  |
+MemoryGrow,| |  |
+MemoryFill, // precompile?| |  |
+MemoryCopy, // precompile?| |  |
+MemoryInit(DataSegmentIdx),| |  |
+DataDrop(DataSegmentIdx),| |  |
+TableSize(TableIdx), // not sure| |  |
+TableGrow(TableIdx), // not sure| |  |
+TableFill(TableIdx), // not sure| |  |
+TableGet(TableIdx), // not sure| |  |
+TableSet(TableIdx), // not sure| |  |
+TableCopy(TableIdx), // not sure| |  |
+TableInit(ElementSegmentIdx), // not sure| |  |
+ElemDrop(ElementSegmentIdx), // not sure| |  |
+RefFunc(FuncIdx),| |  |
 I32Const(UntypedValue),|Branching | :heavy_check_mark:|
 I32Eqz,|Arithmetic | :heavy_check_mark:|
 I32Eq,|Arithmetic | :heavy_check_mark:|
@@ -59,9 +59,9 @@ I32LeS,|Arithmetic | :heavy_check_mark:|
 I32LeU,|Arithmetic | :heavy_check_mark:|
 I32GeS,|Arithmetic | :heavy_check_mark:|
 I32GeU,|Arithmetic | :heavy_check_mark:|
-I32Clz, // replace with snippet
-I32Ctz, // replace with snippet
-I32Popcnt, // replace with snippet
+I32Clz, // replace with snippet| |  |
+I32Ctz, // replace with snippet| |  |
+I32Popcnt, // replace with snippet| |  |""""""""""""
 I32Add,|Arithmetic | :heavy_check_mark:|
 I32Sub,|Arithmetic | :heavy_check_mark:|
 I32Mul,|Arithmetic | :heavy_check_mark:|

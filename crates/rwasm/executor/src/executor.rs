@@ -482,7 +482,7 @@ impl<'a> Executor<'a> {
     }
 
     fn fetch_function_frame(&mut self, depth: u32) -> Option<MemoryReadRecord> {
-       
+
         let clk = self.state.clk;
         let shard = self.shard();
         let arg1_record = self.mr(FUNFRAMEP_START - depth, shard, clk, None);
@@ -808,13 +808,13 @@ impl<'a> Executor<'a> {
                     return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, FUNFRAMEP_START-depth));
                 }
                 if depth ==0{
-                   
+
                     arg1_record = self.fetch_function_frame(next_depth);
                     arg1 = arg1_record.unwrap().value;
                     next_pc=0;
                     self.state.clk+=4;
                     println!("program exit 0");
-                    println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                    println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                     instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                     println!("arg1_record:{:?}",arg1_record);
                 } else{
@@ -823,12 +823,12 @@ impl<'a> Executor<'a> {
                     arg1 = arg1_record.unwrap().value;
                     next_pc = arg1+4;
                     self.state.clk+=4;
-                    println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                    println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                     instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                     println!("arg1_record:{:?}",arg1_record);
                 }
-               
-                
+
+
             },
             Instruction::ReturnIfNez(drop_keep) => todo!(),
             Instruction::ReturnCallInternal(compiled_func) => {
@@ -837,19 +837,19 @@ impl<'a> Executor<'a> {
             Instruction::ReturnCall(func_idx) => todo!(),
             Instruction::ReturnCallIndirect(signature_idx) => todo!(),
             Instruction::CallInternal(compiled_func) => {
-                
+
                 let offset = self.program.index_by_offset.get(compiled_func.to_u32()as usize);
                 next_pc= *(offset.unwrap());
-                
+
                 next_sp =sp;
                 next_depth = depth+1;
-                
+
                 res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-self.state.funcc_depth, next_sp));
                 res = res_record.unwrap().value;
-                println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                 println!("res_record:{:?}",res_record);
-              
+
 
             },
             Instruction::Call(func_idx) => todo!(),
@@ -1176,8 +1176,8 @@ impl<'a> Executor<'a> {
                 println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                 println!("res_record:{:?}",res_record);
-             
-               
+
+
             }
             Instruction::I32Sub => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -3008,8 +3008,8 @@ mod tests {
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
         mem.insert(sp_value-4, y_value);
-        let mut functions = vec![0,8];
-       
+        let mut functions = vec![0,12+1];
+
         let instructions = vec![Instruction::CallInternal(1u32.into()),
         Instruction::Return(DropKeep::none()),
         Instruction::I32Add,
@@ -3019,7 +3019,7 @@ mod tests {
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-    } 
+    }
     #[test]
     fn test_i32constwithAdd() {
         let sp_value: u32 = SP_START;
