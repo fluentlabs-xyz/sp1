@@ -813,10 +813,10 @@ impl<'a> Executor<'a> {
                     arg1 = arg1_record.unwrap().value;
                     next_pc=0;
                     self.state.clk+=4;
-                    println!("program exit 0");
-                    println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
+                    println!("Instruction::Return: program exit 0");
+                    println!("Instruction::Return: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                     instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                    println!("arg1_record:{:?}",arg1_record);
+                    println!("Instruction::Return: arg1_record:{:?}",arg1_record);
                 } else{
                     next_depth = depth-1;
                     arg1_record = self.fetch_function_frame(next_depth);
@@ -846,9 +846,9 @@ impl<'a> Executor<'a> {
 
                 res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-self.state.funcc_depth, next_sp));
                 res = res_record.unwrap().value;
-                println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
+                println!("CallInternal: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("res_record:{:?}",res_record);
+                println!("CallInternal: res_record:{:?}",res_record);
 
 
             },
@@ -1173,9 +1173,9 @@ impl<'a> Executor<'a> {
                 next_sp = sp - 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id);
-                println!("ins:{:?},sp:{}next_sp:{}pc:{}next_pc:{},depth:{},next_depth:{}",
+                println!("Instruction::I32Add: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("res_record:{:?}",res_record);
+                println!("Instruction::I32Add: res_record:{:?}",res_record);
 
 
             }
@@ -3004,22 +3004,25 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x3;
         let y_value: u32 = 0x5;
-
+        let z_value: u32 = 0x7;
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
         mem.insert(sp_value-4, y_value);
-        let mut functions = vec![0,12+1];
+        mem.insert(sp_value-8, z_value);
+
+        let mut functions = vec![0,12];
 
         let instructions = vec![Instruction::CallInternal(1u32.into()),
-        Instruction::Return(DropKeep::none()),
-        Instruction::I32Add,
+       // Instruction::Return(DropKeep::none()),
+        Instruction::I32Add, Instruction::I32Add,
         Instruction::Return(DropKeep::none())];
 
         let program = Program::new_with_memory_and_func(instructions, mem,functions, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-    }
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value+z_value);
+     }
     #[test]
     fn test_i32constwithAdd() {
         let sp_value: u32 = SP_START;
