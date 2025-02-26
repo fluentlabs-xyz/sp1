@@ -330,7 +330,7 @@ mod tests {
         mem.insert(sp_value-4, y_value);
         mem.insert(sp_value-8, z_value);
 
-        let mut functions = vec![0,8];
+        let mut functions = vec![0,8+1];
 
         let instructions = vec![Instruction::CallInternal(1u32.into()),
                                //  Instruction::Return(DropKeep::none()),
