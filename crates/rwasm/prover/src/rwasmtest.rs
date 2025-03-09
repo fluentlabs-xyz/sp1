@@ -341,6 +341,31 @@ mod tests {
         program
     }
 
+    fn build_elf_skipped_ins() -> Program {
+
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1234;
+        let x_2_value: u32 = x_value+5;
+        let depth = 5*4;
+        let under_depth = depth-4;
+        let constant = x_value;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - depth, x_2_value);
+
+        println!("{:?}", mem);
+        let instructions = vec![
+            Instruction::ConsumeFuel(1.into()),
+            Instruction::SignatureCheck(1.into()),
+            Instruction::Drop,
+        ];
+
+        let program = Program::new_with_memory(instructions,mem,1,1);
+        //  memory_image: BTreeMap::new() };
+
+        program
+    }
+
     fn run_rwasm_prover(mut program:Program) {
          setup_logger();
         let prover: SP1Prover = SP1Prover::new();
@@ -422,6 +447,12 @@ mod tests {
     #[test]
     fn test_rwasm_call_internal_and_return2 (){
         let program = build_elf_call2();
+        run_rwasm_prover(program);
+    }
+
+    #[test]
+    fn test_rwasm_skipped (){
+        let program = build_elf_skipped_ins();
         run_rwasm_prover(program);
     }
 }

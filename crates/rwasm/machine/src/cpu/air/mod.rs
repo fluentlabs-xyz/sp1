@@ -59,7 +59,7 @@ where
             local.instruction.is_memory+local.instruction.is_branching+
             local.instruction.is_local+
             local.instruction.is_call
-        +local.selectors.is_i32const);
+        +local.selectors.is_i32const+local.selectors.is_skipped);
         // Compute some flags for which type of instruction we are dealing with.
         let is_memory_instruction: AB::Expr = self.is_memory_instruction::<AB>(&local.selectors);
         let is_memory_load: AB::Expr = self.is_load_instruction::<AB>(&local.selectors);
@@ -452,7 +452,7 @@ impl CpuChip {
         //make sure the memory access are correct
         //always need to check arg1
         //only check arg2 if instruction is binary
-        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget-local.instruction.is_call);
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget-local.instruction.is_call-local.selectors.is_skipped);
         builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
         &local.op_arg2_access, local.instruction.is_binary);
         

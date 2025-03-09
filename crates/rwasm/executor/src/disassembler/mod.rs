@@ -1,7 +1,7 @@
 //! A disassembler for RISC-V ELFs.
 
 mod elf;
-mod rrs;
+mod binary;
 
 pub(crate) use elf::*;
-pub(crate) use rrs::*;
+pub(crate) use binary::*;

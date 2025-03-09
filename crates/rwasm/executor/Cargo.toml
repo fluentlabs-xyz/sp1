@@ -43,7 +43,8 @@ vec_map = { version = "0.8.2", features = ["serde"] }
 enum-map = { version = "2.7.3", features = ["serde"] }
 
 rwasm ={ git = "https://github.com/fluentlabs-xyz/rwasm.git",branch = "sp1-compatible", default-features = false, features = ["std"]}
-
+wat = "1.0.80"
+fluentbase-runtime = { git = "https://github.com/fluentlabs-xyz/fluentbase", branch = "devel" }
 [dev-dependencies]
 sp1-zkvm = { workspace = true }
 

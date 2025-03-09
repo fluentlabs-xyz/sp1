@@ -28,6 +28,7 @@ pub struct OpcodeSelectorCols<T> {
     pub is_ordinary_alu: T,
     pub is_comparison_alu:T,
     pub is_branching: T,
+    pub is_skipped:T,
     /// Table selectors for opcodes.
     pub is_memory:T,
     pub is_ecall: T,
@@ -126,6 +127,9 @@ impl<F: PrimeField> OpcodeSelectorCols<F> {
             Instruction::I32Const(_)=>{self.is_i32const=F::one()},
             Instruction::CallInternal(_)=>{self.is_callinternal=F::one()},
             Instruction::Return(_)=>(self.is_return=F::one()),
+            Instruction::ConsumeFuel(_)=>{self.is_skipped=F::one()},
+            Instruction::SignatureCheck(_)=>{self.is_skipped=F::one()},
+            Instruction::Drop=>{self.is_skipped=F::one()},
            _=>{}
         }
 
@@ -147,7 +151,8 @@ impl<T> IntoIterator for OpcodeSelectorCols<T> {
         self.is_i32store,self.is_i32store16,self.is_i32store8,
         self.is_br,self.is_brifeqz,self.is_brifnez,
         self.is_localget,self.is_localset,self.is_localtee,self.is_i32const,
-        self.is_callinternal,self.is_return];
+        self.is_callinternal,self.is_return,
+        self.is_skipped,];
         assert_eq!(columns.len(), NUM_OPCODE_SELECTOR_COLS); 
         columns.into_iter()
     }

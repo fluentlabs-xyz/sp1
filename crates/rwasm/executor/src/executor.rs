@@ -532,6 +532,8 @@ impl<'a> Executor<'a> {
         todo!()
     }
 
+   
+
     /// Emit a CPU event.
     #[allow(clippy::too_many_arguments)]
     fn emit_cpu(
@@ -668,6 +670,7 @@ impl<'a> Executor<'a> {
     #[inline]
     fn fetch(&self) -> Instruction {
         let idx = ((self.state.pc - self.program.pc_base) / 4) as usize;
+        println!("pc:{},ins_idx:{}",self.state.pc,idx);
         self.program.instructions[idx]
     }
 
@@ -687,6 +690,7 @@ impl<'a> Executor<'a> {
         let mut arg2_record: Option<MemoryReadRecord> = None;
         let mut res_record: Option<MemoryWriteRecord> = None;
         let mut res_is_writtten_back_to_stack: bool = false;
+        println!("ins:{:?},pc:{},sp:{},clk:{}",instruction,pc,sp,clk);
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
         }
@@ -738,6 +742,7 @@ impl<'a> Executor<'a> {
                 res = arg1;
                 next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
+                println!("locaget: sp:{},clk:{} arg1:{}",sp,clk,arg1);
             }
             Instruction::LocalSet(local_depth) => {
                 let depth = local_depth.to_usize() as u32;
@@ -802,7 +807,9 @@ impl<'a> Executor<'a> {
             Instruction::BrAdjustIfNez(branch_offset) => todo!(),
             Instruction::BrTable(branch_table_targets) => todo!(),
             Instruction::Unreachable => todo!(),
-            Instruction::ConsumeFuel(block_fuel) => todo!(),
+            Instruction::ConsumeFuel(block_fuel) => {
+                self.state.clk+=4;//TODO: implement this
+            },
             Instruction::Return(drop_keep) => {
                 if depth >4096{
                     return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, FUNFRAMEP_START-depth));
@@ -854,8 +861,12 @@ impl<'a> Executor<'a> {
             },
             Instruction::Call(func_idx) => todo!(),
             Instruction::CallIndirect(signature_idx) => todo!(),
-            Instruction::SignatureCheck(signature_idx) => todo!(),
-            Instruction::Drop => todo!(),
+            Instruction::SignatureCheck(signature_idx) => {
+                    self.state.clk+=4;//TODO: implement this
+            },
+            Instruction::Drop => {
+                self.state.clk+=4;//TODO: implement this.
+            },
             Instruction::Select => todo!(),
             Instruction::GlobalGet(global_idx) => todo!(),
             Instruction::GlobalSet(global_idx) => todo!(),
@@ -1382,6 +1393,8 @@ impl<'a> Executor<'a> {
         #[cfg(debug_assertions)]
         self.log(&instruction);
 
+
+
         // Execute the instruction.
         self.execute_instruction(&instruction)?;
 
@@ -1689,7 +1702,6 @@ impl<'a> Executor<'a> {
 
         // Get the final public values.
         let public_values = self.record.public_values;
-        println!("done?{}", done);
         if done {
             self.postprocess();
 
