@@ -1187,8 +1187,6 @@ impl<'a> Executor<'a> {
                 println!("Instruction::I32Add: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                 println!("Instruction::I32Add: res_record:{:?}",res_record);
-
-
             }
             Instruction::I32Sub => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -2082,11 +2080,10 @@ mod tests {
     #[test]
     fn test_lts_ltu() {
         let sp_value: u32 = SP_START;
-        let x_value: u32 = 3222;
-        let y_value: u32 = 233;
-        let z_value: u32 = 32;
+        let x_value: u32 = 0;
+        let y_value: u32 = 32;
+        let z_value: u32 = 233;
 
-        //TODO
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const(y_value.into()),
@@ -2097,8 +2094,9 @@ mod tests {
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
     }
+
     #[test]
     fn test_gts_gtu() {
         let sp_value: u32 = SP_START;
@@ -2125,39 +2123,38 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 321;
         let y_value: u32 = 233;
-        let z_value: u32 = 1;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z_value);
+        let z_value: u32 = 0;
 
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
             Instruction::I32GeS, // check whether signed x_value is greater than or equal to signed y_value
             Instruction::I32GeU, // check whether unsigned x_value is greater than or equal to unsigned y_value
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
     }
+
     #[test]
     fn test_les_leu() {
         let sp_value: u32 = SP_START;
-        let x_value: u32 = 321;
-        let y_value: u32 = 233;
-        let z_value: u32 = 0;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z_value);
+        let x_value: u32 = 0;
+        let y_value: u32 = 3;
+        let z_value: u32 = 9;
 
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
             Instruction::I32LeS, // check whether signed x_value is less than or equal to signed y_value
             Instruction::I32LeU, // check whether unsigned x_value is less than or equal to unsigned y_value
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2195,22 +2192,21 @@ mod tests {
         let x_value: u32 = 320;
         let y_value: u32 = 13;
         let z_value: u32 = 5;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z_value);
 
         let instructions = vec![
-            Instruction::I32RemS, // divide x_value by y_value and return remainder (x and y are signed)
-            Instruction::I32RemU, // divide x_value by y_value and return remainder
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32RemS,
+            Instruction::I32RemU,
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            (x_value % y_value) % z_value
+            x_value % (y_value % z_value)
         );
     }
     #[test]
