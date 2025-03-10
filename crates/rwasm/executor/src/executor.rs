@@ -2215,22 +2215,21 @@ mod tests {
         let x_value: u32 = 2;
         let y_value: u32 = 2;
         let z_value: u32 = 3;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z_value);
 
         let instructions = vec![
-            Instruction::I32Shl, // x_value is shifted left by y_value
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Shl, // y_value is shifted left by z_value
             Instruction::I32Shl,
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            x_value << (y_value + z_value)
+            x_value << (y_value << z_value)
         );
     }
     #[test]
@@ -2239,22 +2238,21 @@ mod tests {
         let x_value: u32 = 256;
         let y_value: u32 = 2;
         let z_value: u32 = 3;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z_value);
 
         let instructions = vec![
-            Instruction::I32ShrS, // x_value is shifted right by y_value
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32ShrS, // y_value is shifted right by z_value
             Instruction::I32ShrU, //
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            x_value >> (y_value + z_value)
+            x_value >> (y_value >> z_value)
         );
     }
 
@@ -2262,11 +2260,9 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = a;
         let y_value: u32 = b;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value-4, x_value);
-        mem.insert(sp_value, y_value);
-        let instructions = vec![opcode];
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let instructions = vec![Instruction::I32Const(x_value.into()),
+                                Instruction::I32Const(y_value.into()), opcode];
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
@@ -2418,6 +2414,7 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(address).unwrap().value, expected);
     }
+    //todo
     #[test]
     fn test_simple_memory_instruction() {
         let sp_value: u32 = SP_START;
