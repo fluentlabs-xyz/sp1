@@ -468,8 +468,8 @@ impl<'a> Executor<'a> {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(sp, shard, clk, None);
-        let arg2_record = self.mr(sp - 4, shard, clk, None);
+        let arg1_record = self.mr(sp+4, shard, clk, None);
+        let arg2_record = self.mr(sp, shard, clk, None);
         (Some(arg1_record), Some(arg2_record))
     }
 
@@ -740,7 +740,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = depth;
                 res = arg1;
-                next_sp = sp + 4;
+                next_sp = sp - 4;
                 res_is_writtten_back_to_stack = true;
                 println!("locaget: sp:{},clk:{} arg1:{}",sp,clk,arg1);
             }
@@ -750,8 +750,8 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = depth;
                 res = arg1;
-                next_sp = sp - 4;
-                let addr = next_sp - depth;
+                next_sp = sp + 4;
+                let addr = next_sp + depth;
                 res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
                 res_is_writtten_back_to_stack = false;
             }
@@ -762,7 +762,7 @@ impl<'a> Executor<'a> {
                 res = arg1;
                 arg2 = depth;
                 next_sp = sp;
-                let addr = sp - depth;
+                let addr = sp + depth;
                 res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
                 res_is_writtten_back_to_stack = false;
             }
@@ -777,7 +777,7 @@ impl<'a> Executor<'a> {
                 if arg1 == 0 {
                     next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 }
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 self.state.sp = next_sp;
                 println!(
                     "BrIfEqz top:{}, offset:{} ,pc:{},next pc:{}",
@@ -793,7 +793,7 @@ impl<'a> Executor<'a> {
                 if arg1 != 0 {
                     next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 }
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 self.state.sp = next_sp;
                 println!(
                     "BrIfNqz top:{}, offset:{} ,pc:{},next pc:{}",
@@ -1059,7 +1059,7 @@ impl<'a> Executor<'a> {
             Instruction::I32Const(untyped_value) => {
                 let res_i32: i32 = (*untyped_value).into();
                 res = res_i32 as u32;
-                next_sp = sp + 4;
+                next_sp = sp - 4;
                 res_is_writtten_back_to_stack = true;
 
             },
@@ -1081,7 +1081,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 == arg2) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32Ne => {
@@ -1090,7 +1090,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 != arg2) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32LtS => {
@@ -1100,7 +1100,7 @@ impl<'a> Executor<'a> {
                 let arg1_signed = arg1 as i32;
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed < arg2_singed) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLT, res, arg1, arg2, lookup_id);
             }
@@ -1109,7 +1109,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 < arg2) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLTU, res, arg1, arg2, lookup_id);
             }
@@ -1121,7 +1121,7 @@ impl<'a> Executor<'a> {
                 let arg1_signed = arg1 as i32;
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed > arg2_singed) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32GtU => {
@@ -1130,7 +1130,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 > arg2) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32LeS => {
@@ -1141,7 +1141,7 @@ impl<'a> Executor<'a> {
                 let arg1_signed = arg1 as i32;
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed <= arg2_singed) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32LeU => {
@@ -1150,7 +1150,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 <= arg2) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32GeS => {
@@ -1161,7 +1161,7 @@ impl<'a> Executor<'a> {
                 let arg1_signed = arg1 as i32;
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed >= arg2_singed) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32GeU => {
@@ -1170,7 +1170,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 >= arg2) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
             }
             Instruction::I32Clz => todo!(),
@@ -1181,7 +1181,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_add(arg2);
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id);
                 println!("Instruction::I32Add: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
@@ -1195,7 +1195,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_sub(arg2);
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SUB, res, arg1, arg2, lookup_id);
             }
@@ -1204,7 +1204,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_mul(arg2);
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::MUL, res, arg1, arg2, lookup_id);
             }
@@ -1215,7 +1215,7 @@ impl<'a> Executor<'a> {
                 let signed_arg1 = arg1 as i32;
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_div(signed_arg2)) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::DIV, res, arg1, arg2, lookup_id);
             }
@@ -1224,7 +1224,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_div(arg2);
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::DIVU, res, arg1, arg2, lookup_id);
             }
@@ -1235,7 +1235,7 @@ impl<'a> Executor<'a> {
                 let signed_arg1 = arg1 as i32;
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_rem(signed_arg2)) as u32;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::REM, res, arg1, arg2, lookup_id);
             }
@@ -1244,7 +1244,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_rem(arg2);
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::REMU, res, arg1, arg2, lookup_id);
             }
@@ -1253,7 +1253,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 & arg2;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::AND, res, arg1, arg2, lookup_id);
             }
@@ -1262,7 +1262,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 | arg2;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::OR, res, arg1, arg2, lookup_id);
             }
@@ -1271,7 +1271,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 ^ arg2;
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::XOR, res, arg1, arg2, lookup_id);
             }
@@ -1281,8 +1281,9 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_shl(arg2);
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
+                println!("sp:{},arg1{},arg2:{}",sp,arg1,arg2);
                 self.emit_alu(clk, Opcode::SLL, res, arg1, arg2, lookup_id);
             }
             Instruction::I32ShrS => {
@@ -1290,7 +1291,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 as i32).wrapping_shr(arg2) as u32; //TODO check
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SRA, res, arg1, arg2, lookup_id);
             }
@@ -1299,7 +1300,7 @@ impl<'a> Executor<'a> {
                 arg1 = arg1_record.unwrap().value;
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_shr(arg2); //Todo check
-                next_sp = sp - 4;
+                next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SRL, res, arg1, arg2, lookup_id);
             }
@@ -1889,8 +1890,8 @@ mod tests {
         let y_value: u32 = 4;
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value -4, x_value);
+        mem.insert(sp_value, y_value);
 
         let instructions = vec![
             Instruction::I32Sub, // 32 - 4 = 28
@@ -1908,8 +1909,8 @@ mod tests {
         let y_value: u32 = 37;
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value -4 , x_value);
+        mem.insert(sp_value, y_value);
 
         let instructions = vec![
             Instruction::I32Xor, // 5 xor 37 = 32
@@ -2189,11 +2190,14 @@ mod tests {
         let y_value: u32 = 10;
         let z_value: u32 = 2;
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
+        mem.insert(sp_value-8, x_value);
         mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z_value);
+        mem.insert(sp_value, z_value);
 
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
             Instruction::I32DivS, // divide x_value by y_value and return quotient (x and y are signed)
             Instruction::I32DivU, // divide x_value by y_value and return quotient
         ];
@@ -2203,7 +2207,7 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            x_value / y_value / z_value
+            x_value / (y_value / z_value)
         );
     }
     #[test]
@@ -2284,8 +2288,8 @@ mod tests {
         let x_value: u32 = a;
         let y_value: u32 = b;
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value-4, x_value);
+        mem.insert(sp_value, y_value);
         let instructions = vec![opcode];
         let program = Program::new_with_memory(instructions, mem, 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
@@ -2757,8 +2761,8 @@ mod tests {
         let x_value: u32 = 5;
         let addr: u32 = 0x10000;
         let mut mem = HashMap::new();
-        mem.insert(sp_value, addr);
-        mem.insert(sp_value - 4, x_value);
+        mem.insert(sp_value-4, addr);
+        mem.insert(sp_value, x_value);
 
         let instructions = vec![
             Instruction::I32Store(0.into()), // 5 and 37 = 32
@@ -2844,16 +2848,22 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
         let addr: u32 = 0x10000;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, x_value);
-        mem.insert(sp_value - 8, x_value);
-        mem.insert(sp_value - 12, x_value);
+        // let mut mem = HashMap::new();
+        // mem.insert(sp_value, x_value);
+        // mem.insert(sp_value - 4, x_value);
+        // mem.insert(sp_value - 8, x_value);
+        // mem.insert(sp_value - 12, x_value);
 
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Shl,
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Shl,
+            Instruction::I32Const(x_value.into()),
             Instruction::Br(4.into()),
-            Instruction::I32Shl,
-            Instruction::I32Shl,
+           
+           
             Instruction::I32Shl,
         ];
 
@@ -3018,13 +3028,14 @@ mod tests {
         let y_value: u32 = 0x5;
         let z_value: u32 = 0x7;
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value-4, y_value);
-        mem.insert(sp_value-8, z_value);
+        
+        let mut functions = vec![0,24];
 
-        let mut functions = vec![0,12];
-
-        let instructions = vec![Instruction::CallInternal(1u32.into()),
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::CallInternal(1u32.into()),
        // Instruction::Return(DropKeep::none()),
         Instruction::I32Add, Instruction::I32Add,
         Instruction::Return(DropKeep::none())];

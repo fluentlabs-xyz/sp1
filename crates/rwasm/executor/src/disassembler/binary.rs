@@ -1,5 +1,5 @@
 use std::{fs, path::Path};
-use fluentbase_runtime::{instruction, Runtime};
+
 use hashbrown::HashMap;
 use log::debug;
 use rwasm::engine::bytecode::Instruction;
@@ -43,17 +43,7 @@ Drop
  
 pub (crate)  fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
     let rwasm_instr :Vec<Instruction>= rwasm_module.code_section.instr.clone();
-    let mut instr_vec = rwasm_instr
-    .into_iter()
-    .filter(
-        |ins|  {
-        match ins {
-            Instruction::ConsumeFuel(_)=>false,
-            Instruction::SignatureCheck(_)=>false,
-            Instruction::Drop=>false,
-            _=>true,
-        }
-    }).collect::<Vec<Instruction>>();
+    let mut instr_vec = rwasm_instr.clone();
     for x in instr_vec.iter_mut(){
         match x {
             Instruction::BrIfEqz(_)=>{
@@ -65,11 +55,10 @@ pub (crate)  fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
     };
    
     let mut func_indices =  rwasm_module.func_section.clone();
-    let mut acc = -4;//ignore drop
-    
+   
+    let mut acc = 0;
     for x in &mut func_indices {
         acc += (*x *4) as i32;
-        acc-=8;
         *x = (acc+1) as u32;
     }
     // let mut head = vec![0u32];
@@ -81,7 +70,7 @@ pub (crate)  fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
 
 mod test{
     use std::{fs, path::Path};
-use fluentbase_runtime::Runtime;
+
 use log::debug;
 use rwasm::rwasm::RwasmModule;
 use rwasm::rwasm::{BinaryFormat};
@@ -146,6 +135,9 @@ use sp1_stark::SP1CoreOpts;
         println!("{:?}",program.index_by_offset);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        println!("{:?}",runtime.records[0].cpu_events.len());
+        for event in runtime.records[0].cpu_events.iter(){
+            println!("event:{:?}",event);
+        }
+        
     }
 }

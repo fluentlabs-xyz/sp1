@@ -15,7 +15,7 @@ use crate::{
     ExecutorMode, SP1ReduceProof,
 };
 // The starting address of satck 
-pub const SP_START: u32 = 0x2000;
+pub const SP_START: u32 = 0x2000+4;
 // The starting address of function frame
 pub const FUNFRAMEP_START :u32 = SP_START +4096;
 
