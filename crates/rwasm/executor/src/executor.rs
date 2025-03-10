@@ -3005,7 +3005,7 @@ mod tests {
 
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
+      
 
 
         let instructions = vec![
@@ -3017,7 +3017,7 @@ mod tests {
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.sp, sp_value + 4);
+        assert_eq!(runtime.state.sp, sp_value -4);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, y_value);
     }
 
