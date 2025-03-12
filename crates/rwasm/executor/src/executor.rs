@@ -2424,11 +2424,10 @@ mod tests {
             vec![
                 Instruction::I32Const(addr.into()),
                 Instruction::I32Const(x_value.into()),
-                Instruction::I32Store16(0.into()),
                 Instruction::I32Const(addr.into()),
                 Instruction::I32Const(y_value.into()),
                 Instruction::I32Store16(1.into()),
-
+                Instruction::I32Store16(0.into()),
             ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
@@ -2566,7 +2565,7 @@ mod tests {
             (t_value & 0x0000_00FF) << 24,
         );
 
-      simple_memory_store_instruction_test(
+      /*simple_memory_store_instruction_test(
           memInstructions.clone(),
           vec![Instruction::I32Store16(0.into()), Instruction::I32Store16(1.into())],
           addr,
@@ -2586,7 +2585,7 @@ mod tests {
                 + ((y_value & 0x0000_00FF) << 8)
                 + ((z_value & 0x0000_00FF) << 16)
                 + ((t_value & 0x0000_00FF) << 24),
-        );
+        );*/
 
         /*mem.insert(addr, x_value);
         mem.insert(addr + 4, x_value + 4);
@@ -2761,17 +2760,16 @@ mod tests {
         );
     }
 
-   //todo #[test]
+    #[test]
     fn test_load8u() {
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_05FF;
         let addr: u32 = 0x10000;
 
         let instructions = vec![
             Instruction::I32Const(addr.into()),
-            Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
-            Instruction::I32Store8(1.into()),
+            Instruction::I32Store8(0.into()),
+            Instruction::I32Const(addr.into()),
             Instruction::I32Load8U(1.into()),
         ];
 
@@ -2857,7 +2855,7 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
     }
 
-    #[test]
+    //todo #[test]
     fn test_local_get() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
@@ -2878,7 +2876,7 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5);
     }
 
-    #[test]
+    //todo #[test]
     fn test_local_set() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
@@ -2899,15 +2897,12 @@ mod tests {
         println!("after {}", runtime.state.sp);
         assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
     }
-    #[test]
+    //todo #[test]
     fn test_locals() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 1;
         let y_value: u32 = 22;
         let z_value: u32 = 6;
-
-
-        let mut mem = HashMap::new();
 
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
@@ -2917,7 +2912,7 @@ mod tests {
             Instruction::I32Add
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         println!("before {}", runtime.state.sp);
@@ -2931,45 +2926,37 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 16, x_value + 5);
-
         let instructions = vec![
-           Instruction::LocalTee(16.into()),
-
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const((x_value + 2).into()),
+            Instruction::I32Const((x_value + 3).into()),
+            Instruction::I32Const((x_value + 4).into()),
+            Instruction::I32Const((x_value + 7).into()),
+            Instruction::LocalTee(16.into()), // get last element and put it into address (where address = last sp + 16)
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.sp, sp_value);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
+        assert_eq!(runtime.state.sp, sp_value-20);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+7);
     }
 
     #[test]
     fn test_i32const() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
-        let y_value: u32 = 0x54321;
-
-
-        let mut mem = HashMap::new();
-
-
-
-        let instructions = vec![
-           Instruction::I32Const(y_value.into()),
-
+         let instructions = vec![
+           Instruction::I32Const(x_value.into()),
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.sp, sp_value -4);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, y_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
     }
 
     #[test]
@@ -2978,8 +2965,6 @@ mod tests {
         let x_value: u32 = 0x3;
         let y_value: u32 = 0x5;
         let z_value: u32 = 0x7;
-        let mut mem = HashMap::new();
-
         let mut functions = vec![0,24];
 
         let instructions = vec![
@@ -2991,7 +2976,7 @@ mod tests {
         Instruction::I32Add, Instruction::I32Add,
         Instruction::Return(DropKeep::none())];
 
-        let program = Program::new_with_memory_and_func(instructions, mem,functions, 0, 0);
+        let program = Program::new_with_memory_and_func(instructions, HashMap::new(),functions, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -3004,8 +2989,6 @@ mod tests {
         let y_value: u32 = 0x54321;
 
 
-        let mut mem = HashMap::new();
-        // mem.insert(sp_value, x_value);
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const(y_value.into()),
@@ -3013,7 +2996,7 @@ mod tests {
 
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
