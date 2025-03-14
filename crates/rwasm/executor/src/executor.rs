@@ -477,7 +477,7 @@ impl<'a> Executor<'a> {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(sp - depth, shard, clk, None);
+        let arg1_record = self.mr(sp + depth, shard, clk, None);
         Some(arg1_record)
     }
 
@@ -485,7 +485,7 @@ impl<'a> Executor<'a> {
 
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(FUNFRAMEP_START - depth, shard, clk, None);
+        let arg1_record = self.mr(FUNFRAMEP_START -  depth*4, shard, clk, None);
         Some(arg1_record)
     }
 
@@ -691,6 +691,19 @@ impl<'a> Executor<'a> {
         let mut res_record: Option<MemoryWriteRecord> = None;
         let mut res_is_writtten_back_to_stack: bool = false;
         println!("ins:{:?},pc:{},sp:{},clk:{}",instruction,pc,sp,clk);
+        let mut i = 0;
+        loop{
+            let item = self.state.memory.get(self.state.sp+4*i);
+            match item{
+                Some(mr)=>{
+                    println!("pos:{},value:{}",self.state.sp+4*i,mr.value);
+                }
+                None=>break,
+            }
+            i+=1;
+        }
+       
+      
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
         }
@@ -824,16 +837,44 @@ impl<'a> Executor<'a> {
                     println!("Instruction::Return: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                     instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                     println!("Instruction::Return: arg1_record:{:?}",arg1_record);
+
+
                 } else{
                     next_depth = depth-1;
                     arg1_record = self.fetch_function_frame(next_depth);
                     arg1 = arg1_record.unwrap().value;
                     next_pc = arg1+4;
                     self.state.clk+=4;
-                    println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
-                    instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                    println!("arg1_record:{:?}",arg1_record);
+                   
+                    match drop_keep.keep(){
+                        0=>{
+                            match drop_keep.drop(){
+                                0=>(),
+                                drop=>{next_sp = sp +4*drop as u32;
+                                
+                                    println!("drop 1");}
+                            }
+                        },
+                        1=>{
+                            match drop_keep.drop(){
+                                0=>(),
+                                1=>{next_sp = sp +4 as u32;
+                                    arg2_record = self.fetch_unary_op_data();
+                                    arg2 = arg2_record.unwrap().value;
+                                    res =arg2;
+                                    res_record=Some(self.write_back_res_to_memory(res,next_sp , next_sp));
+                                },
+                                _=>{panic!("cannot drop more than one element"); }
+                        }
+                    },
+                        _=>{panic!("cannot keep more than one element");},
+                    }
                 }
+                println!("ins:{:?}, clk:{}sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
+                instruction,clk,sp,next_sp,pc,next_pc,depth,next_depth);
+                println!("arg1_record:{:?}",arg1_record);
+                println!("arg2_record:{:?}",arg2_record);
+                println!("res_record:{:?}",res_record);
 
 
             },
@@ -851,7 +892,7 @@ impl<'a> Executor<'a> {
                 next_sp =sp;
                 next_depth = depth+1;
 
-                res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-self.state.funcc_depth, next_sp));
+                res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-(self.state.funcc_depth*4), next_sp));
                 res = res_record.unwrap().value;
                 println!("CallInternal: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
@@ -2862,7 +2903,7 @@ mod tests {
 
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 20, x_value + 5);
+        mem.insert(sp_value + 20, x_value + 5);
 
         let instructions = vec![
            Instruction::LocalGet(20.into()),

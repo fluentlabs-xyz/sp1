@@ -46,10 +46,14 @@ pub (crate)  fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
     let mut instr_vec = rwasm_instr.clone();
     for x in instr_vec.iter_mut(){
         match x {
-            Instruction::BrIfEqz(_)=>{
+            Instruction::BrIfEqz(_) =>{
                 let aux_val:i32 = x.aux_value().unwrap().as_i32();
                 *x=Instruction::BrIfEqz((aux_val*4).into());
             },
+            Instruction::LocalGet(_)=>{
+                let aux_val:i32 = x.aux_value().unwrap().as_i32();
+                *x=Instruction::LocalGet(((aux_val*4-4 ) as u32).into());
+            }
             _=>()
         }
     };
@@ -135,9 +139,9 @@ use sp1_stark::SP1CoreOpts;
         println!("{:?}",program.index_by_offset);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        for event in runtime.records[0].cpu_events.iter(){
-            println!("event:{:?}",event);
-        }
+        // for event in runtime.records[0].cpu_events.iter(){
+        //     println!("event:{:?}",event);
+        // }
         
     }
 }

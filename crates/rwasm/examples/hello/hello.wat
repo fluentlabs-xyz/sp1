@@ -1,6 +1,6 @@
 (module
-      (func $main
-        i32.const 5
+     (func $main
+        i32.const 7
         call $fib
         drop
         )
@@ -23,4 +23,4 @@
     i32.add
     return
   )
-      (export "main" (func $main)))
+  (export "main" (func $main)))

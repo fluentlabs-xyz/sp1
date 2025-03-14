@@ -1,8 +1,5 @@
 (module
-   
-  
-   
-  (func $fib (export "fib") (param $n i32) (result i32)
+    (func $fib (export "fib") (param $n i32) (result i32)
     local.get $n
     i32.const 2
     i32.lt_s
