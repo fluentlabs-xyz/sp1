@@ -1019,7 +1019,7 @@ impl<'a> Executor<'a> {
                 match arg1.checked_add(address_offset.into_inner()) {
                     Some(addr) => {
                         res = value;
-                        next_sp = sp - 8;
+                        next_sp = sp + 8;
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
                         res_is_writtten_back_to_stack = false;
                     }
@@ -1047,7 +1047,7 @@ impl<'a> Executor<'a> {
                         };
                         res = value;
                         println!("full:{},memoery:{},res:{}", full_value, memory_value, res);
-                        next_sp = sp - 8;
+                        next_sp = sp + 8;
                         res_record = Some(self.write_back_res_to_memory(res, align(addr), next_sp));
                         res_is_writtten_back_to_stack = false;
                     }
@@ -1073,7 +1073,7 @@ impl<'a> Executor<'a> {
                         };
                         res = value;
 
-                        next_sp = sp - 8;
+                        next_sp = sp + 8;
                         res_record = Some(self.write_back_res_to_memory(res, align(addr), next_sp));
                         res_is_writtten_back_to_stack = false;
                     }
@@ -2808,15 +2808,18 @@ mod tests {
 
         let instructions = vec![
             Instruction::I32Const(addr.into()),
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Store8(0.into()),
             Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(0.into()),
+           
             Instruction::I32Load8U(1.into()),
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
+       
         runtime.run().unwrap();
+        println!("{},",runtime.state.memory.get(addr).unwrap().value);
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             (x_value & 0x0000_FF00) >> 8
