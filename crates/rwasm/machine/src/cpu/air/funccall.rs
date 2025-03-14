@@ -72,13 +72,13 @@ impl CpuChip {
     ){
         builder.eval_memory_access(local.shard, 
             local.clk+AB::Expr::from_canonical_u32(4), 
-            AB::Expr::from_canonical_u32(FUNFRAMEP_START)-local.depth,
+            AB::Expr::from_canonical_u32(FUNFRAMEP_START)-local.depth*AB::Expr::from_canonical_u32(4),
         &local.op_res_access, 
         local.selectors.is_callinternal);
 
         builder.eval_memory_access(local.shard, 
             local.clk,
-            AB::Expr::from_canonical_u32(FUNFRAMEP_START)-local.next_depth,
+            AB::Expr::from_canonical_u32(FUNFRAMEP_START)-local.next_depth*AB::Expr::from_canonical_u32(4),
         &local.op_arg1_access, 
         local.selectors.is_return);
         

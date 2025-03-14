@@ -389,7 +389,7 @@ impl CpuChip {
          builder
          .when(local.is_real)
          .when(local.selectors.is_i32const)
-         .assert_eq(local.next_sp - AB::Expr::from_canonical_u8(4), local.sp);
+         .assert_eq(local.next_sp + AB::Expr::from_canonical_u8(4), local.sp);
 
     }
 
@@ -452,17 +452,18 @@ impl CpuChip {
         //make sure the memory access are correct
         //always need to check arg1
         //only check arg2 if instruction is binary
-        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget-local.instruction.is_call-local.selectors.is_skipped);
-        builder.eval_memory_access(shard, clk, local.sp - AB::Expr::from_canonical_u8(4), 
-        &local.op_arg2_access, local.instruction.is_binary);
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget-local.instruction.is_call-local.selectors.is_skipped-local.instruction.is_binary);
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg2_access, local.instruction.is_binary);
+        builder.eval_memory_access(shard, clk, local.sp + AB::Expr::from_canonical_u8(4), 
+        &local.op_arg1_access, local.instruction.is_binary);
         
         builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
-         local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_binary);
+         local.sp + AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_binary);
          builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
          local.sp, &local.op_res_access, local.instruction.is_unary);
 
          builder.eval_memory_access(shard, clk + AB::Expr::from_canonical_u8(4),
-         local.sp + AB::Expr::from_canonical_u8(4), &local.op_res_access, local.selectors.is_localget+local.selectors.is_i32const);
+         local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.selectors.is_localget+local.selectors.is_i32const);
          
         
         let is_store_instruciton = self.is_store_instruction::<AB>(&local.selectors);

@@ -24,24 +24,25 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
-        let z1_value: u32 = 0x3;
+        let z1_value: u32 = 0x40;
         let z2_value: u32 = 0x37;
-        let z3_value: u32 = 0x12;
+        let z3_value: u32 = 0x1800;
         let z4_value: u32 = 0x2;
         let z5_value: u32 = 0x7;
         let z6_value: u32 = 0x21;
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z1_value);
-        mem.insert(sp_value - 12, z2_value);
-        mem.insert(sp_value - 16, z3_value);
-        mem.insert(sp_value - 20, z4_value);
-        mem.insert(sp_value - 24, z5_value);
-        mem.insert(sp_value - 28, z6_value);
+      
         println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(z6_value.into()),
+            Instruction::I32Const(z5_value.into()),
+            Instruction::I32Const(z4_value.into()),
+            Instruction::I32Const(z3_value.into()),
+            Instruction::I32Const(z2_value.into()),
+            Instruction::I32Const(z1_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(x_value.into()),
             Instruction::I32Add,
             Instruction::I32Sub,
             Instruction::I32Mul,

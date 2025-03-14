@@ -42,8 +42,8 @@ impl CpuChip {
         local: &CpuCols<AB::Var>,
        
     ){
-        builder.when(local.selectors.is_localget).assert_eq(local.next_sp, local.sp+AB::Expr::from_canonical_u8(4));
-        builder.when(local.selectors.is_localset).assert_eq(local.next_sp, local.sp-AB::Expr::from_canonical_u8(4));
+        builder.when(local.selectors.is_localget).assert_eq(local.next_sp, local.sp-AB::Expr::from_canonical_u8(4));
+        builder.when(local.selectors.is_localset).assert_eq(local.next_sp, local.sp+AB::Expr::from_canonical_u8(4));
         builder.when(local.selectors.is_localtee).assert_eq(local.next_sp, local.sp);
 
     }
@@ -57,7 +57,7 @@ impl CpuChip {
         builder.eval_memory_access(
             local.shard,
             local.clk ,
-            local.sp-local.instruction.aux_val.reduce::<AB>(),
+            local.sp+local.instruction.aux_val.reduce::<AB>(),
             &local.op_arg1_access,
             local.selectors.is_localget,
         );
@@ -66,7 +66,7 @@ impl CpuChip {
         builder.eval_memory_access(
             local.shard,
             local.clk +AB::Expr::from_canonical_u8(4),
-            local.next_sp -local.instruction.aux_val.reduce::<AB>(),
+            local.next_sp +local.instruction.aux_val.reduce::<AB>(),
             &local.op_res_access,
             local.selectors.is_localset
         );
@@ -74,7 +74,7 @@ impl CpuChip {
         builder.eval_memory_access(
             local.shard,
             local.clk +AB::Expr::from_canonical_u8(4),
-            local.sp -local.instruction.aux_val.reduce::<AB>(),
+            local.sp +local.instruction.aux_val.reduce::<AB>(),
             &local.op_res_access,
             local.selectors.is_localtee
         );
