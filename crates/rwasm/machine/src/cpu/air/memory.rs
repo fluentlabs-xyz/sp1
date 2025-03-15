@@ -147,7 +147,7 @@ impl CpuChip {
 
         builder.eval_memory_access(local.shard, 
         local.clk,
-        local.sp-AB::Expr::from_canonical_u8(4),
+        local.sp,
          &local.op_arg2_access,
          is_memory_store.clone());
 

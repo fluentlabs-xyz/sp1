@@ -177,24 +177,23 @@ mod tests {
         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
         let addr_3: u32 = 0x10008;
-        let addr_4: u32 = 0x1000C;
-        let addr_5: u32 = 0x10010;
+        
         let x_value: u32 = 0x10007;
         let x_2_value: u32 = 0x10008;
-        let x_3_value: u32 = 0x1000C;
-        let x_3_value: u32 = 0x1000C;
+       
         let x_3_value: u32 = 0x1000C;
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, addr);
-        mem.insert(sp_value - 4, x_value);
-        mem.insert(sp_value - 8, addr_2);
-        mem.insert(sp_value - 12, x_2_value);
-        mem.insert(sp_value - 16, addr_3);
-        mem.insert(sp_value - 20, x_3_value);
 
         println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(x_3_value.into()),
+            Instruction::I32Const(addr_3.into()),
+            Instruction::I32Const(x_2_value.into()),
+            Instruction::I32Const(addr_2.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+           
             Instruction::I32Store(0.into()),
             Instruction::I32Store16(0.into()),
             Instruction::I32Store8(0.into()),
