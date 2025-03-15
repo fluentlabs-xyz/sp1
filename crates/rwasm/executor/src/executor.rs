@@ -2460,7 +2460,6 @@ mod tests {
         let y_value: u32 = 0xFFFF_0008;
         let addr: u32 = 0x10000;
 
-        //discuss why Instruction::I32Store16(0.into()),Instruction::I32Store16(1.into()) are not working if they are subsequent
         let instructions =
             vec![
                 Instruction::I32Const(addr.into()),
@@ -2797,9 +2796,9 @@ mod tests {
             x_value & 0x0000_ffff
         );
     }
-    //todo #[test]
+    #[test]
     fn test_load16s() {
-        let x_value: u32 = (-5i16) as i32 as u32;
+        let x_value: u32 = (-127i16) as i32 as u32;
         let addr: u32 = 0x10000;
 
         let instructions = vec![
