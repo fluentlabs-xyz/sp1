@@ -32,7 +32,7 @@ mod tests {
         let z6_value: u32 = 0x21;
 
         let mut mem = HashMap::new();
-      
+
         println!("{:?}", mem);
         let instructions = vec![
             Instruction::I32Const(z6_value.into()),
@@ -70,19 +70,17 @@ mod tests {
         let z7_value: u32 = 0x333333;
         let z8_value: u32 = 0x444444;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z1_value);
-        mem.insert(sp_value - 12, z2_value);
-        mem.insert(sp_value - 16, z3_value);
-        mem.insert(sp_value - 20, z4_value);
-        mem.insert(sp_value - 24, z5_value);
-        mem.insert(sp_value - 28, z6_value);
-        mem.insert(sp_value - 24, z7_value);
-        mem.insert(sp_value - 28, z8_value);
-        println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z1_value.into()),
+            Instruction::I32Const(z2_value.into()),
+            Instruction::I32Const(z3_value.into()),
+            Instruction::I32Const(z4_value.into()),
+            Instruction::I32Const(z5_value.into()),
+            Instruction::I32Const(z6_value.into()),
+            Instruction::I32Const(z7_value.into()),
+            Instruction::I32Const(z8_value.into()),
             Instruction::I32Ne,
             Instruction::I32Eq,
             Instruction::I32GtS,
@@ -95,7 +93,7 @@ mod tests {
             Instruction::I32Eqz,
         ];
 
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -112,16 +110,14 @@ mod tests {
         let z4_value: u32 = 0x2;
         let z5_value: u32 = 0x1;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z1_value);
-        mem.insert(sp_value - 12, z2_value);
-        mem.insert(sp_value - 16, z3_value);
-        mem.insert(sp_value - 20, z4_value);
-        mem.insert(sp_value - 24, z5_value);
-        println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z1_value.into()),
+            Instruction::I32Const(z2_value.into()),
+            Instruction::I32Const(z3_value.into()),
+            Instruction::I32Const(z4_value.into()),
+            Instruction::I32Const(z5_value.into()),
             Instruction::I32And,
             Instruction::I32Or,
             Instruction::I32Xor,
@@ -129,7 +125,7 @@ mod tests {
             Instruction::I32ShrS,
             Instruction::I32ShrU,
         ];
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         program
     }
 
@@ -177,10 +173,10 @@ mod tests {
         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
         let addr_3: u32 = 0x10008;
-        
+
         let x_value: u32 = 0x10007;
         let x_2_value: u32 = 0x10008;
-       
+
         let x_3_value: u32 = 0x1000C;
 
         let mut mem = HashMap::new();
@@ -193,7 +189,7 @@ mod tests {
             Instruction::I32Const(addr_2.into()),
             Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
-           
+
             Instruction::I32Store(0.into()),
             Instruction::I32Store16(0.into()),
             Instruction::I32Store8(0.into()),
