@@ -20,8 +20,6 @@ mod tests {
 
     use rwasm::engine::bytecode::{BranchOffset, Instruction,DropKeep};
     fn build_elf() -> Program {
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
         let z1_value: u32 = 0x40;
@@ -31,9 +29,6 @@ mod tests {
         let z5_value: u32 = 0x7;
         let z6_value: u32 = 0x21;
 
-        let mut mem = HashMap::new();
-
-        println!("{:?}", mem);
         let instructions = vec![
             Instruction::I32Const(z6_value.into()),
             Instruction::I32Const(z5_value.into()),
@@ -50,15 +45,13 @@ mod tests {
             Instruction::I32DivU,
         ];
 
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program
     }
 
     fn build_elf2() -> Program {
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
         let z1_value: u32 = 0x3;
@@ -100,8 +93,6 @@ mod tests {
     }
 
     fn build_elf3() -> Program {
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
         let y_value: u32 = 0x2;
         let z1_value: u32 = 0x1;
@@ -130,8 +121,7 @@ mod tests {
     }
 
     fn build_elf4() -> Program {
-        let sp_value: u32 = SP_START;
-        let addr: u32 = 0x10000;
+         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
         let addr_3: u32 = 0x10008;
         let addr_4: u32 = 0x1000C;
@@ -140,18 +130,25 @@ mod tests {
         let x_2_value: u32 = 0x10008;
         let x_3_value: u32 = 0x1000C;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, addr);
-        mem.insert(sp_value - 4, addr_2);
-        mem.insert(sp_value - 8, 0x10000);
-        mem.insert(sp_value - 12, addr_3);
-        mem.insert(sp_value - 16, 0x10000);
-        mem.insert(addr, x_value);
-        mem.insert(addr_2, x_2_value);
-        mem.insert(addr_3, x_3_value);
-
-        println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(addr_2.into()),
+            Instruction::I32Const(0x10000.into()),
+            Instruction::I32Const(addr_3.into()),
+            Instruction::I32Const(0x10000.into()),
+
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(0.into()),
+
+            Instruction::I32Const(addr_2.into()),
+            Instruction::I32Const(x_2_value.into()),
+            Instruction::I32Store(0.into()),
+
+            Instruction::I32Const(addr_3.into()),
+            Instruction::I32Const(x_3_value.into()),
+            Instruction::I32Store(0.into()),
+
             Instruction::I32Load(0.into()),
             Instruction::I32Load16U(0.into()),
             Instruction::I32Add,
@@ -159,18 +156,17 @@ mod tests {
             Instruction::I32Add,
             Instruction::I32Load16S(0.into()),
             Instruction::I32Load8S(0.into()),
+            Instruction::I32Add,
+            Instruction::I32Add,
         ];
-
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program
     }
 
     fn build_elf5() -> Program {
-
-        let sp_value: u32 = SP_START;
-        let addr: u32 = 0x10000;
+         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
         let addr_3: u32 = 0x10008;
 
@@ -179,9 +175,6 @@ mod tests {
 
         let x_3_value: u32 = 0x1000C;
 
-        let mut mem = HashMap::new();
-
-        println!("{:?}", mem);
         let instructions = vec![
             Instruction::I32Const(x_3_value.into()),
             Instruction::I32Const(addr_3.into()),
@@ -195,7 +188,7 @@ mod tests {
             Instruction::I32Store8(0.into()),
         ];
 
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program

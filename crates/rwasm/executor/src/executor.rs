@@ -3064,4 +3064,5 @@ mod tests {
         //assert_eq!(runtime.state.sp, sp_value+4);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value);
     }
+
 }
