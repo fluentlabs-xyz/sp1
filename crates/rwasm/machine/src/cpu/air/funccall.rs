@@ -80,8 +80,20 @@ impl CpuChip {
             local.clk,
             AB::Expr::from_canonical_u32(FUNFRAMEP_START)-local.next_depth*AB::Expr::from_canonical_u32(4),
         &local.op_arg1_access, 
-        local.selectors.is_return);
-        
+        local.opcode_specific_columns.funccall().return_depth_is_not_zero);
+
+
+        builder.eval_memory_access(local.shard, 
+            local.clk,
+            local.sp,
+        &local.op_arg2_access, 
+        local.opcode_specific_columns.funccall().dropkeep_is_one);
+
+        builder.eval_memory_access(local.shard, 
+            local.clk+AB::Expr::from_canonical_u32(4),
+            local.sp+AB::Expr::from_canonical_u32(4),
+        &local.op_res_access, 
+        local.opcode_specific_columns.funccall().dropkeep_is_one);
     }
 
     pub (crate) fn eval_depth<AB: SP1CoreAirBuilder>(
@@ -93,7 +105,7 @@ impl CpuChip {
     ){  
         builder.when(local.selectors.is_callinternal).assert_eq(local.next_depth,local.depth+AB::Expr::one());
         builder.when(local.selectors.is_return)
-        .when_ne(local.depth,AB::Expr::zero()).assert_eq(local.next_depth,local.depth-AB::Expr::one());
+        .when(local.opcode_specific_columns.funccall().depth_is_zero).assert_eq(local.next_depth,local.depth-AB::Expr::one());
         builder.when(AB::Expr::one()-local.selectors.is_callinternal-local.selectors.is_return).assert_eq(local.depth, local.next_depth);
         builder.when(next.is_real).assert_eq(local.next_depth, next.depth);
     }

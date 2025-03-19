@@ -9,9 +9,10 @@ use rwasm::Engine;
 
 use crate::{program, Program};
 
-const FIB_PATH :&str = "../examples/fib/fibonacci.wat";
-const HELLO_PATH :&str = "../examples/hello/hello.wat";
-fn read_wat(file:&Path)->Vec<u8>{
+pub const FIB_PATH :&str = "../examples/fib/fibonacci.wat";
+pub const HELLO_PATH :&str = "../examples/hello/hello.wat";
+pub const SIMPLE_PATH :&str = "../examples/hello/simple.wat";
+pub fn read_wat(file:&Path)->Vec<u8>{
     let file_bytes = fs::read(file).unwrap();
     let wasm_binary: Vec<u8>;
     
@@ -20,7 +21,7 @@ fn read_wat(file:&Path)->Vec<u8>{
         wasm_binary
 }
 
-pub (crate) fn build_rwams_bin(wasm_bin:&Vec<u8>)->RwasmModule{
+pub  fn build_rwams_bin(wasm_bin:&Vec<u8>)->RwasmModule{
     let config = RwasmModule::default_config(None);
    
     // compile rWASM module from WASM binary
@@ -41,7 +42,7 @@ SignatureCheck
 Drop
  */
  
-pub (crate)  fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
+pub fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
     let rwasm_instr :Vec<Instruction>= rwasm_module.code_section.instr.clone();
     let mut instr_vec = rwasm_instr.clone();
     for x in instr_vec.iter_mut(){
@@ -118,10 +119,42 @@ use sp1_stark::SP1CoreOpts;
         println!("{:?}",program.index_by_offset);
     }
     #[test]
-    fn test_execute_binary(){
+    fn test_execute_fib(){
         let wasm_bin = read_wat(Path::new(HELLO_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
+        println!("func_section : {:?}",rwasm_module.func_section);
+        println!("memory_section): {:?}",rwasm_module.memory_section);
         let acc_func_section = vec![6,6+19,6+19+3];
+        for (ins_idx,item) in rwasm_module.code_section.instr.iter().enumerate(){
+            println!(" {item:?}");
+            for idx in acc_func_section.iter(){
+                if *idx-1==ins_idx as u32{
+                    println!("func start,ins_idx:{}",*idx);
+                }
+            }
+        }
+       
+        let program = convert_module_to_executable(rwasm_module);
+        for (ins_idx,item) in program.instructions.iter().enumerate(){
+            println!("ins_idx:{},item:{},",ins_idx*4+1,item);
+           
+        }
+        println!("{:?}",program.index_by_offset);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        // for event in runtime.records[0].cpu_events.iter(){
+        //     println!("event:{:?}",event);
+        // }
+        
+    }
+
+    #[test]
+    fn test_execute_simple(){
+        let wasm_bin = read_wat(Path::new(SIMPLE_PATH));
+        let rwasm_module = build_rwams_bin(&wasm_bin);
+        println!("func_section : {:?}",rwasm_module.func_section);
+        println!("memory_section): {:?}",rwasm_module.memory_section);
+        let acc_func_section = vec![6,6+6,6+6+3];
         for (ins_idx,item) in rwasm_module.code_section.instr.iter().enumerate(){
             println!(" {item:?}");
             for idx in acc_func_section.iter(){

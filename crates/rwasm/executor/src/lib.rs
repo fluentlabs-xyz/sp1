@@ -21,7 +21,7 @@
 
 mod context;
 pub mod dependencies;
-mod disassembler;
+pub mod disassembler;
 pub mod events;
 mod executor;
 mod hook;

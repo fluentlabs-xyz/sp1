@@ -1,3 +1,43 @@
+use hashbrown::HashMap;
+    use rwasm::engine::Instr;
+    use sp1_rwasm_executor::{Opcode, Program, SP_START};
+    use sp1_rwasm_machine::utils::setup_logger;
+
+    use super::*;
+    use anyhow::Result;
+    use build::try_build_plonk_bn254_artifacts_dev;
+    use p3_field::PrimeField32;
+    use serde::{Deserialize, Serialize};
+    use serial_test::serial;
+    use std::fs::File;
+    use std::io::{Read, Write};
+
+pub fn run_rwasm_prover(mut program:Program) {
+    setup_logger();
+   let prover: SP1Prover = SP1Prover::new();
+   let mut opts = SP1ProverOpts::default();
+   opts.core_opts.shard_batch_size = 1;
+   let context = SP1Context::default();
+
+   tracing::info!("setup elf");
+   let (pk, vk) = prover.setup_program(&mut program);
+
+   tracing::info!("prove core");
+   let stdin = SP1Stdin::new();
+   let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
+   tracing::info!("prove core finish");
+   match core_proof {
+       Ok(_) => {
+           tracing::info!("verify core");
+           prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
+       }
+       Err(err) => {
+           println!("{}", err);
+       }
+   }
+
+   println!("done rwasm proof");
+}
 #[cfg(test)]
 mod tests {
 
@@ -310,7 +350,7 @@ mod tests {
         let mut mem = HashMap::new();
         mem.insert(sp_value, x_value);
         mem.insert(sp_value-4, y_value);
-        let mut functions = vec![0,12+1];
+        let mut functions = vec![12+1];
 
         let instructions = vec![Instruction::CallInternal(1u32.into()),
         Instruction::Return(DropKeep::none()),
@@ -330,11 +370,16 @@ mod tests {
         mem.insert(sp_value-4, y_value);
         mem.insert(sp_value-8, z_value);
 
-        let mut functions = vec![0,8+1];
+        let mut functions = vec![21];
 
-        let instructions = vec![Instruction::CallInternal(1u32.into()),
-                               //  Instruction::Return(DropKeep::none()),
-                                Instruction::I32Add, Instruction::I32Add,
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::CallInternal(0u32.into()),
+                                Instruction::Return(DropKeep::none()),
+                                Instruction::I32Add, 
+                                Instruction::I32Add,
                                 Instruction::Return(DropKeep::none())];
 
         let program = Program::new_with_memory_and_func(instructions, mem,functions, 1, 1);
@@ -366,32 +411,8 @@ mod tests {
         program
     }
 
-    fn run_rwasm_prover(mut program:Program) {
-         setup_logger();
-        let prover: SP1Prover = SP1Prover::new();
-        let mut opts = SP1ProverOpts::default();
-        opts.core_opts.shard_batch_size = 1;
-        let context = SP1Context::default();
-
-        tracing::info!("setup elf");
-        let (pk, vk) = prover.setup_program(&mut program);
-
-        tracing::info!("prove core");
-        let stdin = SP1Stdin::new();
-        let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context);
-        tracing::info!("prove core finish");
-        match core_proof {
-            Ok(_) => {
-                tracing::info!("verify core");
-                prover.verify(&core_proof.unwrap().proof, &vk).unwrap();
-            }
-            Err(err) => {
-                println!("{}", err);
-            }
-        }
-
-        println!("done rwasm proof");
-    }
+   
+    
     #[test]
     fn test_rwasm_proof1() {
         let program = build_elf();

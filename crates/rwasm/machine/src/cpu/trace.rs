@@ -1,6 +1,6 @@
 use hashbrown::HashMap;
 use itertools::Itertools;
-use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
+use rwasm::{engine::{bytecode::Instruction, DropKeep}, rwasm::InstructionExtra};
 use sp1_primitives::consts::WORD_SIZE;
 use sp1_rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, CpuEvent, LookupId, MemoryRecordEnum},
@@ -621,6 +621,17 @@ impl CpuChip {
             let funccall= cols.opcode_specific_columns.funccall_mut();
             if event.depth ==0{
                 funccall.depth_is_zero = F::one();
+            }
+            match event.instruction{
+                Instruction::Return(drop_keep)=>{
+                    if drop_keep.drop()==1&&drop_keep.keep()==1{
+                        funccall.dropkeep_is_one= F::one();
+                    }
+                    if event.depth!=0{
+                        funccall.return_depth_is_not_zero=F::one();
+                    }
+                },
+                _=>(),
             }
         }
       

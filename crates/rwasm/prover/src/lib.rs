@@ -14,6 +14,7 @@
 pub mod build;
 pub mod components;
 mod rwasmtest;
+mod fibtest;
 pub mod shapes;
 pub mod types;
 pub mod utils;

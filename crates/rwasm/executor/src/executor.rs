@@ -829,8 +829,8 @@ impl<'a> Executor<'a> {
                 }
                 if depth ==0{
 
-                    arg1_record = self.fetch_function_frame(next_depth);
-                    arg1 = arg1_record.unwrap().value;
+                    // arg1_record = self.fetch_function_frame(next_depth);
+                    // arg1 = arg1_record.unwrap().value;
                     next_pc=0;
                     self.state.clk+=4;
                     println!("Instruction::Return: program exit 0");
@@ -844,7 +844,7 @@ impl<'a> Executor<'a> {
                     arg1_record = self.fetch_function_frame(next_depth);
                     arg1 = arg1_record.unwrap().value;
                     next_pc = arg1+4;
-                    self.state.clk+=4;
+                    
 
                     match drop_keep.keep(){
                         0=>{

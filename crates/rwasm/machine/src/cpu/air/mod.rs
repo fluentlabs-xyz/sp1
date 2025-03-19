@@ -112,8 +112,8 @@ where
         // Check that the pc is updated correctly.
         self.eval_pc(builder, local, next, is_branch_instruction.clone(),is_funccall_instruction.clone());
 
-        // // Check that the sp is updated correctly.
-        // self.eval_sp(builder, local, next);
+        // Check that the sp is updated correctly.
+        self.eval_sp(builder, local, next);
 
         // Check public values constraints.
         self.eval_public_values(builder, local, next, public_values);
@@ -375,7 +375,7 @@ impl CpuChip {
         builder
             .when(local.is_real)
             .when(local.instruction.is_binary)
-            .assert_eq(local.next_sp + AB::Expr::from_canonical_u8(4), local.sp);
+            .assert_eq(local.next_sp - AB::Expr::from_canonical_u8(4), local.sp);
 
        
 
