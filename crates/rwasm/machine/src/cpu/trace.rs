@@ -1,6 +1,7 @@
 use hashbrown::HashMap;
 use itertools::Itertools;
 use rwasm::{engine::{bytecode::Instruction, DropKeep}, rwasm::InstructionExtra};
+
 use sp1_primitives::consts::WORD_SIZE;
 use sp1_rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, CpuEvent, LookupId, MemoryRecordEnum},
@@ -48,6 +49,7 @@ impl<F: PrimeField32> MachineAir<F> for CpuChip {
                     let idx = i * chunk_size + j;
                     let cols: &mut CpuCols<F> = row.borrow_mut();
                     let mut byte_lookup_events = Vec::new();
+                    println!("event.clk:{}", &input.cpu_events[idx].clk);
                     self.event_to_row(
                         &input.cpu_events[idx],
                         &input.nonce_lookup,
@@ -126,10 +128,12 @@ impl CpuChip {
         cols.op_arg1=event.arg1.into();
         cols.op_arg2=event.arg2.into();
         cols.res=event.res.into();
+        cols.depth=F::from_canonical_u32(event.depth.into());
+        cols.next_depth=F::from_canonical_u32(event.next_depth.into());
         println!("evnet ins:{}",event.instruction);
         // Populate memory accesses for a, b, and c.
         if let Some(record) = event.arg1_record {
-            println!("arg_1 record:{:?}",record);
+            println!("ins+:{},arg_1 record+:{:?}",event.instruction,record);
             cols.op_arg1_access.populate(record, blu_events);
         }
 
@@ -622,17 +626,20 @@ impl CpuChip {
             if event.depth ==0{
                 funccall.depth_is_zero = F::one();
             }
+        
+            if event.next_depth<event.depth{
+                cols.is_real_return=F::one();
+            }
             match event.instruction{
                 Instruction::Return(drop_keep)=>{
                     if drop_keep.drop()==1&&drop_keep.keep()==1{
-                        funccall.dropkeep_is_one= F::one();
+                        cols.is_drop_keep_one= F::one();
                     }
-                    if event.depth!=0{
-                        funccall.return_depth_is_not_zero=F::one();
-                    }
+                   
                 },
                 _=>(),
             }
+            println!(" funcall:{:?},event ins: {},depth:{},next_depth:{}",funccall,event.instruction,event.depth,event.next_depth);
         }
       
     } 

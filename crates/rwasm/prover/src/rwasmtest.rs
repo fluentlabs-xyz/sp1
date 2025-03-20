@@ -366,9 +366,7 @@ mod tests {
         let y_value: u32 = 0x5;
         let z_value: u32 = 0x7;
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value-4, y_value);
-        mem.insert(sp_value-8, z_value);
+        
 
         let mut functions = vec![21];
 
@@ -382,7 +380,40 @@ mod tests {
                                 Instruction::I32Add,
                                 Instruction::Return(DropKeep::none())];
 
-        let program = Program::new_with_memory_and_func(instructions, mem,functions, 1, 1);
+        let program = Program::new_with_memory_and_func(instructions, mem,functions.clone(), 1, 1);
+        for (ins_idx,item) in program.instructions.iter().enumerate(){
+            println!("ins_idx:{},item:{:?},",ins_idx*4+1,item);
+           
+        }
+        println!("functions: {:?}",functions);
+        program
+    }
+
+    fn build_elf_call3()->Program{
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x3;
+        let y_value: u32 = 0x5;
+        let z_value: u32 = 0x7;
+        let mut mem = HashMap::new();
+        
+
+        let mut functions = vec![13,17,25];
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::CallInternal(1u32.into()),
+                                Instruction::Return(DropKeep::none()),
+                                Instruction::Return(DropKeep::none()),
+                                Instruction::CallInternal(0u32.into()),
+                                Instruction::Return(DropKeep::none()),
+                               ];
+
+        let program = Program::new_with_memory_and_func(instructions, mem,functions.clone(), 1, 1);
+        for (ins_idx,item) in program.instructions.iter().enumerate(){
+            println!("ins_idx:{},item:{:?},",ins_idx*4+1,item);
+           
+        }
+        println!("functions: {:?}",functions);
         program
     }
 
@@ -468,6 +499,12 @@ mod tests {
     #[test]
     fn test_rwasm_call_internal_and_return2 (){
         let program = build_elf_call2();
+        run_rwasm_prover(program);
+    }
+
+    #[test]
+    fn test_rwasm_call_internal_and_return3 (){
+        let program = build_elf_call3();
         run_rwasm_prover(program);
     }
 

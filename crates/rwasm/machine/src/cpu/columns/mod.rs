@@ -112,6 +112,11 @@ pub struct CpuCols<T: Copy> {
     /// This is true for all instructions that are not jumps, branches, and halt.  Those
     /// instructions may move the program counter to a non sequential instruction.
     pub is_sequential_instr: T,
+    /// if the return is real, we will read the func frame from funccall area 
+    /// that is when depth is larger than 1
+    pub is_real_return: T,
+    /// when drop keep is non zero, we should do memory check TODO: remove this when dropkeep is removed.
+    pub is_drop_keep_one:T,
 }
 
 impl<T: Copy> CpuCols<T> {

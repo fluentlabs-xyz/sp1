@@ -453,7 +453,10 @@ impl CpuChip {
         //always need to check arg1
         //only check arg2 if instruction is binary
         let is_store_instruciton = self.is_store_instruction::<AB>(&local.selectors);
-        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access, local.is_real-local.instruction.is_nullary-local.selectors.is_localget-local.instruction.is_call-local.selectors.is_skipped-local.instruction.is_binary-is_store_instruciton.clone());
+        builder.eval_memory_access(shard, clk, local.sp, &local.op_arg1_access,
+             local.is_real-local.instruction.is_nullary-local.selectors.is_localget
+             -local.instruction.is_call-local.selectors.is_skipped-local.instruction.is_binary
+             -is_store_instruciton.clone());
         builder.eval_memory_access(shard, clk, local.sp, &local.op_arg2_access, local.instruction.is_binary);
         builder.eval_memory_access(shard, clk, local.sp + AB::Expr::from_canonical_u8(4), 
         &local.op_arg1_access, local.instruction.is_binary+is_store_instruciton.clone());

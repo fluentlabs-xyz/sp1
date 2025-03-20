@@ -486,6 +486,11 @@ impl<'a> Executor<'a> {
         let clk = self.state.clk;
         let shard = self.shard();
         let arg1_record = self.mr(FUNFRAMEP_START -  depth*4, shard, clk, None);
+        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
+        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
+        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
+        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
+        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
         Some(arg1_record)
     }
 
@@ -833,21 +838,17 @@ impl<'a> Executor<'a> {
                     // arg1 = arg1_record.unwrap().value;
                     next_pc=0;
                     self.state.clk+=4;
-                    println!("Instruction::Return: program exit 0");
-                    println!("Instruction::Return: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
-                    instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                    println!("Instruction::Return: arg1_record:{:?}",arg1_record);
-
 
                 } else{
                     next_depth = depth-1;
                     arg1_record = self.fetch_function_frame(next_depth);
+                    println!("funcframe addr: {}",FUNFRAMEP_START -  next_depth*4);
                     arg1 = arg1_record.unwrap().value;
                     next_pc = arg1+4;
                     
 
                     match drop_keep.keep(){
-                        0=>{
+                        0=>{  self.state.clk += 4;
                             match drop_keep.drop(){
                                 0=>(),
                                 drop=>{next_sp = sp +4*drop as u32;
@@ -891,8 +892,8 @@ impl<'a> Executor<'a> {
 
                 next_sp =sp;
                 next_depth = depth+1;
-
-                res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-(self.state.funcc_depth*4), next_sp));
+                println!("funccall from:{}",FUNFRAMEP_START-(depth*4));
+                res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-(depth*4), next_sp));
                 res = res_record.unwrap().value;
                 println!("CallInternal: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                 instruction,sp,next_sp,pc,next_pc,depth,next_depth);
