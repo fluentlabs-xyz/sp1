@@ -60,8 +60,6 @@ mod tests {
 
     use rwasm::engine::bytecode::{BranchOffset, Instruction,DropKeep};
     fn build_elf() -> Program {
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
         let z1_value: u32 = 0x40;
@@ -71,9 +69,6 @@ mod tests {
         let z5_value: u32 = 0x7;
         let z6_value: u32 = 0x21;
 
-        let mut mem = HashMap::new();
-      
-        println!("{:?}", mem);
         let instructions = vec![
             Instruction::I32Const(z6_value.into()),
             Instruction::I32Const(z5_value.into()),
@@ -90,15 +85,13 @@ mod tests {
             Instruction::I32DivU,
         ];
 
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program
     }
 
     fn build_elf2() -> Program {
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
         let z1_value: u32 = 0x3;
@@ -110,19 +103,18 @@ mod tests {
         let z7_value: u32 = 0x333333;
         let z8_value: u32 = 0x444444;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z1_value);
-        mem.insert(sp_value - 12, z2_value);
-        mem.insert(sp_value - 16, z3_value);
-        mem.insert(sp_value - 20, z4_value);
-        mem.insert(sp_value - 24, z5_value);
-        mem.insert(sp_value - 28, z6_value);
-        mem.insert(sp_value - 24, z7_value);
-        mem.insert(sp_value - 28, z8_value);
-        println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z1_value.into()),
+            Instruction::I32Const(z2_value.into()),
+            Instruction::I32Const(z3_value.into()),
+            Instruction::I32Const(z4_value.into()),
+            Instruction::I32Const(z5_value.into()),
+            Instruction::I32Const(z6_value.into()),
+            Instruction::I32Const(z7_value.into()),
+            Instruction::I32Const(z8_value.into()),
+
             Instruction::I32Ne,
             Instruction::I32Eq,
             Instruction::I32GtS,
@@ -135,15 +127,13 @@ mod tests {
             Instruction::I32Eqz,
         ];
 
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program
     }
 
     fn build_elf3() -> Program {
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
         let y_value: u32 = 0x2;
         let z1_value: u32 = 0x1;
@@ -152,16 +142,14 @@ mod tests {
         let z4_value: u32 = 0x2;
         let z5_value: u32 = 0x1;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        mem.insert(sp_value - 8, z1_value);
-        mem.insert(sp_value - 12, z2_value);
-        mem.insert(sp_value - 16, z3_value);
-        mem.insert(sp_value - 20, z4_value);
-        mem.insert(sp_value - 24, z5_value);
-        println!("{:?}", mem);
         let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z1_value.into()),
+            Instruction::I32Const(z2_value.into()),
+            Instruction::I32Const(z3_value.into()),
+            Instruction::I32Const(z4_value.into()),
+            Instruction::I32Const(z5_value.into()),
             Instruction::I32And,
             Instruction::I32Or,
             Instruction::I32Xor,
@@ -169,7 +157,7 @@ mod tests {
             Instruction::I32ShrS,
             Instruction::I32ShrU,
         ];
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         program
     }
 
@@ -212,20 +200,15 @@ mod tests {
     }
 
     fn build_elf5() -> Program {
-
-        let sp_value: u32 = SP_START;
         let addr: u32 = 0x10000;
         let addr_2: u32 = 0x10004;
         let addr_3: u32 = 0x10008;
-        
+
         let x_value: u32 = 0x10007;
         let x_2_value: u32 = 0x10008;
-       
+
         let x_3_value: u32 = 0x1000C;
 
-        let mut mem = HashMap::new();
-
-        println!("{:?}", mem);
         let instructions = vec![
             Instruction::I32Const(x_3_value.into()),
             Instruction::I32Const(addr_3.into()),
@@ -233,38 +216,34 @@ mod tests {
             Instruction::I32Const(addr_2.into()),
             Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
-           
+
             Instruction::I32Store(0.into()),
             Instruction::I32Store16(0.into()),
             Instruction::I32Store8(0.into()),
         ];
 
-        let program = Program::new_with_memory(instructions,mem,1,1);
+        let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
         //  memory_image: BTreeMap::new() };
 
         program
     }
     fn build_elf_br() ->Program {
-        let sp_value: u32 = SP_START;
-        let x_value: u32 = 0xFFFF_0005;
-
-        let mut mem = HashMap::new();
-
-        mem.insert(sp_value, x_value);
-
-        let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
         let addr: u32 = 0x10000;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, x_value);
-        mem.insert(sp_value - 8, x_value);
-        mem.insert(sp_value - 12, x_value);
 
         let instructions =
-            vec![Instruction::Br(4.into()), Instruction::I32Shl, Instruction::I32Shl,Instruction::I32Shl];
+            vec![
+                Instruction::I32Const(x_value.into()),
+                Instruction::I32Const(x_value.into()),
+                Instruction::I32Const(x_value.into()),
+                Instruction::I32Const(x_value.into()),
 
-            let program = Program::new_with_memory(instructions,mem,1,1);
+                Instruction::Br(4.into()),
+                Instruction::I32Shl,
+                Instruction::I32Shl,
+                Instruction::I32Shl];
+
+            let program = Program::new_with_memory(instructions,HashMap::new(),1,1);
        program
     }
 
@@ -366,7 +345,7 @@ mod tests {
         let y_value: u32 = 0x5;
         let z_value: u32 = 0x7;
         let mut mem = HashMap::new();
-        
+
 
         let mut functions = vec![21];
 
@@ -376,14 +355,14 @@ mod tests {
             Instruction::I32Const(z_value.into()),
             Instruction::CallInternal(0u32.into()),
                                 Instruction::Return(DropKeep::none()),
-                                Instruction::I32Add, 
+                                Instruction::I32Add,
                                 Instruction::I32Add,
                                 Instruction::Return(DropKeep::none())];
 
         let program = Program::new_with_memory_and_func(instructions, mem,functions.clone(), 1, 1);
         for (ins_idx,item) in program.instructions.iter().enumerate(){
             println!("ins_idx:{},item:{:?},",ins_idx*4+1,item);
-           
+
         }
         println!("functions: {:?}",functions);
         program
@@ -395,7 +374,7 @@ mod tests {
         let y_value: u32 = 0x5;
         let z_value: u32 = 0x7;
         let mut mem = HashMap::new();
-        
+
 
         let mut functions = vec![13,17,25];
 
@@ -411,7 +390,7 @@ mod tests {
         let program = Program::new_with_memory_and_func(instructions, mem,functions.clone(), 1, 1);
         for (ins_idx,item) in program.instructions.iter().enumerate(){
             println!("ins_idx:{},item:{:?},",ins_idx*4+1,item);
-           
+
         }
         println!("functions: {:?}",functions);
         program
@@ -442,8 +421,8 @@ mod tests {
         program
     }
 
-   
-    
+
+
     #[test]
     fn test_rwasm_proof1() {
         let program = build_elf();
