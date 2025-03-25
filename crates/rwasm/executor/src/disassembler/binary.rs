@@ -26,11 +26,6 @@ pub  fn build_rwams_bin(wasm_bin:&Vec<u8>)->RwasmModule{
    
     // compile rWASM module from WASM binary
     let rwasm_module = RwasmModule::compile_with_config(&wasm_bin, &config).unwrap();
-    // lets encode/decode rWASM module
-    let mut encoded_rwasm_module = Vec::new();
-    rwasm_module
-        .write_binary_to_vec(&mut encoded_rwasm_module)
-        .unwrap();
    rwasm_module
     
 }
@@ -59,20 +54,29 @@ pub fn convert_module_to_executable(rwasm_module:RwasmModule)->Program{
         }
     };
    
-    let mut func_indices =  rwasm_module.func_section.clone();
-   
-    let mut acc = 0;
-    for x in &mut func_indices {
-        acc += (*x *4) as i32;
-        *x = (acc+1) as u32;
-    }
-    // let mut head = vec![0u32];
-    // head.append(&mut func_indices);
-    // func_indices =head;
+    let func_indices=build_index_offset(&rwasm_module.func_section);
    let program=Program::new_with_memory_and_func(instr_vec,HashMap::new(),func_indices, 1, 1);
    program
 } 
 
+
+
+#[must_use] 
+pub fn build_index_offset (func_length_vec:&Vec<u32>)->Vec<u32>{
+    let mut acc =0;
+    let mut res = vec![];
+    for item in func_length_vec{
+        acc+=item;
+        res.push(acc );
+    }
+    res
+}
+
+pub fn build_program_(wat:&Vec<u8>)->Program{
+    let rwasm_module = build_rwams_bin(&wat);
+    let program = convert_module_to_executable(rwasm_module);
+    program
+}
 mod test{
     use std::{fs, path::Path};
 
@@ -87,8 +91,8 @@ use sp1_stark::SP1CoreOpts;
     use super::*;
     #[test]
     fn test_rwasm_fib(){
-        println!("{:?}",std::env::current_dir());
-        let wasm_bin = read_wat(Path::new(FIB_PATH));
+        
+        let wasm_bin = read_wat(Path::new(HELLO_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
         
         println!("{:?}",rwasm_module);
@@ -98,20 +102,6 @@ use sp1_stark::SP1CoreOpts;
         println!("{:?}",std::env::current_dir());
         let wasm_bin = read_wat(Path::new(HELLO_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
-        println!("code section:\n");
-        let acc_func_section = vec![6,6+19,6+19+3];
-        for (ins_idx,item) in rwasm_module.code_section.instr.iter().enumerate(){
-            println!(" {item:?}");
-            for idx in acc_func_section.iter(){
-                if *idx-1==ins_idx as u32{
-                    println!("func start,ins_idx:{}",*idx);
-                }
-            }
-        }
-       
-        println!("func_section : {:?}",rwasm_module.func_section);
-        println!("memory_section): {:?}",rwasm_module.memory_section);
-        println!("{:?}",rwasm_module.element_section);
         let program = convert_module_to_executable(rwasm_module);
         for item in program.instructions.iter(){
             println!("{:?}",item);
@@ -122,24 +112,15 @@ use sp1_stark::SP1CoreOpts;
     fn test_execute_fib(){
         let wasm_bin = read_wat(Path::new(HELLO_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
-        println!("func_section : {:?}",rwasm_module.func_section);
-        println!("memory_section): {:?}",rwasm_module.memory_section);
-        let acc_func_section = vec![6,6+19,6+19+3];
-        for (ins_idx,item) in rwasm_module.code_section.instr.iter().enumerate(){
-            println!(" {item:?}");
-            for idx in acc_func_section.iter(){
-                if *idx-1==ins_idx as u32{
-                    println!("func start,ins_idx:{}",*idx);
-                }
-            }
-        }
+        let acc_func_section= build_index_offset(&rwasm_module.func_section);
+        
+       
+        
+      
        
         let program = convert_module_to_executable(rwasm_module);
-        for (ins_idx,item) in program.instructions.iter().enumerate(){
-            println!("ins_idx:{},item:{},",ins_idx*4+1,item);
-           
-        }
-        println!("{:?}",program.index_by_offset);
+       
+       
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         // for event in runtime.records[0].cpu_events.iter(){

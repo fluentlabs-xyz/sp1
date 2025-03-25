@@ -486,11 +486,6 @@ impl<'a> Executor<'a> {
         let clk = self.state.clk;
         let shard = self.shard();
         let arg1_record = self.mr(FUNFRAMEP_START -  depth*4, shard, clk, None);
-        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
-        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
-        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
-        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
-        println!("fetched functioned frame at {} ",FUNFRAMEP_START -  depth*4);
         Some(arg1_record)
     }
 
