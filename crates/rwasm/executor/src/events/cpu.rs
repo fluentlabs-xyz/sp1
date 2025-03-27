@@ -9,8 +9,6 @@ use super::memory::MemoryRecordEnum;
 /// shard, opcode, operands, and other relevant information.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct CpuEvent {
-    /// The shard number.
-    pub shard: u32, //TODO is it needed?
     /// The clock cycle.
     pub clk: u32,
     /// The program counter.

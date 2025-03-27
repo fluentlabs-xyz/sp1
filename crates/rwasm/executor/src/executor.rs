@@ -971,7 +971,6 @@ impl<'a> Executor<'a> {
         exit_code: u32,
     ) {
         let cpu_event = CpuEvent {
-            shard,
             clk,
             pc: self.state.pc,
             next_pc,

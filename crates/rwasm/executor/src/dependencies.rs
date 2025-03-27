@@ -386,7 +386,8 @@ pub fn emit_cpu_dependencies(executor: &mut Executor, event: &CpuEvent) {
         match event.instruction {
             Instruction::CallInternal(func)=>{
                 let func_call_evnet = FunccallEvent{
-                    shard: event.shard,
+                    //shard: event.shard,
+                    shard:0,//TODO do we need it?
                     detph: event.depth,
                     return_pc: event.pc,
                     kind: crate::events::FunccallEventKind::FunctinonCallInternal,
