@@ -995,8 +995,7 @@ impl<'a> Executor<'a> {
 
     /// Emit an ALU event.
     fn emit_alu(&mut self, clk: u32, opcode: Opcode, a: u32, b: u32, c: u32) {
-        //TODO check shard and clk
-        let event = AluEvent { shard: self.shard(), clk, pc: self.state.pc, opcode, a, b, c };
+        let event = AluEvent { pc: self.state.pc, opcode, a, b, c };
         match opcode {
             Opcode::ADD => {
                 self.record.add_events.push(event);
@@ -1031,8 +1030,6 @@ impl<'a> Executor<'a> {
     #[inline]
     fn emit_branch_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32, next_pc: u32) {
         let event = BranchEvent {
-            shard: self.state.current_shard,
-            clk: self.state.clk,
             pc: self.state.pc,
             next_pc,
             opcode,
@@ -1048,8 +1045,6 @@ impl<'a> Executor<'a> {
     #[inline]
     fn emit_jump_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32, next_pc: u32) {
         let event = JumpEvent::new(
-            self.state.current_shard,
-            self.state.clk,
             self.state.pc,
             next_pc,
             opcode,
@@ -1065,8 +1060,6 @@ impl<'a> Executor<'a> {
     #[inline]
     fn emit_auipc_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32) {
         let event = AUIPCEvent::new(
-            self.state.current_shard,
-            self.state.clk,
             self.state.pc,
             opcode,
             a,
