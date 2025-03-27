@@ -1,9 +1,8 @@
 //! Programs that can be executed by the SP1 zkVM.
 
-use std::{fs::File, io::Read, str::FromStr};
+use std::str::FromStr;
 
 use crate::{
-    disassembler::{transpile, Elf},
     instruction::Instruction,
     RiscvAirId,
 };
@@ -36,6 +35,8 @@ pub struct Program {
     pub pc_base: u32,
     /// The initial memory image, useful for global constants.
     pub memory_image: HashMap<u32, u32>,
+    /// The function map
+    pub index_by_offset: Vec<u32>,
     /// The shape for the preprocessed tables.
     pub preprocessed_shape: Option<Shape<RiscvAirId>>,
 }
@@ -46,13 +47,38 @@ impl Program {
     pub fn new(instructions: Vec<Instruction>, pc_start: u32, pc_base: u32) -> Self {
         Self {
             instructions,
+            index_by_offset:vec![0],
             pc_start,
             pc_base,
             memory_image: HashMap::new(),
             preprocessed_shape: None,
         }
     }
-
+    /// Create a new [Program] with memory image .
+    #[must_use]
+    pub fn new_with_memory(instructions: Vec<Instruction>, memory_image:HashMap<u32,u32>,pc_start: u32, pc_base: u32) -> Self {
+        Self {
+            instructions,
+            index_by_offset:vec![0],
+            pc_start,
+            pc_base,
+            memory_image,
+            preprocessed_shape: None,
+        }
+    }
+    /// Create a new [Program] with memory image and function table.
+    #[must_use]
+    pub fn new_with_memory_and_func(instructions: Vec<Instruction>, memory_image:HashMap<u32,u32>,functions:Vec<u32>,pc_start: u32, pc_base: u32) -> Self {
+        Self {
+            instructions,
+            index_by_offset:functions,
+            pc_start,
+            pc_base,
+            memory_image,
+            preprocessed_shape: None,
+        }
+    }
+    //TODO: fix this
     /// Disassemble a RV32IM ELF to a program that be executed by the VM.
     ///
     /// # Errors
@@ -60,17 +86,18 @@ impl Program {
     /// This function may return an error if the ELF is not valid.
     pub fn from(input: &[u8]) -> eyre::Result<Self> {
         // Decode the bytes as an ELF.
-        let elf = Elf::decode(input)?;
+        //let elf = Elf::decode(input)?;
 
         // Transpile the RV32IM instructions.
-        let instructions = transpile(&elf.instructions);
+        //let instructions = transpile(&elf.instructions);
 
         // Return the program.
         Ok(Program {
-            instructions,
-            pc_start: elf.pc_start,
-            pc_base: elf.pc_base,
-            memory_image: elf.memory_image,
+            instructions:vec![],
+            index_by_offset: vec![0],
+            pc_start: 0,
+            pc_base: 0,
+            memory_image: HashMap::new(),
             preprocessed_shape: None,
         })
     }
@@ -80,11 +107,11 @@ impl Program {
     /// # Errors
     ///
     /// This function will return an error if the file cannot be opened or read.
-    pub fn from_elf(path: &str) -> eyre::Result<Self> {
-        let mut elf_code = Vec::new();
-        File::open(path)?.read_to_end(&mut elf_code)?;
-        Program::from(&elf_code)
-    }
+    // pub fn from_elf(path: &str) -> eyre::Result<Self> {
+    //     let mut elf_code = Vec::new();
+    //     File::open(path)?.read_to_end(&mut elf_code)?;
+    //     Program::from(&elf_code)
+    // }
 
     /// Custom logic for padding the trace to a power of two according to the proof shape.
     pub fn fixed_log2_rows<F: Field, A: MachineAir<F>>(&self, air: &A) -> Option<usize> {

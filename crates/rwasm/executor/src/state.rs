@@ -15,6 +15,10 @@ use crate::{
     syscalls::SyscallCode,
     ExecutorMode, SP1ReduceProof,
 };
+// The starting address of satck
+pub const SP_START: u32 = 0x2000+4;
+// The starting address of function frame
+pub const FUNFRAMEP_START :u32 = SP_START +4096;
 
 /// Holds data describing the current state of a program's execution.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -38,6 +42,12 @@ pub struct ExecutionState {
     /// executed in this shard.
     pub clk: u32,
 
+    /// stack pointer start from 10000x, must be aligned i.e. sp%4 = 0
+    ///
+    pub sp: u32,
+    /// function call frame  depth
+    ///
+    pub funcc_depth:u32,
     /// Uninitialized memory addresses that have a specific value they should be initialized with.
     /// `SyscallHintRead` uses this to write hint data into uninitialized memory.
     pub uninitialized_memory: Memory<u32>,
@@ -72,7 +82,9 @@ impl ExecutionState {
             // Start at shard 1 since shard 0 is reserved for memory initialization.
             current_shard: 1,
             clk: 0,
+            sp: SP_START,
             pc: pc_start,
+            funcc_depth: 0,
             memory: Memory::new_preallocated(),
             uninitialized_memory: Memory::new_preallocated(),
             input_stream: VecDeque::new(),
@@ -97,8 +109,6 @@ pub struct ForkState {
     pub pc: u32,
     /// All memory changes since the fork point.
     pub memory_diff: HashMap<u32, Option<MemoryRecord>>,
-    /// The original memory access record at the fork point.
-    pub op_record: MemoryAccessRecord,
     /// The original execution record at the fork point.
     pub record: ExecutionRecord,
     /// Whether `emit_events` was enabled at the fork point.

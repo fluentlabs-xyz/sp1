@@ -18,7 +18,6 @@ impl Syscall for EnterUnconstrainedSyscall {
             pc: ctx.rt.state.pc,
             memory_diff: HashMap::default(),
             record: std::mem::take(&mut ctx.rt.record),
-            op_record: std::mem::take(&mut ctx.rt.memory_accesses),
             executor_mode: ctx.rt.executor_mode,
         });
         ctx.rt.executor_mode = ExecutorMode::Simple;
@@ -47,7 +46,6 @@ impl Syscall for ExitUnconstrainedSyscall {
                 }
             }
             *ctx.rt.record = std::mem::take(&mut ctx.rt.unconstrained_state.record);
-            ctx.rt.memory_accesses = std::mem::take(&mut ctx.rt.unconstrained_state.op_record);
             ctx.rt.executor_mode = ctx.rt.unconstrained_state.executor_mode;
             ctx.rt.unconstrained = false;
         }

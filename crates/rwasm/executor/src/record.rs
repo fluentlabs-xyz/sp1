@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     events::{
         AUIPCEvent, AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, CpuEvent,
-        GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent,
+        FunccallEvent, GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent,
         MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent,
     },
     program::Program,
@@ -63,6 +63,8 @@ pub struct ExecutionRecord {
     pub global_memory_initialize_events: Vec<MemoryInitializeFinalizeEvent>,
     /// A trace of the global memory finalize events.
     pub global_memory_finalize_events: Vec<MemoryInitializeFinalizeEvent>,
+    /// A trace of the function call events.
+    pub function_call_events: Vec<FunccallEvent>,
     /// A trace of all the shard's local memory events.
     pub cpu_local_memory_access: Vec<MemoryLocalEvent>,
     /// A trace of all the syscall events.

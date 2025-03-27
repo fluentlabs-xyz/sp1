@@ -10,6 +10,10 @@ use super::MemoryRecordEnum;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
 pub struct AluEvent {
+    /// The shard.
+    pub shard: u32,
+    /// The clock cycle.
+    pub clk: u32, //TODO check it is needed?
     /// The program counter.
     pub pc: u32,
     /// The opcode.
@@ -20,15 +24,13 @@ pub struct AluEvent {
     pub b: u32,
     /// The third operand value.
     pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
 }
 
 impl AluEvent {
     /// Create a new [`AluEvent`].
     #[must_use]
-    pub fn new(pc: u32, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, opcode, a, b, c, op_a_0 }
+    pub fn new(shard: u32,clk: u32,pc: u32, opcode: Opcode, a: u32, b: u32, c: u32) -> Self {
+        Self { shard,clk,pc, opcode, a, b, c }
     }
 }
 
@@ -52,8 +54,6 @@ pub struct MemInstrEvent {
     pub b: u32,
     /// The third operand value.
     pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
     /// The memory access record for memory operations.
     pub mem_access: MemoryRecordEnum,
 }
@@ -70,10 +70,9 @@ impl MemInstrEvent {
         a: u32,
         b: u32,
         c: u32,
-        op_a_0: bool,
         mem_access: MemoryRecordEnum,
     ) -> Self {
-        Self { shard, clk, pc, opcode, a, b, c, op_a_0, mem_access }
+        Self { shard, clk, pc, opcode, a, b, c, mem_access }
     }
 }
 
@@ -83,6 +82,10 @@ impl MemInstrEvent {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
 pub struct BranchEvent {
+    /// The shard number.
+    pub shard: u32,
+    /// The clock cycle.
+    pub clk: u32,
     /// The program counter.
     pub pc: u32,
     /// The next program counter.
@@ -95,8 +98,6 @@ pub struct BranchEvent {
     pub b: u32,
     /// The third operand value.
     pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
 }
 
 impl BranchEvent {
@@ -104,15 +105,16 @@ impl BranchEvent {
     #[must_use]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        shard: u32,
+        clk: u32,
         pc: u32,
         next_pc: u32,
         opcode: Opcode,
         a: u32,
         b: u32,
         c: u32,
-        op_a_0: bool,
     ) -> Self {
-        Self { pc, next_pc, opcode, a, b, c, op_a_0 }
+        Self { shard,clk,pc, next_pc, opcode, a, b, c }
     }
 }
 
@@ -122,6 +124,10 @@ impl BranchEvent {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
 pub struct JumpEvent {
+    /// The shard number.
+    pub shard: u32,
+    /// The clock cycle.
+    pub clk: u32,
     /// The program counter.
     pub pc: u32,
     /// The next program counter.
@@ -134,8 +140,6 @@ pub struct JumpEvent {
     pub b: u32,
     /// The third operand value.
     pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
 }
 
 impl JumpEvent {
@@ -143,15 +147,16 @@ impl JumpEvent {
     #[must_use]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
+        shard: u32,
+        clk: u32,
         pc: u32,
         next_pc: u32,
         opcode: Opcode,
         a: u32,
         b: u32,
         c: u32,
-        op_a_0: bool,
     ) -> Self {
-        Self { pc, next_pc, opcode, a, b, c, op_a_0 }
+        Self { shard,clk,pc, next_pc, opcode, a, b, c }
     }
 }
 /// AUIPC Instruction Event.
@@ -160,6 +165,10 @@ impl JumpEvent {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
 pub struct AUIPCEvent {
+    /// The shard number.
+    pub shard: u32,
+    /// The clock cycle.
+    pub clk: u32,
     /// The program counter.
     pub pc: u32,
     /// The opcode.
@@ -170,14 +179,12 @@ pub struct AUIPCEvent {
     pub b: u32,
     /// The third operand value.
     pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
 }
 
 impl AUIPCEvent {
     /// Create a new [`AUIPCEvent`].
     #[must_use]
-    pub fn new(pc: u32, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, opcode, a, b, c, op_a_0 }
+    pub fn new(shard: u32,clk: u32,pc: u32, opcode: Opcode, a: u32, b: u32, c: u32) -> Self {
+        Self { shard,clk, pc, opcode, a, b, c }
     }
 }

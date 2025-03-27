@@ -1,9 +1,9 @@
-use std::{hash::Hash, str::FromStr};
+use std::hash::Hash;
 
 use hashbrown::HashMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::{Opcode, RiscvAirId};
+use crate::Opcode;
 
 /// Serialize a `HashMap<u32, V>` as a `Vec<(u32, V)>`.
 pub fn serialize_hashmap_as_vec<K: Eq + Hash + Serialize, V: Serialize, S: Serializer>(
@@ -52,10 +52,4 @@ pub const fn get_msb(a: u32) -> u8 {
     ((a >> 31) & 1) as u8
 }
 
-/// Load the cost of each air from the predefined JSON.
-#[must_use]
-pub fn rv32im_costs() -> HashMap<RiscvAirId, usize> {
-    let costs: HashMap<String, usize> =
-        serde_json::from_str(include_str!("./artifacts/rv32im_costs.json")).unwrap();
-    costs.into_iter().map(|(k, v)| (RiscvAirId::from_str(&k).unwrap(), v)).collect()
-}
+
