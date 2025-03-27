@@ -1163,38 +1163,38 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
         proof
     }
 
-    // /// Wrap the STARK proven over a SNARK-friendly field into a Groth16 proof.
-    // #[instrument(name = "wrap_groth16_bn254", level = "info", skip_all)]
-    // pub fn wrap_groth16_bn254(
-    //     &self,
-    //     proof: SP1ReduceProof<OuterSC>,
-    //     build_dir: &Path,
-    // ) -> Groth16Bn254Proof {
-    //     let input = SP1CompressWitnessValues {
-    //         vks_and_proofs: vec![(proof.vk.clone(), proof.proof.clone())],
-    //         is_complete: true,
-    //     };
-    //     let vkey_hash = sp1_vkey_digest_bn254(&proof);
-    //     let committed_values_digest = sp1_committed_values_digest_bn254(&proof);
+    /// Wrap the STARK proven over a SNARK-friendly field into a Groth16 proof.
+    #[instrument(name = "wrap_groth16_bn254", level = "info", skip_all)]
+    pub fn wrap_groth16_bn254(
+        &self,
+        proof: SP1ReduceProof<OuterSC>,
+        build_dir: &Path,
+    ) -> Groth16Bn254Proof {
+        let input = SP1CompressWitnessValues {
+            vks_and_proofs: vec![(proof.vk.clone(), proof.proof.clone())],
+            is_complete: true,
+        };
+        let vkey_hash = sp1_vkey_digest_bn254(&proof);
+        let committed_values_digest = sp1_committed_values_digest_bn254(&proof);
 
-    //     let mut witness = Witness::default();
-    //     input.write(&mut witness);
-    //     witness.write_committed_values_digest(committed_values_digest);
-    //     witness.write_vkey_hash(vkey_hash);
+        let mut witness = Witness::default();
+        input.write(&mut witness);
+        witness.write_committed_values_digest(committed_values_digest);
+        witness.write_vkey_hash(vkey_hash);
 
-    //     let prover = Groth16Bn254Prover::new();
-    //     let proof = prover.prove(witness, build_dir.to_path_buf());
+        let prover = Groth16Bn254Prover::new();
+        let proof = prover.prove(witness, build_dir.to_path_buf());
 
-    //     // Verify the proof.
-    //     prover.verify(
-    //         &proof,
-    //         &vkey_hash.as_canonical_biguint(),
-    //         &committed_values_digest.as_canonical_biguint(),
-    //         build_dir,
-    //     );
+        // Verify the proof.
+        prover.verify(
+            &proof,
+            &vkey_hash.as_canonical_biguint(),
+            &committed_values_digest.as_canonical_biguint(),
+            build_dir,
+        );
 
-    //     proof
-    // }
+        proof
+    }
 
     /// Accumulate deferred proofs into a single digest.
     pub fn hash_deferred_proofs(
@@ -1268,40 +1268,42 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
     }
 }
 
-// #[cfg(any(test, feature = "export-tests"))]
-// pub mod tests {
+#[cfg(test)]
+pub mod tests {
 
-//     use std::{
-//         collections::BTreeSet,
-//         fs::File,
-//         io::{Read, Write},
-//     };
+    use std::{
+        collections::BTreeSet,
+        fs::File,
+        io::{Read, Write},
+    };
 
-//     use super::*;
+    use super::*;
 
-//     use crate::build::try_build_plonk_bn254_artifacts_dev;
-//     use anyhow::Result;
-//     use build::{build_constraints_and_witness, try_build_groth16_bn254_artifacts_dev};
-//     use p3_field::PrimeField32;
+    use crate::build::try_build_plonk_bn254_artifacts_dev;
+    use anyhow::Result;
+    use build::{build_constraints_and_witness, try_build_groth16_bn254_artifacts_dev};
+    use p3_field::PrimeField32;
 
-//     use shapes::SP1ProofShape;
-//     use sp1_recursion_core::air::RecursionPublicValues;
+    use shapes::SP1ProofShape;
+    use sp1_core_machine::program;
+    use sp1_recursion_core::air::RecursionPublicValues;
 
-//     #[cfg(test)]
-//     use serial_test::serial;
-//     #[cfg(test)]
-//     use sp1_core_machine::utils::setup_logger;
-//     use utils::sp1_vkey_digest_babybear;
+    #[cfg(test)]
+    use serial_test::serial;
+    #[cfg(test)]
+    use sp1_core_machine::utils::setup_logger;
+    use sp1_rwasm_executor::disassembler::binary::{convert_module_to_executable, HELLO_PATH};
+    use utils::sp1_vkey_digest_babybear;
 
-//     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-//     pub enum Test {
-//         Core,
-//         Compress,
-//         Shrink,
-//         Wrap,
-//         CircuitTest,
-//         All,
-//     }
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum Test {
+        Core,
+        Compress,
+        Shrink,
+        Wrap,
+        CircuitTest,
+        All,
+    }
 
 // pub fn test_e2e_prover<C: SP1ProverComponents>(
 //     prover: &SP1Prover<C>,
@@ -1323,143 +1325,143 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
 //     run_e2e_prover_with_options(prover, elf, stdin, opts, test_kind, false)
 // }
 
-// pub fn run_e2e_prover_with_options<C: SP1ProverComponents>(
-//     prover: &SP1Prover<C>,
-//     elf: &[u8],
-//     stdin: SP1Stdin,
-//     opts: SP1ProverOpts,
-//     test_kind: Test,
-//     verify: bool,
-// ) -> Result<()> {
-//     tracing::info!("initializing prover");
-//     let context = SP1Context::default();
+pub fn run_e2e_prover_with_options<C: SP1ProverComponents>(
+    prover: &SP1Prover<C>,
+    mut program:Program,
+    stdin: SP1Stdin,
+    opts: SP1ProverOpts,
+    test_kind: Test,
+    verify: bool,
+) -> Result<()> {
+    tracing::info!("initializing prover");
+    let context = SP1Context::default();
 
-//     tracing::info!("setup elf");
-//     let (pk, vk) = prover.setup(elf);
+    tracing::info!("setup elf");
+    let (pk, vk) = prover.setup_program(&mut program);
 
-//     tracing::info!("prove core");
-//     let core_proof = prover.prove_core(&pk, &stdin, opts, context)?;
-//     let public_values = core_proof.public_values.clone();
+    tracing::info!("prove core");
+    let core_proof = prover.prove_core_program(&pk,program,  &stdin,opts, context)?;
+    let public_values = core_proof.public_values.clone();
 
-//     if env::var("COLLECT_SHAPES").is_ok() {
-//         let mut shapes = BTreeSet::new();
-//         for proof in core_proof.proof.0.iter() {
-//             let shape = SP1ProofShape::Recursion(proof.shape());
-//             tracing::info!("shape: {:?}", shape);
-//             shapes.insert(shape);
-//         }
+    if env::var("COLLECT_SHAPES").is_ok() {
+        let mut shapes = BTreeSet::new();
+        for proof in core_proof.proof.0.iter() {
+            let shape = SP1ProofShape::Recursion(proof.shape());
+            tracing::info!("shape: {:?}", shape);
+            shapes.insert(shape);
+        }
 
-//         let mut file = File::create("../shapes.bin").unwrap();
-//         bincode::serialize_into(&mut file, &shapes).unwrap();
-//     }
+        let mut file = File::create("../shapes.bin").unwrap();
+        bincode::serialize_into(&mut file, &shapes).unwrap();
+    }
 
-//     if verify {
-//         tracing::info!("verify core");
-//         prover.verify(&core_proof.proof, &vk)?;
-//     }
+    if verify {
+        tracing::info!("verify core");
+        prover.verify(&core_proof.proof, &vk)?;
+    }
 
-//     if test_kind == Test::Core {
-//         return Ok(());
-//     }
+    if test_kind == Test::Core {
+        return Ok(());
+    }
 
-//     tracing::info!("compress");
-//     let compress_span = tracing::debug_span!("compress").entered();
-//     let compressed_proof = prover.compress(&vk, core_proof, vec![], opts)?;
-//     compress_span.exit();
+    tracing::info!("compress");
+    let compress_span = tracing::debug_span!("compress").entered();
+    let compressed_proof = prover.compress(&vk, core_proof, vec![], opts)?;
+    compress_span.exit();
 
-//     if verify {
-//         tracing::info!("verify compressed");
-//         prover.verify_compressed(&compressed_proof, &vk)?;
-//     }
+    if verify {
+        tracing::info!("verify compressed");
+        prover.verify_compressed(&compressed_proof, &vk)?;
+    }
 
-//     if test_kind == Test::Compress {
-//         return Ok(());
-//     }
+    if test_kind == Test::Compress {
+        return Ok(());
+    }
 
-//     tracing::info!("shrink");
-//     let shrink_proof = prover.shrink(compressed_proof, opts)?;
+    tracing::info!("shrink");
+    let shrink_proof = prover.shrink(compressed_proof, opts)?;
 
-//     if verify {
-//         tracing::info!("verify shrink");
-//         prover.verify_shrink(&shrink_proof, &vk)?;
-//     }
+    if verify {
+        tracing::info!("verify shrink");
+        prover.verify_shrink(&shrink_proof, &vk)?;
+    }
 
-//     if test_kind == Test::Shrink {
-//         return Ok(());
-//     }
+    if test_kind == Test::Shrink {
+        return Ok(());
+    }
 
-//     tracing::info!("wrap bn254");
-//     let wrapped_bn254_proof = prover.wrap_bn254(shrink_proof, opts)?;
-//     let bytes = bincode::serialize(&wrapped_bn254_proof).unwrap();
+    tracing::info!("wrap bn254");
+    let wrapped_bn254_proof = prover.wrap_bn254(shrink_proof, opts)?;
+    let bytes = bincode::serialize(&wrapped_bn254_proof).unwrap();
 
-//     // Save the proof.
-//     let mut file = File::create("proof-with-pis.bin").unwrap();
-//     file.write_all(bytes.as_slice()).unwrap();
+    // Save the proof.
+    let mut file = File::create("proof-with-pis.bin").unwrap();
+    file.write_all(bytes.as_slice()).unwrap();
 
-//     // Load the proof.
-//     let mut file = File::open("proof-with-pis.bin").unwrap();
-//     let mut bytes = Vec::new();
-//     file.read_to_end(&mut bytes).unwrap();
+    // Load the proof.
+    let mut file = File::open("proof-with-pis.bin").unwrap();
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).unwrap();
 
-//     let wrapped_bn254_proof = bincode::deserialize(&bytes).unwrap();
+    let wrapped_bn254_proof = bincode::deserialize(&bytes).unwrap();
 
-//     if verify {
-//         tracing::info!("verify wrap bn254");
-//         prover.verify_wrap_bn254(&wrapped_bn254_proof, &vk).unwrap();
-//     }
+    if verify {
+        tracing::info!("verify wrap bn254");
+        prover.verify_wrap_bn254(&wrapped_bn254_proof, &vk).unwrap();
+    }
 
-//     if test_kind == Test::Wrap {
-//         return Ok(());
-//     }
+    if test_kind == Test::Wrap {
+        return Ok(());
+    }
 
-//     tracing::info!("checking vkey hash babybear");
-//     let vk_digest_babybear = sp1_vkey_digest_babybear(&wrapped_bn254_proof);
-//     assert_eq!(vk_digest_babybear, vk.hash_babybear());
+    tracing::info!("checking vkey hash babybear");
+    let vk_digest_babybear = sp1_vkey_digest_babybear(&wrapped_bn254_proof);
+    assert_eq!(vk_digest_babybear, vk.hash_babybear());
 
-//     tracing::info!("checking vkey hash bn254");
-//     let vk_digest_bn254 = sp1_vkey_digest_bn254(&wrapped_bn254_proof);
-//     assert_eq!(vk_digest_bn254, vk.hash_bn254());
+    tracing::info!("checking vkey hash bn254");
+    let vk_digest_bn254 = sp1_vkey_digest_bn254(&wrapped_bn254_proof);
+    assert_eq!(vk_digest_bn254, vk.hash_bn254());
 
-//     tracing::info!("Test the outer Plonk circuit");
-//     let (constraints, witness) =
-//         build_constraints_and_witness(&wrapped_bn254_proof.vk, &wrapped_bn254_proof.proof);
-//     PlonkBn254Prover::test(constraints, witness);
-//     tracing::info!("Circuit test succeeded");
+    tracing::info!("Test the outer Plonk circuit");
+    let (constraints, witness) =
+        build_constraints_and_witness(&wrapped_bn254_proof.vk, &wrapped_bn254_proof.proof);
+    PlonkBn254Prover::test(constraints, witness);
+    tracing::info!("Circuit test succeeded");
 
-//     if test_kind == Test::CircuitTest {
-//         return Ok(());
-//     }
+    if test_kind == Test::CircuitTest {
+        return Ok(());
+    }
 
-//     tracing::info!("generate plonk bn254 proof");
-//     let artifacts_dir = try_build_plonk_bn254_artifacts_dev(
-//         &wrapped_bn254_proof.vk,
-//         &wrapped_bn254_proof.proof,
-//     );
-//     let plonk_bn254_proof =
-//         prover.wrap_plonk_bn254(wrapped_bn254_proof.clone(), &artifacts_dir);
-//     println!("{:?}", plonk_bn254_proof);
+    tracing::info!("generate plonk bn254 proof");
+    let artifacts_dir = try_build_plonk_bn254_artifacts_dev(
+        &wrapped_bn254_proof.vk,
+        &wrapped_bn254_proof.proof,
+    );
+    let plonk_bn254_proof =
+        prover.wrap_plonk_bn254(wrapped_bn254_proof.clone(), &artifacts_dir);
+    println!("{:?}", plonk_bn254_proof);
 
-//     prover.verify_plonk_bn254(&plonk_bn254_proof, &vk, &public_values, &artifacts_dir)?;
+    prover.verify_plonk_bn254(&plonk_bn254_proof, &vk, &public_values, &artifacts_dir)?;
 
-//     tracing::info!("generate groth16 bn254 proof");
-//     let artifacts_dir = try_build_groth16_bn254_artifacts_dev(
-//         &wrapped_bn254_proof.vk,
-//         &wrapped_bn254_proof.proof,
-//     );
-//     let groth16_bn254_proof = prover.wrap_groth16_bn254(wrapped_bn254_proof, &artifacts_dir);
-//     println!("{:?}", groth16_bn254_proof);
+    tracing::info!("generate groth16 bn254 proof");
+    let artifacts_dir = try_build_groth16_bn254_artifacts_dev(
+        &wrapped_bn254_proof.vk,
+        &wrapped_bn254_proof.proof,
+    );
+    let groth16_bn254_proof = prover.wrap_groth16_bn254(wrapped_bn254_proof, &artifacts_dir);
+    println!("{:?}", groth16_bn254_proof);
 
-//     if verify {
-//         prover.verify_groth16_bn254(
-//             &groth16_bn254_proof,
-//             &vk,
-//             &public_values,
-//             &artifacts_dir,
-//         )?;
-//     }
+    if verify {
+        prover.verify_groth16_bn254(
+            &groth16_bn254_proof,
+            &vk,
+            &public_values,
+            &artifacts_dir,
+        )?;
+    }
 
-//     Ok(())
-// }
+    Ok(())
+}
 
 // pub fn test_e2e_with_deferred_proofs_prover<C: SP1ProverComponents>(
 //     opts: SP1ProverOpts,
@@ -1557,7 +1559,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
 
 //  Tests an end-to-end workflow of proving a program across the entire proof generation
 //  pipeline.
-//
+
 //  Add `FRI_QUERIES`=1 to your environment for faster execution. Should only take a few minutes
 //  on a Mac M2. Note: This test always re-builds the plonk bn254 artifacts, so setting SP1_DEV
 //  is not needed.
@@ -1580,7 +1582,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
 //     )
 // }
 
-//Tests an end-to-end workflow of proving a program across the entire proof generation
+// Tests an end-to-end workflow of proving a program across the entire proof generation
 // pipeline in addition to verifying deferred proofs.
 // #[test]
 // #[serial]
@@ -1589,3 +1591,18 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
 //     test_e2e_with_deferred_proofs_prover::<DefaultProverComponents>(SP1ProverOpts::default())
 // }
 // }
+
+use sp1_rwasm_executor::disassembler::binary::read_wat;
+use sp1_rwasm_executor::disassembler::binary::build_rwams_bin;
+#[test]
+#[serial]
+fn test_fibonacci() -> Result<()> {
+    setup_logger();
+    let opts = SP1ProverOpts::default();
+    let prover =  SP1Prover::<DefaultProverComponents>::new();
+    let wasm_bin = read_wat(Path::new(HELLO_PATH));
+    let rwasm_module = build_rwams_bin(&wasm_bin);
+    let mut program = convert_module_to_executable(rwasm_module);
+    run_e2e_prover_with_options::<DefaultProverComponents>(&prover,program, SP1Stdin::default(), opts, Test::All, true)
+}
+}
