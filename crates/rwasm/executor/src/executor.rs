@@ -15,6 +15,7 @@ use sp1_stark::{air::PublicValues, SP1CoreOpts};
 use strum::IntoEnumIterator;
 use thiserror::Error;
 
+use crate::dependencies::emit_cpu_dependencies;
 use crate::{
     context::{IoOptions, SP1Context},
     dependencies::{
@@ -24,9 +25,8 @@ use crate::{
     estimate_riscv_lde_size,
     events::{
         AUIPCEvent, AluEvent, BranchEvent, CpuEvent, JumpEvent, MemInstrEvent,
-        MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord,
-        MemoryRecord, MemoryRecordEnum, MemoryWriteRecord, SyscallEvent,
-        NUM_LOCAL_MEMORY_ENTRIES_PER_ROW_EXEC,
+        MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord, MemoryRecord,
+        MemoryRecordEnum, MemoryWriteRecord, SyscallEvent, NUM_LOCAL_MEMORY_ENTRIES_PER_ROW_EXEC,
     },
     hook::{HookEnv, HookRegistry},
     memory::{Entry, Memory},
@@ -36,14 +36,15 @@ use crate::{
     state::{ExecutionState, ForkState},
     subproof::SubproofVerifier,
     syscalls::{default_syscall_map, Syscall, SyscallCode, SyscallContext},
-    CoreAirId, MaximalShapes, Opcode, Program, Register, RiscvAirId,FUNFRAMEP_START, SP_START,
+    CoreAirId, MaximalShapes, Opcode, Program, Register, RiscvAirId, FUNFRAMEP_START, SP_START,
 };
 use bincode::de;
 use num::Signed;
 use rwasm::{
-    arena::ArenaIndex, engine::{bytecode::Instruction, code_map::CodeMap}, rwasm::InstructionExtra
+    arena::ArenaIndex,
+    engine::{bytecode::Instruction, code_map::CodeMap},
+    rwasm::InstructionExtra,
 };
-use crate::dependencies::emit_cpu_dependencies;
 
 /// The default increment for the program counter.  Is used for all instructions except
 /// for branches and jumps.
@@ -98,7 +99,6 @@ pub struct Executor<'a> {
 
     /// The mode the executor is running in.
     pub executor_mode: ExecutorMode,
-
 
     /// Whether the runtime is in constrained mode or not.
     ///
@@ -391,7 +391,7 @@ impl<'a> Executor<'a> {
         runtime
     }
 
-        /// Get the current value of a word.
+    /// Get the current value of a word.
     ///
     /// Assumes `addr` is a valid memory address, not a register.
     #[must_use]
@@ -450,7 +450,7 @@ impl<'a> Executor<'a> {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(sp+4, shard, clk, None);
+        let arg1_record = self.mr(sp + 4, shard, clk, None);
         let arg2_record = self.mr(sp, shard, clk, None);
         (Some(arg1_record), Some(arg2_record))
     }
@@ -463,10 +463,9 @@ impl<'a> Executor<'a> {
         Some(arg1_record)
     }
     fn fetch_function_frame(&mut self, depth: u32) -> Option<MemoryReadRecord> {
-
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(FUNFRAMEP_START -  depth*4, shard, clk, None);
+        let arg1_record = self.mr(FUNFRAMEP_START - depth * 4, shard, clk, None);
         Some(arg1_record)
     }
     fn write_back_res_to_stack(&mut self, res: u32, next_sp: u32) -> MemoryWriteRecord {
@@ -902,7 +901,7 @@ impl<'a> Executor<'a> {
         sp: u32,
         next_sp: u32,
         depth: u32,
-        next_depth:u32,
+        next_depth: u32,
         instruction: &Instruction,
         syscall_code: SyscallCode,
         arg1: u32,
@@ -913,7 +912,23 @@ impl<'a> Executor<'a> {
         res_record: Option<MemoryWriteRecord>,
         exit_code: u32,
     ) {
-        self.emit_cpu(shard,clk, next_pc,sp,next_sp, depth, next_depth, *instruction, arg1, arg2, res, arg1_record, arg2_record, res_record, exit_code);
+        self.emit_cpu(
+            shard,
+            clk,
+            next_pc,
+            sp,
+            next_sp,
+            depth,
+            next_depth,
+            *instruction,
+            arg1,
+            arg2,
+            res,
+            arg1_record,
+            arg2_record,
+            res_record,
+            exit_code,
+        );
 
         /*if instruction.is_alu_instruction() {
             self.emit_alu_event(instruction.opcode, a, b, c, op_a_0);
@@ -945,7 +960,7 @@ impl<'a> Executor<'a> {
         sp: u32,
         next_sp: u32,
         depth: u32,
-        next_depth:u32,
+        next_depth: u32,
         instruction: Instruction,
         arg1: u32,
         arg2: u32,
@@ -981,7 +996,7 @@ impl<'a> Executor<'a> {
     /// Emit an ALU event.
     fn emit_alu(&mut self, clk: u32, opcode: Opcode, a: u32, b: u32, c: u32) {
         //TODO check shard and clk
-        let event = AluEvent {shard: self.shard(),clk, pc: self.state.pc, opcode, a, b, c };
+        let event = AluEvent { shard: self.shard(), clk, pc: self.state.pc, opcode, a, b, c };
         match opcode {
             Opcode::ADD => {
                 self.record.add_events.push(event);
@@ -1012,55 +1027,36 @@ impl<'a> Executor<'a> {
         }
     }
 
-    /// Emit a memory instruction event.
-    #[inline]
-    fn emit_mem_instr_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) {
-        // let event = MemInstrEvent {
-        //     shard: self.shard(),
-        //     clk: self.state.clk,
-        //     pc: self.state.pc,
-        //     opcode,
-        //     a,
-        //     b,
-        //     c,
-        //     op_a_0,
-        //     mem_access: self.memory_accesses.memory.expect("Must have memory access"),
-        // };
-        //
-        // self.record.memory_instr_events.push(event);
-        // emit_memory_dependencies(
-        //     self,
-        //     event,
-        //     self.memory_accesses.memory.expect("Must have memory access").current_record(),
-        // );
-    }
-
     /// Emit a branch event.
     #[inline]
-    fn emit_branch_event(
-        &mut self,
-        opcode: Opcode,
-        a: u32,
-        b: u32,
-        c: u32,
-        next_pc: u32,
-    ) {
-        let event = BranchEvent {shard: self.state.current_shard, clk:self.state.clk, pc: self.state.pc, next_pc, opcode, a, b, c };
+    fn emit_branch_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32, next_pc: u32) {
+        let event = BranchEvent {
+            shard: self.state.current_shard,
+            clk: self.state.clk,
+            pc: self.state.pc,
+            next_pc,
+            opcode,
+            a,
+            b,
+            c,
+        };
         self.record.branch_events.push(event);
         emit_branch_dependencies(self, event);
     }
 
     /// Emit a jump event.
     #[inline]
-    fn emit_jump_event(
-        &mut self,
-        opcode: Opcode,
-        a: u32,
-        b: u32,
-        c: u32,
-        next_pc: u32,
-    ) {
-        let event = JumpEvent::new(self.state.current_shard, self.state.clk,self.state.pc, next_pc, opcode, a, b, c);
+    fn emit_jump_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32, next_pc: u32) {
+        let event = JumpEvent::new(
+            self.state.current_shard,
+            self.state.clk,
+            self.state.pc,
+            next_pc,
+            opcode,
+            a,
+            b,
+            c,
+        );
         self.record.jump_events.push(event);
         emit_jump_dependencies(self, event);
     }
@@ -1068,7 +1064,15 @@ impl<'a> Executor<'a> {
     /// Emit an AUIPC event.
     #[inline]
     fn emit_auipc_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32) {
-        let event = AUIPCEvent::new(self.state.current_shard, self.state.clk,self.state.pc, opcode, a, b, c);
+        let event = AUIPCEvent::new(
+            self.state.current_shard,
+            self.state.clk,
+            self.state.pc,
+            opcode,
+            a,
+            b,
+            c,
+        );
         self.record.auipc_events.push(event);
         emit_auipc_dependency(self, event);
     }
@@ -1155,18 +1159,18 @@ impl<'a> Executor<'a> {
         let mut arg1_record: Option<MemoryReadRecord> = None;
         let mut arg2_record: Option<MemoryReadRecord> = None;
         let mut res_record: Option<MemoryWriteRecord> = None;
-        let mut res_is_writtten_back_to_stack: bool = false;
-        println!("ins:{:?},pc:{},sp:{},clk:{}",instruction,pc,sp,clk);
+        let mut res_is_written_back_to_stack: bool = false;
+        println!("ins:{:?},pc:{},sp:{},clk:{}", instruction, pc, sp, clk);
         let mut i = 0;
-        loop{
-            let item = self.state.memory.get(self.state.sp+4*i);
-            match item{
-                Some(mr)=>{
-                    println!("pos:{},value:{}",self.state.sp+4*i,mr.value);
+        loop {
+            let item = self.state.memory.get(self.state.sp + 4 * i);
+            match item {
+                Some(mr) => {
+                    println!("pos:{},value:{}", self.state.sp + 4 * i, mr.value);
                 }
-                None=>break,
+                None => break,
             }
-            i+=1;
+            i += 1;
         }
 
         if self.executor_mode == ExecutorMode::Trace {
@@ -1204,8 +1208,8 @@ impl<'a> Executor<'a> {
                 arg2 = depth;
                 res = arg1;
                 next_sp = sp - 4;
-                res_is_writtten_back_to_stack = true;
-                println!("locaget: sp:{},clk:{} arg1:{}",sp,clk,arg1);
+                res_is_written_back_to_stack = true;
+                println!("locaget: sp:{},clk:{} arg1:{}", sp, clk, arg1);
             }
             Instruction::LocalSet(local_depth) => {
                 let depth = local_depth.to_usize() as u32;
@@ -1216,7 +1220,7 @@ impl<'a> Executor<'a> {
                 next_sp = sp + 4;
                 let addr = next_sp + depth;
                 res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
-                res_is_writtten_back_to_stack = false;
+                res_is_written_back_to_stack = false;
             }
             Instruction::LocalTee(local_depth) => {
                 let depth = local_depth.to_usize() as u32;
@@ -1227,11 +1231,11 @@ impl<'a> Executor<'a> {
                 next_sp = sp;
                 let addr = sp + depth;
                 res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
-                res_is_writtten_back_to_stack = false;
+                res_is_written_back_to_stack = false;
             }
             Instruction::Br(branch_offset) => {
                 next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
-                res_is_writtten_back_to_stack = false;
+                res_is_written_back_to_stack = false;
                 println!("pc:{}, next_pc:{}", pc, next_pc);
             }
             Instruction::BrIfEqz(branch_offset) => {
@@ -1271,89 +1275,92 @@ impl<'a> Executor<'a> {
             Instruction::BrTable(branch_table_targets) => todo!(),
             Instruction::Unreachable => todo!(),
             Instruction::ConsumeFuel(block_fuel) => {
-                self.state.clk+=4;//TODO: implement this
-            },
+                self.state.clk += 4; //TODO: implement this
+            }
             Instruction::Return(drop_keep) => {
-                if depth >4096{
-                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, FUNFRAMEP_START-depth));
+                if depth > 4096 {
+                    return Err(ExecutionError::InvalidMemoryAccess(
+                        Opcode::LW,
+                        FUNFRAMEP_START - depth,
+                    ));
                 }
-                if depth ==0{
-
+                if depth == 0 {
                     // arg1_record = self.fetch_function_frame(next_depth);
                     // arg1 = arg1_record.unwrap().value;
-                    next_pc=0;
-                    self.state.clk+=4;
-
-                } else{
-                    next_depth = depth-1;
+                    next_pc = 0;
+                    self.state.clk += 4;
+                } else {
+                    next_depth = depth - 1;
                     arg1_record = self.fetch_function_frame(next_depth);
-                    println!("funcframe addr: {}",FUNFRAMEP_START -  next_depth*4);
+                    println!("funcframe addr: {}", FUNFRAMEP_START - next_depth * 4);
                     arg1 = arg1_record.unwrap().value;
-                    next_pc = arg1+4;
+                    next_pc = arg1 + 4;
 
+                    match drop_keep.keep() {
+                        0 => {
+                            self.state.clk += 4;
+                            match drop_keep.drop() {
+                                0 => (),
+                                drop => {
+                                    next_sp = sp + 4 * drop as u32;
 
-                    match drop_keep.keep(){
-                        0=>{  self.state.clk += 4;
-                            match drop_keep.drop(){
-                                0=>(),
-                                drop=>{next_sp = sp +4*drop as u32;
-
-                                    println!("drop 1");}
+                                    println!("drop 1");
+                                }
+                            }
+                        }
+                        1 => match drop_keep.drop() {
+                            0 => (),
+                            1 => {
+                                next_sp = sp + 4 as u32;
+                                arg2_record = self.fetch_unary_op_data();
+                                arg2 = arg2_record.unwrap().value;
+                                res = arg2;
+                                res_record =
+                                    Some(self.write_back_res_to_memory(res, next_sp, next_sp));
+                            }
+                            _ => {
+                                panic!("cannot drop more than one element");
                             }
                         },
-                        1=>{
-                            match drop_keep.drop(){
-                                0=>(),
-                                1=>{next_sp = sp +4 as u32;
-                                    arg2_record = self.fetch_unary_op_data();
-                                    arg2 = arg2_record.unwrap().value;
-                                    res =arg2;
-                                    res_record=Some(self.write_back_res_to_memory(res,next_sp , next_sp));
-                                },
-                                _=>{panic!("cannot drop more than one element"); }
-                            }
-                        },
-                        _=>{panic!("cannot keep more than one element");},
+                        _ => {
+                            panic!("cannot keep more than one element");
+                        }
                     }
                 }
-                println!("ins:{:?}, clk:{}sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
-                         instruction,clk,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("arg1_record:{:?}",arg1_record);
-                println!("arg2_record:{:?}",arg2_record);
-                println!("res_record:{:?}",res_record);
-
-
-            },
+                println!(
+                    "ins:{:?}, clk:{}sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
+                    instruction, clk, sp, next_sp, pc, next_pc, depth, next_depth
+                );
+                println!("arg1_record:{:?}", arg1_record);
+                println!("arg2_record:{:?}", arg2_record);
+                println!("res_record:{:?}", res_record);
+            }
             Instruction::ReturnIfNez(drop_keep) => todo!(),
-            Instruction::ReturnCallInternal(compiled_func) => {
-
-            },
+            Instruction::ReturnCallInternal(compiled_func) => {}
             Instruction::ReturnCall(func_idx) => todo!(),
             Instruction::ReturnCallIndirect(signature_idx) => todo!(),
             Instruction::CallInternal(compiled_func) => {
+                let offset = self.program.index_by_offset.get(compiled_func.to_u32() as usize);
+                next_pc = *(offset.unwrap());
 
-                let offset = self.program.index_by_offset.get(compiled_func.to_u32()as usize);
-                next_pc= *(offset.unwrap());
-
-                next_sp =sp;
-                next_depth = depth+1;
-                println!("funccall from:{}",FUNFRAMEP_START-(depth*4));
-                res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-(depth*4), next_sp));
+                next_sp = sp;
+                next_depth = depth + 1;
+                println!("funccall from:{}", FUNFRAMEP_START - (depth * 4));
+                res_record =
+                    Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START - (depth * 4), next_sp));
                 res = res_record.unwrap().value;
                 println!("CallInternal: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                          instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("CallInternal: res_record:{:?}",res_record);
-
-
-            },
+                println!("CallInternal: res_record:{:?}", res_record);
+            }
             Instruction::Call(func_idx) => todo!(),
             Instruction::CallIndirect(signature_idx) => todo!(),
             Instruction::SignatureCheck(signature_idx) => {
-                self.state.clk+=4;//TODO: implement this
-            },
+                self.state.clk += 4; //TODO: implement this
+            }
             Instruction::Drop => {
-                self.state.clk+=4;//TODO: implement this.
-            },
+                self.state.clk += 4; //TODO: implement this.
+            }
             Instruction::Select => todo!(),
             Instruction::GlobalGet(global_idx) => todo!(),
             Instruction::GlobalSet(global_idx) => todo!(),
@@ -1366,7 +1373,7 @@ impl<'a> Executor<'a> {
                             return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
                         }
                         res = read_records.1.value;
-                        res_is_writtten_back_to_stack = true;
+                        res_is_written_back_to_stack = true;
                         arg1 = read_records.0.value;
                         arg2 = read_records.1.value;
                         arg1_record = Some(read_records.0);
@@ -1384,7 +1391,7 @@ impl<'a> Executor<'a> {
                         let addr = read_records.2;
                         let value = (read_records.1.value).to_le_bytes()[(addr % 4) as usize];
                         res = ((value as i8) as i32) as u32;
-                        res_is_writtten_back_to_stack = true;
+                        res_is_written_back_to_stack = true;
                         arg1 = read_records.0.value;
                         arg2 = read_records.1.value;
                         arg1_record = Some(read_records.0);
@@ -1400,7 +1407,7 @@ impl<'a> Executor<'a> {
                         let addr = read_records.2;
                         let value = (read_records.1.value).to_le_bytes()[(addr % 4) as usize];
                         res = value as u32;
-                        res_is_writtten_back_to_stack = true;
+                        res_is_written_back_to_stack = true;
                         arg1 = read_records.0.value;
                         arg2 = read_records.1.value;
                         arg1_record = Some(read_records.0);
@@ -1424,7 +1431,7 @@ impl<'a> Executor<'a> {
                             _ => unreachable!(),
                         };
                         res = ((value as i16) as i32) as u32;
-                        res_is_writtten_back_to_stack = true;
+                        res_is_written_back_to_stack = true;
                         arg1 = read_records.0.value;
                         arg2 = read_records.1.value;
                         arg1_record = Some(read_records.0);
@@ -1448,7 +1455,7 @@ impl<'a> Executor<'a> {
                             _ => unreachable!(),
                         };
                         res = (value as u16) as u32;
-                        res_is_writtten_back_to_stack = true;
+                        res_is_written_back_to_stack = true;
                         arg1 = read_records.0.value;
                         arg2 = read_records.1.value;
                         arg1_record = Some(read_records.0);
@@ -1467,7 +1474,7 @@ impl<'a> Executor<'a> {
                         res = value;
                         next_sp = sp + 8;
                         res_record = Some(self.write_back_res_to_memory(res, addr, next_sp));
-                        res_is_writtten_back_to_stack = false;
+                        res_is_written_back_to_stack = false;
                     }
                     None => {
                         return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, 0u32));
@@ -1495,7 +1502,7 @@ impl<'a> Executor<'a> {
                         println!("full:{},memoery:{},res:{}", full_value, memory_value, res);
                         next_sp = sp + 8;
                         res_record = Some(self.write_back_res_to_memory(res, align(addr), next_sp));
-                        res_is_writtten_back_to_stack = false;
+                        res_is_written_back_to_stack = false;
                     }
                     None => {
                         return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));
@@ -1521,7 +1528,7 @@ impl<'a> Executor<'a> {
 
                         next_sp = sp + 8;
                         res_record = Some(self.write_back_res_to_memory(res, align(addr), next_sp));
-                        res_is_writtten_back_to_stack = false;
+                        res_is_written_back_to_stack = false;
                     }
                     None => {
                         return Err(ExecutionError::InvalidMemoryAccess(Opcode::SB, 0u32));
@@ -1547,19 +1554,18 @@ impl<'a> Executor<'a> {
                 let res_i32: i32 = (*untyped_value).into();
                 res = res_i32 as u32;
                 next_sp = sp - 4;
-                res_is_writtten_back_to_stack = true;
-
-            },
+                res_is_written_back_to_stack = true;
+            }
             Instruction::ConstRef(const_ref) => todo!(),
             Instruction::I32Eqz => {
                 // do not emit alu and event are generated in emit_cpu_dep
                 arg1_record = self.fetch_unary_op_data();
                 arg1 = arg1_record.unwrap().value;
                 res = (arg1 == 0) as u32;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 println!(
                     "arg1_record:{:?} res: {} has_res: {}",
-                    arg1_record, res, res_is_writtten_back_to_stack
+                    arg1_record, res, res_is_written_back_to_stack
                 );
             }
             Instruction::I32Eq => {
@@ -1569,7 +1575,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 == arg2) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32Ne => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1578,7 +1584,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 != arg2) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32LtS => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1588,7 +1594,7 @@ impl<'a> Executor<'a> {
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed < arg2_singed) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLT, res, arg1, arg2);
             }
             Instruction::I32LtU => {
@@ -1597,7 +1603,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 < arg2) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SLTU, res, arg1, arg2);
             }
             Instruction::I32GtS => {
@@ -1609,7 +1615,7 @@ impl<'a> Executor<'a> {
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed > arg2_singed) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32GtU => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1618,7 +1624,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 > arg2) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32LeS => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1629,7 +1635,7 @@ impl<'a> Executor<'a> {
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed <= arg2_singed) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32LeU => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1638,7 +1644,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 <= arg2) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32GeS => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1649,7 +1655,7 @@ impl<'a> Executor<'a> {
                 let arg2_singed = arg2 as i32;
                 res = (arg1_signed >= arg2_singed) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32GeU => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1658,7 +1664,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 >= arg2) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
             }
             Instruction::I32Clz => todo!(),
             Instruction::I32Ctz => todo!(),
@@ -1669,11 +1675,11 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_add(arg2);
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2);
                 println!("Instruction::I32Add: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                          instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("Instruction::I32Add: res_record:{:?}",res_record);
+                println!("Instruction::I32Add: res_record:{:?}", res_record);
             }
             Instruction::I32Sub => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1681,7 +1687,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_sub(arg2);
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SUB, res, arg1, arg2);
             }
             Instruction::I32Mul => {
@@ -1690,7 +1696,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_mul(arg2);
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::MUL, res, arg1, arg2);
             }
             Instruction::I32DivS => {
@@ -1701,7 +1707,7 @@ impl<'a> Executor<'a> {
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_div(signed_arg2)) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::DIV, res, arg1, arg2);
             }
             Instruction::I32DivU => {
@@ -1710,7 +1716,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_div(arg2);
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::DIVU, res, arg1, arg2);
             }
             Instruction::I32RemS => {
@@ -1721,7 +1727,7 @@ impl<'a> Executor<'a> {
                 let signed_arg2 = arg2 as i32;
                 res = (signed_arg1.wrapping_rem(signed_arg2)) as u32;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::REM, res, arg1, arg2);
             }
             Instruction::I32RemU => {
@@ -1730,7 +1736,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_rem(arg2);
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::REMU, res, arg1, arg2);
             }
             Instruction::I32And => {
@@ -1739,7 +1745,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 & arg2;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::AND, res, arg1, arg2);
             }
             Instruction::I32Or => {
@@ -1748,7 +1754,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 | arg2;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::OR, res, arg1, arg2);
             }
             Instruction::I32Xor => {
@@ -1757,7 +1763,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1 ^ arg2;
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::XOR, res, arg1, arg2);
             }
 
@@ -1767,8 +1773,8 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_shl(arg2);
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
-                println!("sp:{},arg1{},arg2:{}",sp,arg1,arg2);
+                res_is_written_back_to_stack = true;
+                println!("sp:{},arg1{},arg2:{}", sp, arg1, arg2);
                 self.emit_alu(clk, Opcode::SLL, res, arg1, arg2);
             }
             Instruction::I32ShrS => {
@@ -1777,7 +1783,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = (arg1 as i32).wrapping_shr(arg2) as u32; //TODO check
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SRA, res, arg1, arg2);
             }
             Instruction::I32ShrU => {
@@ -1786,7 +1792,7 @@ impl<'a> Executor<'a> {
                 arg2 = arg2_record.unwrap().value;
                 res = arg1.wrapping_shr(arg2); //Todo check
                 next_sp = sp + 4;
-                res_is_writtten_back_to_stack = true;
+                res_is_written_back_to_stack = true;
                 self.emit_alu(clk, Opcode::SRL, res, arg1, arg2);
             }
             Instruction::I32Rotl => todo!(),
@@ -1828,7 +1834,7 @@ impl<'a> Executor<'a> {
             Instruction::I64TruncSatF64U => todo!(),
             _ => todo!(),
         }
-        if res_is_writtten_back_to_stack {
+        if res_is_written_back_to_stack {
             res_record = Some(self.write_back_res_to_stack(res, next_sp));
         }
 
@@ -1865,8 +1871,6 @@ impl<'a> Executor<'a> {
 
         Ok(())
     }
-
-
 
     /// Executes one cycle of the program, returning whether the program has finished.
     #[inline]
@@ -2506,8 +2510,11 @@ mod tests {
 
     use crate::{Executor, Program, SP_START};
     use hashbrown::HashMap;
-    use rwasm::engine::{bytecode::{BranchOffset, Instruction}, DropKeep};
     use rwasm::engine::bytecode::LocalDepth;
+    use rwasm::engine::{
+        bytecode::{BranchOffset, Instruction},
+        DropKeep,
+    };
     use sp1_stark::SP1CoreOpts;
 
     #[test]
@@ -2546,7 +2553,6 @@ mod tests {
     fn test_xor() {
         let x_value: u32 = 5;
         let y_value: u32 = 37;
-
 
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
@@ -2601,12 +2607,17 @@ mod tests {
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const(y_value.into()),
             Instruction::I32Const(z_value.into()),
-            Instruction::I32Add, Instruction::I32Add];
+            Instruction::I32Add,
+            Instruction::I32Add,
+        ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value - 1 + z_value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value - 1 + z_value
+        );
     }
 
     #[test]
@@ -2614,7 +2625,6 @@ mod tests {
         let x_value: u32 = 5;
         let y_value: u32 = 37;
         let z_value: u32 = 42;
-
 
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
@@ -2627,7 +2637,10 @@ mod tests {
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value | y_value | z_value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value | y_value | z_value
+        );
     }
     #[test]
     fn test_andi() {
@@ -2646,7 +2659,10 @@ mod tests {
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value & y_value & z_value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & y_value & z_value
+        );
     }
     #[test]
     fn test_mul() {
@@ -2660,7 +2676,7 @@ mod tests {
             Instruction::I32Mul, // 5 * 32 = 160
         ];
 
-        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
@@ -2817,7 +2833,7 @@ mod tests {
     }
     #[test]
     fn test_rems_remu() {
-         let x_value: u32 = 320;
+        let x_value: u32 = 320;
         let y_value: u32 = 13;
         let z_value: u32 = 5;
 
@@ -2839,7 +2855,7 @@ mod tests {
     }
     #[test]
     fn test_shl() {
-         let x_value: u32 = 2;
+        let x_value: u32 = 2;
         let y_value: u32 = 2;
         let z_value: u32 = 3;
 
@@ -2861,7 +2877,7 @@ mod tests {
     }
     #[test]
     fn test_shr_shru() {
-         let x_value: u32 = 256;
+        let x_value: u32 = 256;
         let y_value: u32 = 2;
         let z_value: u32 = 3;
 
@@ -2886,8 +2902,11 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = a;
         let y_value: u32 = b;
-        let instructions = vec![Instruction::I32Const(x_value.into()),
-                                Instruction::I32Const(y_value.into()), opcode];
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            opcode,
+        ];
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -3037,7 +3056,6 @@ mod tests {
         assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
     }
 
-
     #[test]
     fn test_store16() {
         let sp_value: u32 = SP_START;
@@ -3046,15 +3064,14 @@ mod tests {
         let addr: u32 = 0x10000;
 
         //discuss why Instruction::I32Store16(0.into()),Instruction::I32Store16(1.into()) are not working if they are subsequent
-        let instructions =
-            vec![
-                Instruction::I32Const(addr.into()),
-                Instruction::I32Const(x_value.into()),
-                Instruction::I32Const(addr.into()),
-                Instruction::I32Const(y_value.into()),
-                Instruction::I32Store16(1.into()),
-                Instruction::I32Store16(0.into()),
-            ];
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Store16(1.into()),
+            Instruction::I32Store16(0.into()),
+        ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
@@ -3074,7 +3091,6 @@ mod tests {
         let t_value: u32 = 0xFFFF_0004;
         let addr: u32 = 0x10000;
 
-
         let instructions = vec![
             Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
@@ -3090,7 +3106,7 @@ mod tests {
             Instruction::I32Store8(3.into()),
         ];
 
-        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -3134,11 +3150,16 @@ mod tests {
         let t_value: u32 = 0xFFF4_000b;
         let addr: u32 = 0xDD_0000;
 
-
-        let memInstructions = vec![Instruction::I32Const(addr.into()), Instruction::I32Const(x_value.into()),
-                                   Instruction::I32Const(addr.into()), Instruction::I32Const(y_value.into()),
-                                   Instruction::I32Const(addr.into()), Instruction::I32Const(z_value.into()),
-                                   Instruction::I32Const(addr.into()), Instruction::I32Const(t_value.into())];
+        let memInstructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(t_value.into()),
+        ];
 
         simple_memory_store_instruction_test(
             memInstructions.clone(),
@@ -3363,7 +3384,7 @@ mod tests {
     }
     #[test]
     fn test_load16s_normal() {
-        let x_value: u32 = 65551i32 as u32 ;
+        let x_value: u32 = 65551i32 as u32;
         let addr: u32 = 0x10000;
 
         let instructions = vec![
@@ -3374,7 +3395,7 @@ mod tests {
             Instruction::I32Load16S(0.into()),
         ];
 
-        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -3395,7 +3416,7 @@ mod tests {
             Instruction::I32Load16U(0.into()),
         ];
 
-        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -3421,7 +3442,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
-        println!("output value {},",runtime.state.memory.get(addr).unwrap().value);
+        println!("output value {},", runtime.state.memory.get(addr).unwrap().value);
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             (x_value & 0x0000_FF00) >> 8
@@ -3431,7 +3452,7 @@ mod tests {
     #[test]
     fn test_load8s() {
         let x_value: u32 = 0xdFFF_00FF;
-         let addr: u32 = 0x10000;
+        let addr: u32 = 0x10000;
 
         let instructions = vec![
             Instruction::I32Const(addr.into()),
@@ -3444,12 +3465,11 @@ mod tests {
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-         assert_eq!(
+        assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            (x_value & 0xff00_0000)>>24
+            (x_value & 0xff00_0000) >> 24
         );
     }
-
 
     #[test]
     fn test_br() {
@@ -3482,10 +3502,10 @@ mod tests {
 
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
-            Instruction::I32Const((x_value+1).into()),
-            Instruction::I32Const((x_value+2).into()),
-            Instruction::I32Const((x_value+3).into()),
-            Instruction::I32Const((x_value+4).into()),
+            Instruction::I32Const((x_value + 1).into()),
+            Instruction::I32Const((x_value + 2).into()),
+            Instruction::I32Const((x_value + 3).into()),
+            Instruction::I32Const((x_value + 4).into()),
             Instruction::I32Add,
             Instruction::I32Add,
             Instruction::BrIfNez(BranchOffset::from(8i32)),
@@ -3493,7 +3513,7 @@ mod tests {
             Instruction::I32Add,
         ];
 
-        let program = Program::new_with_memory(instructions,HashMap::new(),0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -3511,14 +3531,13 @@ mod tests {
             Instruction::I32Const((x_value + 5).into()),
             Instruction::LocalSet(20.into()),
             Instruction::LocalGet(20.into()),
-
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + 5);
     }
 
     #[test]
@@ -3533,14 +3552,14 @@ mod tests {
             Instruction::I32Const(y_value.into()),
             Instruction::I32Const(z_value.into()),
             Instruction::LocalGet(28.into()),
-            Instruction::I32Add
+            Instruction::I32Add,
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+z_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + z_value);
     }
 
     #[test]
@@ -3561,23 +3580,21 @@ mod tests {
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.sp, sp_value-20);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+7);
+        assert_eq!(runtime.state.sp, sp_value - 20);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + 7);
     }
 
     #[test]
     fn test_i32const() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
-        let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-        ];
+        let instructions = vec![Instruction::I32Const(x_value.into())];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.sp, sp_value -4);
+        assert_eq!(runtime.state.sp, sp_value - 4);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
     }
 
@@ -3587,7 +3604,7 @@ mod tests {
         let x_value: u32 = 0x3;
         let y_value: u32 = 0x5;
         let z_value: u32 = 0x7;
-        let mut functions = vec![0,24];
+        let mut functions = vec![0, 24];
 
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
@@ -3595,14 +3612,20 @@ mod tests {
             Instruction::I32Const(z_value.into()),
             Instruction::CallInternal(1u32.into()),
             // Instruction::Return(DropKeep::none()),
-            Instruction::I32Add, Instruction::I32Add,
-            Instruction::Return(DropKeep::none())];
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::Return(DropKeep::none()),
+        ];
 
-        let program = Program::new_with_memory_and_func(instructions, HashMap::new(),functions, 0, 0);
+        let program =
+            Program::new_with_memory_and_func(instructions, HashMap::new(), functions, 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value+z_value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value + y_value + z_value
+        );
     }
     #[test]
     fn test_i32constwithAdd() {
@@ -3610,12 +3633,10 @@ mod tests {
         let x_value: u32 = 0x12345;
         let y_value: u32 = 0x54321;
 
-
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const(y_value.into()),
             Instruction::I32Add,
-
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
@@ -3623,6 +3644,6 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         //assert_eq!(runtime.state.sp, sp_value+4);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value);
     }
 }
