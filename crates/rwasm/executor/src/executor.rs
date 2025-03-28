@@ -991,7 +991,7 @@ impl<'a> Executor<'a> {
     }
 
     /// Emit an ALU event.
-    fn emit_alu_event(&mut self, clk: u32, opcode: Opcode, a: u32, b: u32, c: u32) {
+    fn emit_alu_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32) {
         let event = AluEvent { pc: self.state.pc, opcode, a, b, c };
         match opcode {
             Opcode::ADD => {
@@ -1585,7 +1585,7 @@ impl<'a> Executor<'a> {
                 res = (arg1_signed < arg2_singed) as u32;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::SLT, res, arg1, arg2);
+                self.emit_alu_event(Opcode::SLT, res, arg1, arg2);
             }
             Instruction::I32LtU => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1594,7 +1594,7 @@ impl<'a> Executor<'a> {
                 res = (arg1 < arg2) as u32;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::SLTU, res, arg1, arg2);
+                self.emit_alu_event(Opcode::SLTU, res, arg1, arg2);
             }
             Instruction::I32GtS => {
                 // do not emit alu and event are generated in emit_cpu_dep
@@ -1666,7 +1666,7 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_add(arg2);
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::ADD, res, arg1, arg2);
+                self.emit_alu_event(Opcode::ADD, res, arg1, arg2);
                 println!("Instruction::I32Add: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
                          instruction,sp,next_sp,pc,next_pc,depth,next_depth);
                 println!("Instruction::I32Add: res_record:{:?}", res_record);
@@ -1678,7 +1678,7 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_sub(arg2);
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::SUB, res, arg1, arg2);
+                self.emit_alu_event(Opcode::SUB, res, arg1, arg2);
             }
             Instruction::I32Mul => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1687,7 +1687,7 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_mul(arg2);
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::MUL, res, arg1, arg2);
+                self.emit_alu_event(Opcode::MUL, res, arg1, arg2);
             }
             Instruction::I32DivS => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1698,7 +1698,7 @@ impl<'a> Executor<'a> {
                 res = (signed_arg1.wrapping_div(signed_arg2)) as u32;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::DIV, res, arg1, arg2);
+                self.emit_alu_event(Opcode::DIV, res, arg1, arg2);
             }
             Instruction::I32DivU => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1707,7 +1707,7 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_div(arg2);
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::DIVU, res, arg1, arg2);
+                self.emit_alu_event(Opcode::DIVU, res, arg1, arg2);
             }
             Instruction::I32RemS => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1718,7 +1718,7 @@ impl<'a> Executor<'a> {
                 res = (signed_arg1.wrapping_rem(signed_arg2)) as u32;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::REM, res, arg1, arg2);
+                self.emit_alu_event(Opcode::REM, res, arg1, arg2);
             }
             Instruction::I32RemU => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1727,7 +1727,7 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_rem(arg2);
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::REMU, res, arg1, arg2);
+                self.emit_alu_event(Opcode::REMU, res, arg1, arg2);
             }
             Instruction::I32And => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1736,7 +1736,7 @@ impl<'a> Executor<'a> {
                 res = arg1 & arg2;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::AND, res, arg1, arg2);
+                self.emit_alu_event(Opcode::AND, res, arg1, arg2);
             }
             Instruction::I32Or => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1745,7 +1745,7 @@ impl<'a> Executor<'a> {
                 res = arg1 | arg2;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::OR, res, arg1, arg2);
+                self.emit_alu_event(Opcode::OR, res, arg1, arg2);
             }
             Instruction::I32Xor => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1754,7 +1754,7 @@ impl<'a> Executor<'a> {
                 res = arg1 ^ arg2;
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::XOR, res, arg1, arg2);
+                self.emit_alu_event(Opcode::XOR, res, arg1, arg2);
             }
 
             Instruction::I32Shl => {
@@ -1765,7 +1765,7 @@ impl<'a> Executor<'a> {
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
                 println!("sp:{},arg1{},arg2:{}", sp, arg1, arg2);
-                self.emit_alu_event(clk, Opcode::SLL, res, arg1, arg2);
+                self.emit_alu_event(Opcode::SLL, res, arg1, arg2);
             }
             Instruction::I32ShrS => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1774,7 +1774,7 @@ impl<'a> Executor<'a> {
                 res = (arg1 as i32).wrapping_shr(arg2) as u32; //TODO check
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::SRA, res, arg1, arg2);
+                self.emit_alu_event(Opcode::SRA, res, arg1, arg2);
             }
             Instruction::I32ShrU => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();
@@ -1783,7 +1783,7 @@ impl<'a> Executor<'a> {
                 res = arg1.wrapping_shr(arg2); //Todo check
                 next_sp = sp + 4;
                 res_is_written_back_to_stack = true;
-                self.emit_alu_event(clk, Opcode::SRL, res, arg1, arg2);
+                self.emit_alu_event(Opcode::SRL, res, arg1, arg2);
             }
             Instruction::I32Rotl => todo!(),
             Instruction::I32Rotr => todo!(),
