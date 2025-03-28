@@ -2318,7 +2318,6 @@ pub const fn align(addr: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-
     use sp1_stark::SP1CoreOpts;
     use sp1_zkvm::syscalls::SHA_COMPRESS;
 
