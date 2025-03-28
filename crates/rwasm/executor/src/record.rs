@@ -284,6 +284,7 @@ impl MachineRecord for ExecutionRecord {
         stats.insert("branch_events".to_string(), self.branch_events.len());
         stats.insert("jump_events".to_string(), self.jump_events.len());
         stats.insert("auipc_events".to_string(), self.auipc_events.len());
+        stats.insert("function_call_events".to_string(), self.function_call_events.len());
 
         for (syscall_code, events) in self.precompile_events.iter() {
             stats.insert(format!("syscall {syscall_code:?}"), events.len());
@@ -321,6 +322,7 @@ impl MachineRecord for ExecutionRecord {
         self.jump_events.append(&mut other.jump_events);
         self.auipc_events.append(&mut other.auipc_events);
         self.syscall_events.append(&mut other.syscall_events);
+        self.function_call_events.append(&mut other.function_call_events);
 
         self.precompile_events.append(&mut other.precompile_events);
 
