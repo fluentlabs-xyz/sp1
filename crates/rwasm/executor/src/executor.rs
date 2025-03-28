@@ -913,7 +913,6 @@ impl<'a> Executor<'a> {
         exit_code: u32,
     ) {
         self.emit_cpu(
-            shard,
             clk,
             next_pc,
             sp,
@@ -954,7 +953,6 @@ impl<'a> Executor<'a> {
     #[inline]
     fn emit_cpu(
         &mut self,
-        shard: u32,
         clk: u32,
         next_pc: u32,
         sp: u32,
