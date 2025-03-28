@@ -19,7 +19,7 @@ use crate::{
     },
     program::Program,
     syscalls::SyscallCode,
-    RiscvAirId,
+    RwasmAirId,
 };
 
 /// A record of the execution of a program.
@@ -76,9 +76,9 @@ pub struct ExecutionRecord {
     /// The next nonce to use for a new lookup.
     pub next_nonce: u64,
     /// The shape of the proof.
-    pub shape: Option<Shape<RiscvAirId>>,
+    pub shape: Option<Shape<RwasmAirId>>,
     /// The predicted counts of the proof.
-    pub counts: Option<EnumMap<RiscvAirId, u64>>,
+    pub counts: Option<EnumMap<RwasmAirId, u64>>,
 }
 
 impl ExecutionRecord {
@@ -213,7 +213,7 @@ impl ExecutionRecord {
     pub fn fixed_log2_rows<F: PrimeField, A: MachineAir<F>>(&self, air: &A) -> Option<usize> {
         self.shape.as_ref().map(|shape| {
             shape
-                .log2_height(&RiscvAirId::from_str(&air.name()).unwrap())
+                .log2_height(&RwasmAirId::from_str(&air.name()).unwrap())
                 .unwrap_or_else(|| panic!("Chip {} not found in specified shape", air.name()))
         })
     }
