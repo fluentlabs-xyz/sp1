@@ -78,7 +78,8 @@ where
         value_assertions: bool,
     ) {
         let SP1MerkleProofWitnessVariable { vk_merkle_proofs, values, root } = input;
-        for ((proof, value), expected_value) in
+        for ((proof, value), 
+        expected_value) in
             vk_merkle_proofs.into_iter().zip(values).zip(digests)
         {
             verify(builder, proof, value, root);

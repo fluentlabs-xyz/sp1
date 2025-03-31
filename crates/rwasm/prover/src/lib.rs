@@ -215,13 +215,23 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
 
         // Read the shapes from the shapes directory and deserialize them into memory.
         let allowed_vk_map: BTreeMap<[BabyBear; DIGEST_SIZE], usize> = if vk_verification {
+        //    let v1:[u32;8]= [401577726, 1076386649, 884251858, 1176521087, 1071611460, 315617777, 1288573455, 579066411];
+        //    let v1_baby:[BabyBear;DIGEST_SIZE] = v1.iter().map(|x|{
+        //     BabyBear::from_canonical_u32(*x)
+        //    }).collect::<Vec<BabyBear>>().try_into().unwrap();
+        //    let mut m= BTreeMap::new();
+        //    m.insert(v1_baby, 1usize);
+        //    println!("allowed_key_map_size:{}",m.len());
+        //    m
+         
             bincode::deserialize(include_bytes!("../vk_map.bin")).unwrap()
         } else {
             bincode::deserialize(include_bytes!("../dummy_vk_map.bin")).unwrap()
         };
+        println!("allowed_key_map_size:{}",allowed_vk_map.len());
 
         let (root, merkle_tree) = MerkleTree::commit(allowed_vk_map.keys().copied().collect());
-
+        println!("root:{:?}",root);
         Self {
             core_prover,
             compress_prover,
@@ -1226,6 +1236,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
                 .iter()
                 .map(|(vk, _)| {
                     let vk_digest = vk.hash_babybear();
+                    println!("vkdigest:{:?}",vk_digest);
                     let index = self.allowed_vk_map.get(&vk_digest).expect("vk not allowed");
                     (index, vk_digest)
                 })
@@ -1367,6 +1378,7 @@ pub fn run_e2e_prover_with_options<C: SP1ProverComponents>(
     tracing::info!("compress");
     let compress_span = tracing::debug_span!("compress").entered();
     let compressed_proof = prover.compress(&vk, core_proof, vec![], opts)?;
+    
     compress_span.exit();
 
     if verify {

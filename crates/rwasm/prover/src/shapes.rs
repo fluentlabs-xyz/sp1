@@ -286,7 +286,10 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
                     SP1CompressWithVKeyWitnessValues::dummy(self.compress_prover.machine(), &shape);
                 self.shrink_program(&input)
             }
-            SP1CompressProgramShape::Recursion(sp1_recursion_shape) => todo!(),
+            SP1CompressProgramShape::Recursion(sp1_recursion_shape) => {
+                let input = SP1RecursionWitnessValues::dummy(self.core_prover.machine(), &shape);
+                self.recursion_program(&input)
+            },
         }
     }
 }
