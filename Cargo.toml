@@ -33,6 +33,7 @@ members = [
   "crates/stark",
   "crates/zkvm/*",
   "crates/test-artifacts",
+  "crates/rwasm/executor"
 ]
 exclude = ["examples/target"]
 resolver = "2"
@@ -70,6 +71,7 @@ sp1-cuda = { path = "crates/cuda", version = "4.2.0" }
 sp1-stark = { path = "crates/stark", version = "4.2.0" }
 sp1-lib = { path = "crates/zkvm/lib", version = "4.2.0", default-features = false }
 sp1-zkvm = { path = "crates/zkvm/entrypoint", version = "4.2.0", default-features = false }
+rwasm-core-machine = { path = "crates/rwasm/core/machine", version = "4.2.0", default-features = false }
 
 # For testing.
 test-artifacts = { path = "crates/test-artifacts" }

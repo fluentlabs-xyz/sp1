@@ -3344,6 +3344,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexmap-nostd"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
+
+[[package]]
 name = "indicatif"
 version = "0.17.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5418,6 +5424,69 @@ dependencies = [
  "quick-error",
  "tempfile",
  "wait-timeout",
+]
+
+[[package]]
+name = "rwasm"
+version = "0.30.0"
+source = "git+https://github.com/fluentlabs-xyz/rwasm?branch=sp1-compatible#95334fdfdd75734302c220259dfc00c3208992dd"
+dependencies = [
+ "byteorder",
+ "downcast-rs",
+ "hashbrown 0.14.5",
+ "libm",
+ "num-traits",
+ "paste",
+ "serde",
+ "smallvec",
+ "spin 0.9.8",
+ "strum",
+ "strum_macros",
+ "wasmparser-nostd",
+]
+
+[[package]]
+name = "rwasm-core-executor"
+version = "4.2.0"
+dependencies = [
+ "bincode",
+ "bytemuck",
+ "clap",
+ "elf",
+ "enum-map",
+ "eyre",
+ "gecko_profile",
+ "goblin 0.9.3",
+ "hashbrown 0.14.5",
+ "hex",
+ "indicatif",
+ "itertools 0.13.0",
+ "nohash-hasher",
+ "num",
+ "p3-baby-bear",
+ "p3-field",
+ "p3-maybe-rayon",
+ "p3-util",
+ "rand 0.8.5",
+ "range-set-blaze",
+ "rrs-succinct",
+ "rustc-demangle",
+ "rwasm",
+ "serde",
+ "serde_json",
+ "sp1-curves",
+ "sp1-primitives",
+ "sp1-stark",
+ "sp1-zkvm",
+ "strum",
+ "strum_macros",
+ "subenum",
+ "test-artifacts",
+ "thiserror 1.0.69",
+ "tiny-keccak",
+ "tracing",
+ "typenum",
+ "vec_map",
 ]
 
 [[package]]
@@ -7724,6 +7793,15 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "wasmparser-nostd"
+version = "0.100.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5a015fe95f3504a94bb1462c717aae75253e39b9dd6c3fb1062c934535c64aa"
+dependencies = [
+ "indexmap-nostd",
 ]
 
 [[package]]
