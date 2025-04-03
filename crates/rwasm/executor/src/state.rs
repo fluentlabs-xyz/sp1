@@ -9,11 +9,7 @@ use serde::{Deserialize, Serialize};
 use sp1_stark::{baby_bear_poseidon2::BabyBearPoseidon2, StarkVerifyingKey};
 
 use crate::{
-    events::MemoryRecord,
-    memory::Memory,
-    record::{ExecutionRecord, MemoryAccessRecord},
-    syscalls::SyscallCode,
-    ExecutorMode, SP1ReduceProof,
+    events::MemoryRecord, memory::Memory, record::{ExecutionRecord, MemoryAccessRecord}, syscalls::SyscallCode, ExecutorMode, SP1ReduceProof
 };
 
 /// Holds data describing the current state of a program's execution.

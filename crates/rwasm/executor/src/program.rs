@@ -3,10 +3,10 @@
 use std::{fs::File, io::Read, str::FromStr};
 
 use crate::{
-    disassembler::{transpile, Elf},
-    instruction::Instruction,
     RiscvAirId,
+   
 };
+use rwasm::engine::bytecode::Instruction;
 use hashbrown::HashMap;
 use p3_field::Field;
 use p3_field::{AbstractExtensionField, PrimeField32};
@@ -58,43 +58,43 @@ impl Program {
     /// # Errors
     ///
     /// This function may return an error if the ELF is not valid.
-    pub fn from(input: &[u8]) -> eyre::Result<Self> {
-        // Decode the bytes as an ELF.
-        let elf = Elf::decode(input)?;
+    // pub fn from(input: &[u8]) -> eyre::Result<Self> {
+    //     // Decode the bytes as an ELF.
+    //     let elf = Elf::decode(input)?;
 
-        // Transpile the RV32IM instructions.
-        let instructions = transpile(&elf.instructions);
+    //     // Transpile the RV32IM instructions.
+    //     let instructions = transpile(&elf.instructions);
 
-        // Return the program.
-        Ok(Program {
-            instructions,
-            pc_start: elf.pc_start,
-            pc_base: elf.pc_base,
-            memory_image: elf.memory_image,
-            preprocessed_shape: None,
-        })
-    }
+    //     // Return the program.
+    //     Ok(Program {
+    //         instructions,
+    //         pc_start: elf.pc_start,
+    //         pc_base: elf.pc_base,
+    //         memory_image: elf.memory_image,
+    //         preprocessed_shape: None,
+    //     })
+    // }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM from a file path.
     ///
     /// # Errors
     ///
     /// This function will return an error if the file cannot be opened or read.
-    pub fn from_elf(path: &str) -> eyre::Result<Self> {
-        let mut elf_code = Vec::new();
-        File::open(path)?.read_to_end(&mut elf_code)?;
-        Program::from(&elf_code)
-    }
+    // pub fn from_elf(path: &str) -> eyre::Result<Self> {
+    //     let mut elf_code = Vec::new();
+    //     File::open(path)?.read_to_end(&mut elf_code)?;
+    //     Program::from(&elf_code)
+    // }
 
-    /// Custom logic for padding the trace to a power of two according to the proof shape.
-    pub fn fixed_log2_rows<F: Field, A: MachineAir<F>>(&self, air: &A) -> Option<usize> {
-        let id = RiscvAirId::from_str(&air.name()).unwrap();
-        self.preprocessed_shape.as_ref().map(|shape| {
-            shape
-                .log2_height(&id)
-                .unwrap_or_else(|| panic!("Chip {} not found in specified shape", air.name()))
-        })
-    }
+    // /// Custom logic for padding the trace to a power of two according to the proof shape.
+    // pub fn fixed_log2_rows<F: Field, A: MachineAir<F>>(&self, air: &A) -> Option<usize> {
+    //     let id = RiscvAirId::from_str(&air.name()).unwrap();
+    //     self.preprocessed_shape.as_ref().map(|shape| {
+    //         shape
+    //             .log2_height(&id)
+    //             .unwrap_or_else(|| panic!("Chip {} not found in specified shape", air.name()))
+    //     })
+    // }
 
     #[must_use]
     /// Fetch the instruction at the given program counter.

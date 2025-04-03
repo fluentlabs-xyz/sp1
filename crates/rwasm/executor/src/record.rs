@@ -13,13 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     events::{
-        AUIPCEvent, AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, CpuEvent,
-        GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent,
-        MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent,
-    },
-    program::Program,
-    syscalls::SyscallCode,
-    RiscvAirId,
+        AUIPCEvent, AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, CpuEvent, GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent
+    }, program::Program, syscalls::SyscallCode, RiscvAirId
 };
 
 /// A record of the execution of a program.
@@ -57,7 +52,7 @@ pub struct ExecutionRecord {
     pub jump_events: Vec<JumpEvent>,
     /// A trace of the byte lookups that are needed.
     pub byte_lookups: HashMap<ByteLookupEvent, usize>,
-    /// A trace of the precompile events.
+    // /// A trace of the precompile events.
     pub precompile_events: PrecompileEvents,
     /// A trace of the global memory initialize events.
     pub global_memory_initialize_events: Vec<MemoryInitializeFinalizeEvent>,
@@ -118,9 +113,9 @@ impl ExecutionRecord {
 
         for (syscall_code, events) in precompile_events.into_iter() {
             let threshold = match syscall_code {
-                SyscallCode::KECCAK_PERMUTE => opts.keccak,
-                SyscallCode::SHA_EXTEND => opts.sha_extend,
-                SyscallCode::SHA_COMPRESS => opts.sha_compress,
+                // SyscallCode::KECCAK_PERMUTE => opts.keccak,
+                // SyscallCode::SHA_EXTEND => opts.sha_extend,
+                // SyscallCode::SHA_COMPRESS => opts.sha_compress,
                 _ => opts.deferred,
             };
 

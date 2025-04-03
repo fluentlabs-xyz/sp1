@@ -1,7 +1,7 @@
 use sp1_primitives::consts::fd::{FD_HINT, FD_PUBLIC_VALUES, LOWEST_ALLOWED_FD};
 use sp1_primitives::consts::num_to_comma_separated;
 
-use crate::{Executor, Register};
+use crate::{Executor,};
 
 use super::{Syscall, SyscallCode, SyscallContext};
 
@@ -35,11 +35,11 @@ impl Syscall for WriteSyscall {
         arg1: u32,
         arg2: u32,
     ) -> Option<u32> {
-        let a2 = Register::X12;
+        let a2 =todo!();
         let rt = &mut ctx.rt;
         let fd = arg1;
         let write_buf = arg2;
-        let nbytes = rt.register(a2);
+        let nbytes = todo!();
         // Read nbytes from memory starting at write_buf.
         let bytes = (0..nbytes).map(|i| rt.byte(write_buf + i)).collect::<Vec<u8>>();
         let slice = bytes.as_slice();

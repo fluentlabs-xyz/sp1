@@ -1,3 +1,4 @@
+use rwasm::{engine::bytecode::Instruction, rwasm::instruction};
 use serde::{Deserialize, Serialize};
 
 use crate::Opcode;
@@ -12,8 +13,8 @@ use super::MemoryRecordEnum;
 pub struct AluEvent {
     /// The program counter.
     pub pc: u32,
-    /// The opcode.
-    pub opcode: Opcode,
+   /// The instruction
+    pub instruction:Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
@@ -127,7 +128,7 @@ pub struct JumpEvent {
     /// The next program counter.
     pub next_pc: u32,
     /// The opcode.
-    pub opcode: Opcode,
+    pub instruction:Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
@@ -138,22 +139,6 @@ pub struct JumpEvent {
     pub op_a_0: bool,
 }
 
-impl JumpEvent {
-    /// Create a new [`JumpEvent`].
-    #[must_use]
-    #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        pc: u32,
-        next_pc: u32,
-        opcode: Opcode,
-        a: u32,
-        b: u32,
-        c: u32,
-        op_a_0: bool,
-    ) -> Self {
-        Self { pc, next_pc, opcode, a, b, c, op_a_0 }
-    }
-}
 /// AUIPC Instruction Event.
 ///
 /// This object encapsulated the information needed to prove a RISC-V AUIPC operation.
@@ -162,8 +147,8 @@ impl JumpEvent {
 pub struct AUIPCEvent {
     /// The program counter.
     pub pc: u32,
-    /// The opcode.
-    pub opcode: Opcode,
+    /// The instruction.
+    pub instruction:Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
@@ -177,7 +162,7 @@ pub struct AUIPCEvent {
 impl AUIPCEvent {
     /// Create a new [`AUIPCEvent`].
     #[must_use]
-    pub fn new(pc: u32, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, opcode, a, b, c, op_a_0 }
+    pub fn new(pc: u32, instruction:Instruction, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
+        Self { pc, instruction, a, b, c, op_a_0 }
     }
 }
