@@ -28,8 +28,8 @@ pub struct AluEvent {
 impl AluEvent {
     /// Create a new [`AluEvent`].
     #[must_use]
-    pub fn new(pc: u32, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, opcode, a, b, c, op_a_0 }
+    pub fn new(pc: u32, instruction:Instruction, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
+        Self { pc, instruction, a, b, c, op_a_0 }
     }
 }
 
@@ -45,8 +45,8 @@ pub struct MemInstrEvent {
     pub clk: u32,
     /// The program counter.
     pub pc: u32,
-    /// The opcode.
-    pub opcode: Opcode,
+    /// The instruction
+    pub instruction:Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
@@ -67,14 +67,14 @@ impl MemInstrEvent {
         shard: u32,
         clk: u32,
         pc: u32,
-        opcode: Opcode,
+        instruction:Instruction,
         a: u32,
         b: u32,
         c: u32,
         op_a_0: bool,
         mem_access: MemoryRecordEnum,
     ) -> Self {
-        Self { shard, clk, pc, opcode, a, b, c, op_a_0, mem_access }
+        Self { shard, clk, pc, instruction, a, b, c, op_a_0, mem_access }
     }
 }
 

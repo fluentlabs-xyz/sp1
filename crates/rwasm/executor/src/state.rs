@@ -33,6 +33,12 @@ pub struct ExecutionState {
     /// The clock increments by 4 (possibly more in syscalls) for each instruction that has been
     /// executed in this shard.
     pub clk: u32,
+    /// stack pointer 
+    pub sp: u32,
+    /// depth of function frame
+    pub depth:u32,
+
+
 
     /// Uninitialized memory addresses that have a specific value they should be initialized with.
     /// `SyscallHintRead` uses this to write hint data into uninitialized memory.
@@ -68,6 +74,8 @@ impl ExecutionState {
             // Start at shard 1 since shard 0 is reserved for memory initialization.
             current_shard: 1,
             clk: 0,
+            sp:todo!(),
+            depth:0,
             pc: pc_start,
             memory: Memory::new_preallocated(),
             uninitialized_memory: Memory::new_preallocated(),

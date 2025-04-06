@@ -1,6 +1,7 @@
 use std::{hash::Hash, str::FromStr};
 
 use hashbrown::HashMap;
+use rwasm::{engine::bytecode::Instruction, rwasm::instruction};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{Opcode, RiscvAirId};
@@ -28,18 +29,18 @@ pub fn deserialize_hashmap_as_vec<
 
 /// Returns `true` if the given `opcode` is a signed operation.
 #[must_use]
-pub fn is_signed_operation(opcode: Opcode) -> bool {
-    opcode == Opcode::DIV || opcode == Opcode::REM
+pub fn is_signed_operation(instruction:Instruction) -> bool {
+    instruction == Instruction::I32DivS || instruction== Instruction::I32DivU
 }
 
 /// Calculate the correct `quotient` and `remainder` for the given `b` and `c` per RISC-V spec.
 #[must_use]
-pub fn get_quotient_and_remainder(b: u32, c: u32, opcode: Opcode) -> (u32, u32) {
+pub fn get_quotient_and_remainder(b: u32, c: u32, instruction:Instruction) -> (u32, u32) {
     if c == 0 {
         // When c is 0, the quotient is 2^32 - 1 and the remainder is b regardless of whether we
         // perform signed or unsigned division.
         (u32::MAX, b)
-    } else if is_signed_operation(opcode) {
+    } else if is_signed_operation(instruction) {
         ((b as i32).wrapping_div(c as i32) as u32, (b as i32).wrapping_rem(c as i32) as u32)
     } else {
         (b.wrapping_div(c), b.wrapping_rem(c))

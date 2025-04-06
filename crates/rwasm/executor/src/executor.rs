@@ -18,10 +18,10 @@ use thiserror::Error;
 
 use crate::{
     context::{IoOptions, SP1Context},
-    dependencies::{
-      emit_branch_dependencies, emit_divrem_dependencies,
-         emit_memory_dependencies,
-    },
+    // dependencies::{
+    //   emit_branch_dependencies, emit_divrem_dependencies,
+    //      emit_memory_dependencies,
+    // },TODO: redo dependecies
     estimate_riscv_lde_size,
     events::{
          AluEvent, BranchEvent, CpuEvent, JumpEvent, MemInstrEvent,
@@ -719,14 +719,14 @@ impl<'a> Executor<'a> {
 
         if instruction.is_alu_instruction() {
             self.emit_alu_event(instruction, a, b, c, op_a_0);
-        } else if instruction.is_memory_instruction()
+        }  else if instruction.is_memory_load_instruction()
+        || instruction.is_memory_store_instruction()
         {
             self.emit_mem_instr_event(instruction, a, b, c, op_a_0);
-        } else if instruction.is_branch_instruction() {
+        }
+        else if instruction.is_branch_instruction() {
             self.emit_branch_event(instruction, a, b, c, op_a_0, next_pc);
-        } else if instruction.is_jump_instruction() {
-            self.emit_jump_event(instruction, a, b, c, op_a_0, next_pc);
-        } else  if instruction.is_ecall_instruction() {
+        }  else  if instruction.is_ecall_instruction() {
             self.emit_syscall_event(clk, record.a, op_a_0, syscall_code, b, c, next_pc);
         } else {
             unreachable!()
@@ -802,12 +802,12 @@ impl<'a> Executor<'a> {
 
     /// Emit a memory instruction event.
     #[inline]
-    fn emit_mem_instr_event(&mut self, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) {
+    fn emit_mem_instr_event(&mut self, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) {
         let event = MemInstrEvent {
             shard: self.shard(),
             clk: self.state.clk,
             pc: self.state.pc,
-            opcode,
+            instruction:instruction,
             a,
             b,
             c,
@@ -827,7 +827,7 @@ impl<'a> Executor<'a> {
     #[inline]
     fn emit_branch_event(
         &mut self,
-        opcode: Opcode,
+        instruction: Instruction,
         a: u32,
         b: u32,
         c: u32,
@@ -839,21 +839,7 @@ impl<'a> Executor<'a> {
         emit_branch_dependencies(self, event);
     }
 
-    /// Emit a jump event.
-    #[inline]
-    fn emit_jump_event(
-        &mut self,
-        opcode: Instruction,
-        a: u32,
-        b: u32,
-        c: u32,
-        op_a_0: bool,
-        next_pc: u32,
-    ) {
-        let event = JumpEvent::new(self.state.pc, next_pc, opcode, a, b, c, op_a_0);
-        self.record.jump_events.push(event);
-        emit_jump_dependencies(self, event);
-    }
+   
 
     // /// Emit an AUIPC event.
     // #[inline]
@@ -973,22 +959,15 @@ impl<'a> Executor<'a> {
             (a, b, c) = self.execute_store(instruction)?;
         } else if instruction.is_branch_instruction() {
             (a, b, c, next_pc) = self.execute_branch(instruction, next_pc);
-        } else if instruction.is_jump_instruction() {
-            (a, b, c, next_pc) = self.execute_jump(instruction);
-        } else if instruction.is_auipc_instruction() {
-            let (rd, imm) = instruction.u_type();
-            (b, c) = (imm, imm);
-            a = self.state.pc.wrapping_add(b);
-            self.rw_cpu(rd, a);
-        } else if instruction.is_ecall_instruction() {
+        }  else if instruction.is_ecall_instruction() {
             (a, b, c, clk, next_pc, syscall, exit_code) = self.execute_ecall()?;
-        } else if instruction.is_ebreak_instruction() {
-            return Err(ExecutionError::Breakpoint());
-        } else if instruction.is_unimp_instruction() {
-            // See https://github.com/riscv-non-isa/riscv-asm-manual/blob/master/riscv-asm.md#instruction-aliases
-            return Err(ExecutionError::Unimplemented());
+        // } else if instruction.is_ebreak_instruction() {
+        //     return Err(ExecutionError::Breakpoint());
+        // } else if instruction.is_unimp_instruction() {
+        //     // See https://github.com/riscv-non-isa/riscv-asm-manual/blob/master/riscv-asm.md#instruction-aliases
+        //     return Err(ExecutionError::Unimplemented());
         } else {
-            eprintln!("unreachable: {:?}", instruction.opcode);
+            eprintln!("unreachable: {:?}", instruction);
             unreachable!()
         }
 
@@ -999,12 +978,11 @@ impl<'a> Executor<'a> {
             self.emit_events(
                 clk,
                 next_pc,
-                instruction,
+                instruction.clone(),
                 syscall,
                 a,
                 b,
                 c,
-                op_a_0,
                 self.memory_accesses,
                 exit_code,
             );
@@ -1258,36 +1236,14 @@ impl<'a> Executor<'a> {
         // };
 
         // Allow the syscall impl to modify state.clk/pc (exit unconstrained does this)
-        self.rw_cpu(t0, a);
+        // self.rw_cpu(t0, a); TODO:check wether we need this
         let clk = self.state.clk;
         self.state.clk += precompile_cycles;
 
         Ok((a, b, c, clk, precompile_next_pc, syscall, returned_exit_code))
     }
 
-    /// Execute a jump instruction.
-    fn execute_jump(&mut self, instruction: &Instruction) -> (u32, u32, u32, u32) {
-        let (a, b, c, next_pc) = match instruction.opcode {
-            Opcode::JAL => {
-                let (rd, imm) = instruction.j_type();
-                let (b, c) = (imm, 0);
-                let a = self.state.pc + 4;
-                self.rw_cpu(rd, a);
-                let next_pc = self.state.pc.wrapping_add(imm);
-                (a, b, c, next_pc)
-            }
-            Opcode::JALR => {
-                let (rd, rs1, imm) = instruction.i_type();
-                let (b, c) = (self.rr_cpu(rs1, MemoryAccessPosition::B), imm);
-                let a = self.state.pc + 4;
-                self.rw_cpu(rd, a);
-                let next_pc = b.wrapping_add(c);
-                (a, b, c, next_pc)
-            }
-            _ => unreachable!(),
-        };
-        (a, b, c, next_pc)
-    }
+   
 
     /// Executes one cycle of the program, returning whether the program has finished.
     #[inline]

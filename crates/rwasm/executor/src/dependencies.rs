@@ -12,7 +12,7 @@ pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
     let rem_msb = get_msb(remainder);
     let mut c_neg = 0;
     let mut rem_neg = 0;
-    let is_signed_operation = is_signed_operation(event.opcode);
+    let is_signed_operation = is_signed_operation(event.instruction);
     if is_signed_operation {
         c_neg = c_msb; // same as abs_c_alu_event
         rem_neg = rem_msb; // same as abs_rem_alu_event
