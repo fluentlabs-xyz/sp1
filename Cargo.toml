@@ -117,4 +117,4 @@ default.extend-ignore-re = [
 default.extend-ignore-words-re = ["(?i)groth", "TRE"]
 
 [workspace.lints.clippy]
-print_stdout = "deny"
+

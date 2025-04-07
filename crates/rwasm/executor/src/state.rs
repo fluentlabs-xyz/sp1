@@ -12,6 +12,11 @@ use crate::{
     events::MemoryRecord, memory::Memory, record::{ExecutionRecord, MemoryAccessRecord}, syscalls::SyscallCode, ExecutorMode, SP1ReduceProof
 };
 
+// The starting address of satck 
+pub const SP_START: u32 = 0x2000+4;
+// The starting address of function frame
+pub const FUNFRAMEP_START :u32 = SP_START +4096;
+
 /// Holds data describing the current state of a program's execution.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[repr(C)]
@@ -74,7 +79,7 @@ impl ExecutionState {
             // Start at shard 1 since shard 0 is reserved for memory initialization.
             current_shard: 1,
             clk: 0,
-            sp:todo!(),
+            sp:SP_START,
             depth:0,
             pc: pc_start,
             memory: Memory::new_preallocated(),

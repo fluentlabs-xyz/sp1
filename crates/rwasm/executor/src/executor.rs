@@ -694,7 +694,44 @@ impl<'a> Executor<'a> {
         )
     }
 
-  
+    fn  binary_alu_stack_read(&mut self) -> (u32,u32) {
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let arg1_record = self.mr(sp+4, shard, clk, None);
+        let arg2_record = self.mr(sp, shard, clk, None);      
+        (arg1_record.value,arg2_record.value)
+    }
+
+    fn  unary_alu_stack_read(&mut self) -> u32 {
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let arg1_record = self.mr(sp+4, shard, clk, None);
+        arg1_record.value
+    }
+
+    fn  stack_write(&mut self,res:u32) {
+        self.state.clk+=4;
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let res_record = self.mw(sp,res,shard,clk, None);
+        self.memory_accesses.res_record=Some(res_record.into());
+    }
+
+    fn  memory_write(&mut self,addr:u32,res:u32) {
+        
+        self.state.clk+=4;
+        let shard = self.shard();
+        let res_record = self.mw(addr,res,shard,self.state.clk, None);
+        self.memory_accesses.memory=Some(res_record.into());
+    }
+
+    fn stack_resize(&mut self,change:i32){
+       let new_sp = (self.state.sp as i32).wrapping_add(change*(-4));
+       self.state.sp=new_sp as u32;
+    }
    
    
 
@@ -711,23 +748,22 @@ impl<'a> Executor<'a> {
         a: u32,
         b: u32,
         c: u32,
-        op_a_0: bool,
         record: MemoryAccessRecord,
         exit_code: u32,
     ) {
         self.emit_cpu(clk, next_pc, a, b, c, record, exit_code);
 
         if instruction.is_alu_instruction() {
-            self.emit_alu_event(instruction, a, b, c, op_a_0);
+            // self.emit_alu_event(instruction, a, b, c, op_a_0);
         }  else if instruction.is_memory_load_instruction()
         || instruction.is_memory_store_instruction()
         {
-            self.emit_mem_instr_event(instruction, a, b, c, op_a_0);
+            // self.emit_mem_instr_event(instruction, a, b, c, op_a_0);
         }
         else if instruction.is_branch_instruction() {
-            self.emit_branch_event(instruction, a, b, c, op_a_0, next_pc);
+            // self.emit_branch_event(instruction, a, b, c, op_a_0, next_pc);
         }  else  if instruction.is_ecall_instruction() {
-            self.emit_syscall_event(clk, record.a, op_a_0, syscall_code, b, c, next_pc);
+            self.emit_syscall_event(clk, record.arg1_record, syscall_code, b, c, next_pc);
         } else {
             unreachable!()
         }
@@ -751,93 +787,93 @@ impl<'a> Executor<'a> {
             pc: self.state.pc,
             next_pc,
             a,
-            a_record: record.a,
+            a_record: record.arg1_record,
             b,
-            b_record: record.b,
+            b_record: record.arg2_record,
             c,
-            c_record: record.c,
+            c_record: record.res_record,
             exit_code,
         });
     }
 
-    /// Emit an ALU event.
-    fn emit_alu_event(&mut self, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) {
-        let event = AluEvent { pc: self.state.pc, instruction, a, b, c, op_a_0 };
-        match instruction{
-            Instruction::I32Add => {
-                self.record.add_events.push(event);
-            }
-            Instruction::I32Sub => {
-                self.record.sub_events.push(event);
-            }
-            Instruction::I32Xor| Instruction::I32Or| Instruction::I32And=> {
-                self.record.bitwise_events.push(event);
-            }
-            Instruction::I32Shl=> {
-                self.record.shift_left_events.push(event);
-            }
-            Instruction::I32ShrS | Instruction::I32ShrU => {
-                self.record.shift_right_events.push(event);
-            }
-            Instruction::I32GeS | Instruction::I32GtS|
-            Instruction::I32GeU | Instruction::I32GtU|
-            Instruction::I32LeS | Instruction::I32LeU|
-            Instruction::I32Eqz   => {
-                self.record.lt_events.push(event);
-            }
-            Instruction::I32Mul  => {
-                self.record.mul_events.push(event);
-            }
-            Instruction::I32DivS | Instruction::I32DivU | 
-            Instruction::I32RemS | Instruction::I32RemU => {
-                self.record.divrem_events.push(event);
-                emit_divrem_dependencies(self, event);
-            }
-            Instruction::I32Rotl|Instruction::I32Rotr=>{
-                todo!();
-            }
-            _ => unreachable!(),
-        }
-    }
+    // /// Emit an ALU event.
+    // fn emit_alu_event(&mut self, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) {
+    //     let event = AluEvent { pc: self.state.pc, instruction, a, b, c, op_a_0 };
+    //     match instruction{
+    //         Instruction::I32Add => {
+    //             self.record.add_events.push(event);
+    //         }
+    //         Instruction::I32Sub => {
+    //             self.record.sub_events.push(event);
+    //         }
+    //         Instruction::I32Xor| Instruction::I32Or| Instruction::I32And=> {
+    //             self.record.bitwise_events.push(event);
+    //         }
+    //         Instruction::I32Shl=> {
+    //             self.record.shift_left_events.push(event);
+    //         }
+    //         Instruction::I32ShrS | Instruction::I32ShrU => {
+    //             self.record.shift_right_events.push(event);
+    //         }
+    //         Instruction::I32GeS | Instruction::I32GtS|
+    //         Instruction::I32GeU | Instruction::I32GtU|
+    //         Instruction::I32LeS | Instruction::I32LeU|
+    //         Instruction::I32Eqz   => {
+    //             self.record.lt_events.push(event);
+    //         }
+    //         Instruction::I32Mul  => {
+    //             self.record.mul_events.push(event);
+    //         }
+    //         Instruction::I32DivS | Instruction::I32DivU | 
+    //         Instruction::I32RemS | Instruction::I32RemU => {
+    //             self.record.divrem_events.push(event);
+    //             emit_divrem_dependencies(self, event);
+    //         }
+    //         Instruction::I32Rotl|Instruction::I32Rotr=>{
+    //             todo!();
+    //         }
+    //         _ => unreachable!(),
+    //     }
+    // }
 
     /// Emit a memory instruction event.
-    #[inline]
-    fn emit_mem_instr_event(&mut self, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) {
-        let event = MemInstrEvent {
-            shard: self.shard(),
-            clk: self.state.clk,
-            pc: self.state.pc,
-            instruction:instruction,
-            a,
-            b,
-            c,
-            op_a_0,
-            mem_access: self.memory_accesses.memory.expect("Must have memory access"),
-        };
+    // #[inline]
+    // fn emit_mem_instr_event(&mut self, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) {
+    //     let event = MemInstrEvent {
+    //         shard: self.shard(),
+    //         clk: self.state.clk,
+    //         pc: self.state.pc,
+    //         instruction:instruction,
+    //         a,
+    //         b,
+    //         c,
+    //         op_a_0,
+    //         mem_access: self.memory_accesses.memory.expect("Must have memory access"),
+    //     };
 
-        self.record.memory_instr_events.push(event);
-        emit_memory_dependencies(
-            self,
-            event,
-            self.memory_accesses.memory.expect("Must have memory access").current_record(),
-        );
-    }
+    //     self.record.memory_instr_events.push(event);
+    //     emit_memory_dependencies(
+    //         self,
+    //         event,
+    //         self.memory_accesses.memory.expect("Must have memory access").current_record(),
+    //     );
+    // }
 
     /// Emit a branch event.
-    #[inline]
-    fn emit_branch_event(
-        &mut self,
-        instruction: Instruction,
-        a: u32,
-        b: u32,
-        c: u32,
-        op_a_0: bool,
-        next_pc: u32,
-    ) {
-        let event = BranchEvent { pc: self.state.pc, next_pc, opcode, a, b, c, op_a_0 };
-        self.record.branch_events.push(event);
-        emit_branch_dependencies(self, event);
-    }
+    // #[inline]
+    // fn emit_branch_event(
+    //     &mut self,
+    //     instruction: Instruction,
+    //     a: u32,
+    //     b: u32,
+    //     c: u32,
+    //     op_a_0: bool,
+    //     next_pc: u32,
+    // ) {
+    //     let event = BranchEvent { pc: self.state.pc, next_pc, opcode, a, b, c, op_a_0 };
+    //     self.record.branch_events.push(event);
+    //     emit_branch_dependencies(self, event);
+    // }
 
    
 
@@ -894,14 +930,13 @@ impl<'a> Executor<'a> {
         &mut self,
         clk: u32,
         a_record: Option<MemoryRecordEnum>,
-        op_a_0: bool,
         syscall_code: SyscallCode,
         arg1: u32,
         arg2: u32,
         next_pc: u32,
     ) {
         let syscall_event =
-            self.syscall_event(clk, a_record, Some(op_a_0), syscall_code, arg1, arg2, next_pc);
+            self.syscall_event(clk, a_record, Some(true), syscall_code, arg1, arg2, next_pc);
 
         self.record.syscall_events.push(syscall_event);
     }
@@ -923,7 +958,9 @@ impl<'a> Executor<'a> {
         let mut next_pc = self.state.pc.wrapping_add(4);
         // Will be set to a non-default value if the instruction is a syscall.
 
-        let (mut a, b, c): (u32, u32, u32);
+        
+
+        let (mut arg1, mut arg2, mut res): (u32, u32, u32)=(0,0,0);
 
         if self.executor_mode == ExecutorMode::Trace {
             self.memory_accesses = MemoryAccessRecord::default();
@@ -951,16 +988,18 @@ impl<'a> Executor<'a> {
         //     }
         // }
         //TODO: fix report find way to count instruction
-        if instruction.is_alu_instruction() {
-            (a, b, c) = self.execute_alu(instruction);
+        if instruction.is_const_instruction(){
+            (arg1, arg2, res) = self.execute_const(instruction);       
+        } else if instruction.is_alu_instruction() {
+            (arg1, arg2, res) = self.execute_alu(instruction);
         } else if instruction.is_memory_load_instruction() {
-            (a, b, c) = self.execute_load(instruction)?;
+            // (arg1, arg2, res) = self.execute_load(instruction)?;
         } else if instruction.is_memory_store_instruction() {
-            (a, b, c) = self.execute_store(instruction)?;
+            // (arg1, arg2, res) = self.execute_store(instruction)?;
         } else if instruction.is_branch_instruction() {
-            (a, b, c, next_pc) = self.execute_branch(instruction, next_pc);
+            // (arg1, arg2, res, next_pc) = self.execute_branch(instruction, next_pc);
         }  else if instruction.is_ecall_instruction() {
-            (a, b, c, clk, next_pc, syscall, exit_code) = self.execute_ecall()?;
+            // (arg1, arg2, res, clk, next_pc, syscall, exit_code) = self.execute_ecall()?;
         // } else if instruction.is_ebreak_instruction() {
         //     return Err(ExecutionError::Breakpoint());
         // } else if instruction.is_unimp_instruction() {
@@ -975,17 +1014,17 @@ impl<'a> Executor<'a> {
 
         // Emit the events for this cycle.
         if self.executor_mode == ExecutorMode::Trace {
-            self.emit_events(
-                clk,
-                next_pc,
-                instruction.clone(),
-                syscall,
-                a,
-                b,
-                c,
-                self.memory_accesses,
-                exit_code,
-            );
+            // self.emit_events(
+            //     clk,
+            //     next_pc,
+            //     instruction.clone(),
+            //     syscall,
+            //     arg1,
+            //     arg2,
+            //     res,
+            //     self.memory_accesses,
+            //     exit_code,
+            // );//TODO:restore emit event
         };
 
         // Update the program counter.
@@ -996,252 +1035,331 @@ impl<'a> Executor<'a> {
 
         Ok(())
     }
-
+     /// Execute an Constant instruction.
+     fn execute_const(&mut self, instruction: &Instruction) -> (u32, u32, u32){
+        match instruction{
+            Instruction::I32Const(val)=>{
+                self.stack_resize(1);
+                let val:u32 =(*val).into();
+                self.stack_write(val);
+                (0,0,val)
+            }
+            _=>unreachable!()
+        }
+     }
     /// Execute an ALU instruction.
     fn execute_alu(&mut self, instruction: &Instruction) -> (u32, u32, u32) {
-        let (rd, b, c) = self.alu_rr(instruction);
-        let a = match instruction.opcode {
-            Opcode::ADD => b.wrapping_add(c),
-            Opcode::SUB => b.wrapping_sub(c),
-            Opcode::XOR => b ^ c,
-            Opcode::OR => b | c,
-            Opcode::AND => b & c,
-            Opcode::SLL => b.wrapping_shl(c),
-            Opcode::SRL => b.wrapping_shr(c),
-            Opcode::SRA => (b as i32).wrapping_shr(c) as u32,
-            Opcode::SLT => {
-                if (b as i32) < (c as i32) {
-                    1
-                } else {
-                    0
+        if  instruction.is_unary_instruction(){
+            match instruction{
+                Instruction::I32Clz=>unimplemented!(),
+                Instruction::I32Ctz=>unimplemented!(),
+                Instruction::I32Popcnt=>unimplemented!(),
+                Instruction::I32Eqz=>{
+                    let arg1 = self.unary_alu_stack_read();
+                    let res = if arg1==0{
+                        1
+                    } else{
+                        0
+                    };
+                    self.stack_write(res);
+                    (arg1,0,res)
                 }
+                _=>unreachable!() ,
             }
-            Opcode::SLTU => {
-                if b < c {
-                    1
-                } else {
-                    0
+        } else{
+            let (arg1, arg2) = self.binary_alu_stack_read();
+            let res = match instruction {
+                Instruction::I32Add => arg1.wrapping_add(arg2),
+                Instruction::I32Sub => arg1.wrapping_sub(arg2),
+                Instruction::I32Xor=> arg1 ^ arg2,
+                Instruction::I32Or => arg1 | arg2,
+                Instruction::I32And => arg1 & arg2,
+                Instruction::I32Shl => arg1.wrapping_shl(arg2),
+                Instruction::I32ShrU => arg1.wrapping_shr(arg2),
+                Instruction::I32ShrS => (arg1 as i32).wrapping_shr(arg2) as u32,
+                Instruction::I32LtS => {
+                    if (arg1 as i32) < (arg2 as i32) {
+                        1
+                    } else {
+                        0
+                    }
                 }
-            }
-            Opcode::MUL => b.wrapping_mul(c),
-            Opcode::MULH => (((b as i32) as i64).wrapping_mul((c as i32) as i64) >> 32) as u32,
-            Opcode::MULHU => ((b as u64).wrapping_mul(c as u64) >> 32) as u32,
-            Opcode::MULHSU => (((b as i32) as i64).wrapping_mul(c as i64) >> 32) as u32,
-            Opcode::DIV => {
-                if c == 0 {
-                    u32::MAX
-                } else {
-                    (b as i32).wrapping_div(c as i32) as u32
+                Instruction::I32LtU => {
+                    if arg1 < arg2 {
+                        1
+                    } else {
+                        0
+                    }
                 }
-            }
-            Opcode::DIVU => {
-                if c == 0 {
-                    u32::MAX
-                } else {
-                    b.wrapping_div(c)
+                Instruction::I32GtS => {
+                    if (arg1 as i32) > (arg2 as i32) {
+                        1
+                    } else {
+                        0
+                    }
                 }
-            }
-            Opcode::REM => {
-                if c == 0 {
-                    b
-                } else {
-                    (b as i32).wrapping_rem(c as i32) as u32
+                Instruction::I32GtU => {
+                    if arg1 > arg2 {
+                        1
+                    } else {
+                        0
+                    }
                 }
-            }
-            Opcode::REMU => {
-                if c == 0 {
-                    b
-                } else {
-                    b.wrapping_rem(c)
+                Instruction::I32LeS => {
+                    if (arg1 as i32) <= (arg2 as i32) {
+                        1
+                    } else {
+                        0
+                    }
                 }
-            }
-            _ => unreachable!(),
-        };
-        self.alu_rw(rd, a);
-        (a, b, c)
-    }
-
-    /// Execute a load instruction.
-    fn execute_load(
-        &mut self,
-        instruction: &Instruction,
-    ) -> Result<(u32, u32, u32), ExecutionError> {
-        let (rd, b, c, addr, memory_read_value) = self.load_rr(instruction);
-
-        let a = match instruction.opcode {
-            Opcode::LB => ((memory_read_value >> ((addr % 4) * 8)) & 0xFF) as i8 as i32 as u32,
-            Opcode::LH => {
-                if addr % 2 != 0 {
-                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
+                Instruction::I32LeU => {
+                    if arg1 <= arg2 {
+                        1
+                    } else {
+                        0
+                    }
                 }
-                ((memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF) as i16 as i32 as u32
-            }
-            Opcode::LW => {
-                if addr % 4 != 0 {
-                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
+                Instruction::I32GeS => {
+                    if (arg1 as i32) >= (arg2 as i32) {
+                        1
+                    } else {
+                        0
+                    }
                 }
-                memory_read_value
-            }
-            Opcode::LBU => (memory_read_value >> ((addr % 4) * 8)) & 0xFF,
-            Opcode::LHU => {
-                if addr % 2 != 0 {
-                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LHU, addr));
+                Instruction::I32GeU => {
+                    if arg1 >= arg2 {
+                        1
+                    } else {
+                        0
+                    }
                 }
-                (memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF
-            }
-            _ => unreachable!(),
-        };
-        self.rw_cpu(rd, a);
-        Ok((a, b, c))
-    }
-
-    /// Execute a store instruction.
-    fn execute_store(
-        &mut self,
-        instruction: &Instruction,
-    ) -> Result<(u32, u32, u32), ExecutionError> {
-        let (a, b, c, addr, memory_read_value) = self.store_rr(instruction);
-
-        let memory_store_value = match instruction.opcode {
-            Opcode::SB => {
-                let shift = (addr % 4) * 8;
-                ((a & 0xFF) << shift) | (memory_read_value & !(0xFF << shift))
-            }
-            Opcode::SH => {
-                if addr % 2 != 0 {
-                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::SH, addr));
+                Instruction::I32Eq => {
+                    if arg1 == arg2 {
+                        1
+                    } else {
+                        0
+                    }
                 }
-                let shift = ((addr / 2) % 2) * 16;
-                ((a & 0xFFFF) << shift) | (memory_read_value & !(0xFFFF << shift))
-            }
-            Opcode::SW => {
-                if addr % 4 != 0 {
-                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, addr));
+                Instruction::I32Mul => arg1.wrapping_mul(arg2),
+              
+                Instruction::I32DivS => {
+                    if arg2 == 0 {
+                        u32::MAX
+                    } else {
+                        (arg1 as i32).wrapping_div(arg2 as i32) as u32
+                    }
                 }
-                a
-            }
-            _ => unreachable!(),
-        };
-        self.mw_cpu(align(addr), memory_store_value);
-        Ok((a, b, c))
-    }
-
-    /// Execute a branch instruction.
-    fn execute_branch(
-        &mut self,
-        instruction: &Instruction,
-        mut next_pc: u32,
-    ) -> (u32, u32, u32, u32) {
-        let (a, b, c) = self.branch_rr(instruction);
-        let branch = match instruction.opcode {
-            Opcode::BEQ => a == b,
-            Opcode::BNE => a != b,
-            Opcode::BLT => (a as i32) < (b as i32),
-            Opcode::BGE => (a as i32) >= (b as i32),
-            Opcode::BLTU => a < b,
-            Opcode::BGEU => a >= b,
-            _ => {
-                unreachable!()
-            }
-        };
-        if branch {
-            next_pc = self.state.pc.wrapping_add(c);
-        }
-        (a, b, c, next_pc)
-    }
-
-    /// Execute an ecall instruction.
-    #[allow(clippy::type_complexity)]
-    fn execute_ecall(
-        &mut self,
-    ) -> Result<(u32, u32, u32, u32, u32, SyscallCode, u32), ExecutionError> {
-        // We peek at register x5 to get the syscall id. The reason we don't `self.rr` this
-        // register is that we write to it later.
-        let t0 = todo!();
-        let syscall_id = todo!();
-        let c = todo!();
-        let b = todo!();
-        let syscall = SyscallCode::from_u32(syscall_id);
-
-        if self.print_report && !self.unconstrained {
-            self.report.syscall_counts[syscall] += 1;
-        }
-
-        // `hint_slice` is allowed in unconstrained mode since it is used to write the hint.
-        // Other syscalls are not allowed because they can lead to non-deterministic
-        // behavior, especially since many syscalls modify memory in place,
-        // which is not permitted in unconstrained mode. This will result in
-        // non-zero memory interactions when generating a proof.
-
-        if self.unconstrained
-            && (syscall != SyscallCode::EXIT_UNCONSTRAINED && syscall != SyscallCode::WRITE)
-        {
-            return Err(ExecutionError::InvalidSyscallUsage(syscall_id as u64));
-        }
-
-        // Update the syscall counts.
-        let syscall_for_count = syscall.count_map();
-        let syscall_count = self.state.syscall_counts.entry(syscall_for_count).or_insert(0);
-        *syscall_count += 1;
-
-        let syscall_impl = self.get_syscall(syscall).cloned();
-        let mut precompile_rt = SyscallContext::new(self);
-        let (a, precompile_next_pc, precompile_cycles, returned_exit_code) =
-            if let Some(syscall_impl) = syscall_impl {
-                // Executing a syscall optionally returns a value to write to the t0
-                // register. If it returns None, we just keep the
-                // syscall_id in t0.
-                let res = syscall_impl.execute(&mut precompile_rt, syscall, b, c);
-                let a = if let Some(val) = res { val } else { syscall_id };
-
-                // If the syscall is `HALT` and the exit code is non-zero, return an error.
-                if syscall == SyscallCode::HALT && precompile_rt.exit_code != 0 {
-                    return Err(ExecutionError::HaltWithNonZeroExitCode(precompile_rt.exit_code));
+                Instruction::I32DivU => {
+                    if arg2 == 0 {
+                        u32::MAX
+                    } else {
+                        arg1.wrapping_div(arg2)
+                    }
                 }
-
-                (a, precompile_rt.next_pc, syscall_impl.num_extra_cycles(), precompile_rt.exit_code)
-            } else {
-                return Err(ExecutionError::UnsupportedSyscall(syscall_id));
+                Instruction::I32RemS => {
+                    if arg2 == 0 {
+                        arg1
+                    } else {
+                        (arg1 as i32).wrapping_rem(arg2 as i32) as u32
+                    }
+                }
+                Instruction::I32RemU => {
+                    if arg2 == 0 {
+                        arg1
+                    } else {
+                        arg1.wrapping_rem(arg2)
+                    }
+                }
+                _ => unreachable!(),
             };
-
-        if let (Some(estimator), Some(syscall_id)) =
-            (&mut self.record_estimator, syscall.as_air_id())
-        {
-            let threshold = match syscall_id {
-                RiscvAirId::ShaExtend => self.opts.split_opts.sha_extend,
-                RiscvAirId::ShaCompress => self.opts.split_opts.sha_compress,
-                RiscvAirId::KeccakPermute => self.opts.split_opts.keccak,
-                _ => self.opts.split_opts.deferred,
-            } as u64;
-            let shards = &mut estimator.precompile_records[syscall_id];
-            let local_memory_ct =
-                estimator.current_precompile_touched_compressed_addresses.len() as u64;
-            match shards.last_mut().filter(|shard| shard.0 < threshold) {
-                Some((shard_precompile_event_ct, shard_local_memory_ct)) => {
-                    *shard_precompile_event_ct += 1;
-                    *shard_local_memory_ct += local_memory_ct;
-                }
-                None => shards.push((1, local_memory_ct)),
-            }
-            estimator.current_precompile_touched_compressed_addresses.clear();
+            self.stack_resize(-1);
+            self.stack_write(res);
+            (res, arg1, arg2)
         }
-
-        // // If the syscall is `EXIT_UNCONSTRAINED`, the memory was restored to pre-unconstrained code
-        // // in the execute function, so we need to re-read from x10 and x11.  Just do a peek on the
-        // // registers.
-        // let (b, c) = if syscall == SyscallCode::EXIT_UNCONSTRAINED {
-        //     (self.register(Register::X10), self.register(Register::X11))
-        // } else {
-        //     (b, c)
-        // };
-
-        // Allow the syscall impl to modify state.clk/pc (exit unconstrained does this)
-        // self.rw_cpu(t0, a); TODO:check wether we need this
-        let clk = self.state.clk;
-        self.state.clk += precompile_cycles;
-
-        Ok((a, b, c, clk, precompile_next_pc, syscall, returned_exit_code))
+       
     }
+
+    // /// Execute a load instruction.
+    // fn execute_load(
+    //     &mut self,
+    //     instruction: &Instruction,
+    // ) -> Result<(u32, u32, u32), ExecutionError> {
+    //     let (rd, b, c, addr, memory_read_value) = self.load_rr(instruction);
+
+    //     let a = match instruction.opcode {
+    //         Opcode::LB => ((memory_read_value >> ((addr % 4) * 8)) & 0xFF) as i8 as i32 as u32,
+    //         Opcode::LH => {
+    //             if addr % 2 != 0 {
+    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
+    //             }
+    //             ((memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF) as i16 as i32 as u32
+    //         }
+    //         Opcode::LW => {
+    //             if addr % 4 != 0 {
+    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
+    //             }
+    //             memory_read_value
+    //         }
+    //         Opcode::LBU => (memory_read_value >> ((addr % 4) * 8)) & 0xFF,
+    //         Opcode::LHU => {
+    //             if addr % 2 != 0 {
+    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::LHU, addr));
+    //             }
+    //             (memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF
+    //         }
+    //         _ => unreachable!(),
+    //     };
+    //     self.rw_cpu(rd, a);
+    //     Ok((a, b, c))
+    // }
+
+    // /// Execute a store instruction.
+    // fn execute_store(
+    //     &mut self,
+    //     instruction: &Instruction,
+    // ) -> Result<(u32, u32, u32), ExecutionError> {
+    //     let (a, b, c, addr, memory_read_value) = self.store_rr(instruction);
+
+    //     let memory_store_value = match instruction.opcode {
+    //         Opcode::SB => {
+    //             let shift = (addr % 4) * 8;
+    //             ((a & 0xFF) << shift) | (memory_read_value & !(0xFF << shift))
+    //         }
+    //         Opcode::SH => {
+    //             if addr % 2 != 0 {
+    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::SH, addr));
+    //             }
+    //             let shift = ((addr / 2) % 2) * 16;
+    //             ((a & 0xFFFF) << shift) | (memory_read_value & !(0xFFFF << shift))
+    //         }
+    //         Opcode::SW => {
+    //             if addr % 4 != 0 {
+    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, addr));
+    //             }
+    //             a
+    //         }
+    //         _ => unreachable!(),
+    //     };
+    //     self.mw_cpu(align(addr), memory_store_value);
+    //     Ok((a, b, c))
+    // }
+
+    // /// Execute a branch instruction.
+    // fn execute_branch(
+    //     &mut self,
+    //     instruction: &Instruction,
+    //     mut next_pc: u32,
+    // ) -> (u32, u32, u32, u32) {
+    //     let (a, b, c) = self.branch_rr(instruction);
+    //     let branch = match instruction.opcode {
+    //         Opcode::BEQ => a == b,
+    //         Opcode::BNE => a != b,
+    //         Opcode::BLT => (a as i32) < (b as i32),
+    //         Opcode::BGE => (a as i32) >= (b as i32),
+    //         Opcode::BLTU => a < b,
+    //         Opcode::BGEU => a >= b,
+    //         _ => {
+    //             unreachable!()
+    //         }
+    //     };
+    //     if branch {
+    //         next_pc = self.state.pc.wrapping_add(c);
+    //     }
+    //     (a, b, c, next_pc)
+    // }
+
+    // /// Execute an ecall instruction.
+    // #[allow(clippy::type_complexity)]
+    // fn execute_ecall(
+    //     &mut self,
+    // ) -> Result<(u32, u32, u32, u32, u32, SyscallCode, u32), ExecutionError> {
+    //     // We peek at register x5 to get the syscall id. The reason we don't `self.rr` this
+    //     // register is that we write to it later.
+    //     let t0 = todo!();
+    //     let syscall_id = todo!();
+    //     let c = todo!();
+    //     let b = todo!();
+    //     let syscall = SyscallCode::from_u32(syscall_id);
+
+    //     if self.print_report && !self.unconstrained {
+    //         self.report.syscall_counts[syscall] += 1;
+    //     }
+
+    //     // `hint_slice` is allowed in unconstrained mode since it is used to write the hint.
+    //     // Other syscalls are not allowed because they can lead to non-deterministic
+    //     // behavior, especially since many syscalls modify memory in place,
+    //     // which is not permitted in unconstrained mode. This will result in
+    //     // non-zero memory interactions when generating a proof.
+
+    //     if self.unconstrained
+    //         && (syscall != SyscallCode::EXIT_UNCONSTRAINED && syscall != SyscallCode::WRITE)
+    //     {
+    //         return Err(ExecutionError::InvalidSyscallUsage(syscall_id as u64));
+    //     }
+
+    //     // Update the syscall counts.
+    //     let syscall_for_count = syscall.count_map();
+    //     let syscall_count = self.state.syscall_counts.entry(syscall_for_count).or_insert(0);
+    //     *syscall_count += 1;
+
+    //     let syscall_impl = self.get_syscall(syscall).cloned();
+    //     let mut precompile_rt = SyscallContext::new(self);
+    //     let (a, precompile_next_pc, precompile_cycles, returned_exit_code) =
+    //         if let Some(syscall_impl) = syscall_impl {
+    //             // Executing a syscall optionally returns a value to write to the t0
+    //             // register. If it returns None, we just keep the
+    //             // syscall_id in t0.
+    //             let res = syscall_impl.execute(&mut precompile_rt, syscall, b, c);
+    //             let a = if let Some(val) = res { val } else { syscall_id };
+
+    //             // If the syscall is `HALT` and the exit code is non-zero, return an error.
+    //             if syscall == SyscallCode::HALT && precompile_rt.exit_code != 0 {
+    //                 return Err(ExecutionError::HaltWithNonZeroExitCode(precompile_rt.exit_code));
+    //             }
+
+    //             (a, precompile_rt.next_pc, syscall_impl.num_extra_cycles(), precompile_rt.exit_code)
+    //         } else {
+    //             return Err(ExecutionError::UnsupportedSyscall(syscall_id));
+    //         };
+
+    //     if let (Some(estimator), Some(syscall_id)) =
+    //         (&mut self.record_estimator, syscall.as_air_id())
+    //     {
+    //         let threshold = match syscall_id {
+    //             RiscvAirId::ShaExtend => self.opts.split_opts.sha_extend,
+    //             RiscvAirId::ShaCompress => self.opts.split_opts.sha_compress,
+    //             RiscvAirId::KeccakPermute => self.opts.split_opts.keccak,
+    //             _ => self.opts.split_opts.deferred,
+    //         } as u64;
+    //         let shards = &mut estimator.precompile_records[syscall_id];
+    //         let local_memory_ct =
+    //             estimator.current_precompile_touched_compressed_addresses.len() as u64;
+    //         match shards.last_mut().filter(|shard| shard.0 < threshold) {
+    //             Some((shard_precompile_event_ct, shard_local_memory_ct)) => {
+    //                 *shard_precompile_event_ct += 1;
+    //                 *shard_local_memory_ct += local_memory_ct;
+    //             }
+    //             None => shards.push((1, local_memory_ct)),
+    //         }
+    //         estimator.current_precompile_touched_compressed_addresses.clear();
+    //     }
+
+    //     // // If the syscall is `EXIT_UNCONSTRAINED`, the memory was restored to pre-unconstrained code
+    //     // // in the execute function, so we need to re-read from x10 and x11.  Just do a peek on the
+    //     // // registers.
+    //     // let (b, c) = if syscall == SyscallCode::EXIT_UNCONSTRAINED {
+    //     //     (self.register(Register::X10), self.register(Register::X11))
+    //     // } else {
+    //     //     (b, c)
+    //     // };
+
+    //     // Allow the syscall impl to modify state.clk/pc (exit unconstrained does this)
+    //     // self.rw_cpu(t0, a); TODO:check wether we need this
+    //     let clk = self.state.clk;
+    //     self.state.clk += precompile_cycles;
+
+    //     Ok((a, b, c, clk, precompile_next_pc, syscall, returned_exit_code))
+    // }
 
    
 
@@ -1896,6 +2014,1174 @@ pub const fn align(addr: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use crate::{Executor, Program, SP_START};
+    use hashbrown::HashMap;
+    use rwasm::engine::{bytecode::{BranchOffset, Instruction}, DropKeep};
+    use sp1_stark::SP1CoreOpts;
 
-   
+    #[test]
+    fn test_add() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+        let y_value: u32 = 4;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Add, // 32 + 4 = 36
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value);
+
+        println!("initial sp_value {} and last state.sp {}", sp_value, runtime.state.sp);
+    }
+    #[test]
+    fn test_sub() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+        let y_value: u32 = 4;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Sub, // 32 - 4 = 28
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value - y_value);
+    }
+    #[test]
+    fn test_xor() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 37;
+
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Xor, // 5 xor 37 = 32
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value ^ y_value);
+    }
+    #[test]
+    fn test_or() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 37;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Or, // 5 or 37 = 32
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value | y_value);
+    }
+    #[test]
+    fn test_and() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 37;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32And, // 5 and 37 = 32
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value & y_value);
+    }
+    #[test]
+    fn test_addi_negative() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 4;
+        let y_value: u32 = 0xFFFF_FFFF;
+        let z_value: u32 = 5;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Add, Instruction::I32Add];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value - 1 + z_value);
+    }
+
+    #[test]
+    fn test_ori() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 37;
+        let z_value: u32 = 42;
+
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Or, // 5 or 37 = 37
+            Instruction::I32Or, // 37 or 42  = 47
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value | y_value | z_value);
+    }
+    #[test]
+    fn test_andi() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 37;
+        let z_value: u32 = 4;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32And, // 5 and 37 = 32
+            Instruction::I32And, // 5 and 4  = 4
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value & y_value & z_value);
+    }
+    #[test]
+    fn test_mul() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 32;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Mul, // 5 * 32 = 160
+        ];
+
+        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
+    }
+    #[test]
+    fn test_eq() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+        let y_value: u32 = 32;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Eq, // check whether x_value is equal y_value
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_ne() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+        let y_value: u32 = 32;
+        let z_value: u32 = 1;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Ne, // check whether x_value is not equal y_value
+            Instruction::I32Ne,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_eqz() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 32;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Eqz, // check whether x_value is zero
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
+    }
+    #[test]
+    fn test_lts_ltu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0;
+        let y_value: u32 = 32;
+        let z_value: u32 = 233;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32LtS, // check whether signed x_value is less than signed y_value
+            Instruction::I32LtU, // check whether unsigned x_value is less than unsigned y_value
+        ];
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+
+    #[test]
+    fn test_gts_gtu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 21;
+        let y_value: u32 = 36;
+        let z_value: u32 = 0;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32GtS,
+          //  Instruction::I32GtS,
+            Instruction::I32GtU,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_ges_geu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 321;
+        let y_value: u32 = 233;
+        let z_value: u32 = 0;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32GeS, // check whether signed x_value is greater than or equal to signed y_value
+            Instruction::I32GeU, // check whether unsigned x_value is greater than or equal to unsigned y_value
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+
+    #[test]
+    fn test_les_leu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0;
+        let y_value: u32 = 3;
+        let z_value: u32 = 9;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32LeS, // check whether signed x_value is less than or equal to signed y_value
+            Instruction::I32LeU, // check whether unsigned x_value is less than or equal to unsigned y_value
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+    }
+    #[test]
+    fn test_divs_divu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 320;
+        let y_value: u32 = 10;
+        let z_value: u32 = 2;
+        let mut mem = HashMap::new();
+        mem.insert(sp_value-8, x_value);
+        mem.insert(sp_value - 4, y_value);
+        mem.insert(sp_value, z_value);
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32DivS, // divide x_value by y_value and return quotient (x and y are signed)
+            Instruction::I32DivU, // divide x_value by y_value and return quotient
+        ];
+
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value / (y_value / z_value)
+        );
+    }
+    #[test]
+    fn test_rems_remu() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 320;
+        let y_value: u32 = 13;
+        let z_value: u32 = 5;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32RemS,
+            Instruction::I32RemU,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value % (y_value % z_value)
+        );
+    }
+    #[test]
+    fn test_shl() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 2;
+        let y_value: u32 = 2;
+        let z_value: u32 = 3;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Shl, // y_value is shifted left by z_value
+            Instruction::I32Shl,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value << (y_value << z_value)
+        );
+    }
+    #[test]
+    fn test_shr_shru() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 256;
+        let y_value: u32 = 2;
+        let z_value: u32 = 3;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32ShrS, // y_value is shifted right by z_value
+            Instruction::I32ShrU, //
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value >> (y_value >> z_value)
+        );
+    }
+
+    fn simple_instruction_test(opcode: Instruction, expected: u32, a: u32, b: u32) {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = a;
+        let y_value: u32 = b;
+        let instructions = vec![Instruction::I32Const(x_value.into()),
+                                Instruction::I32Const(y_value.into()), opcode];
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
+    }
+    #[test]
+    #[allow(clippy::unreadable_literal)]
+    fn multiplication_tests() {
+        simple_instruction_test(Instruction::I32Mul, 0x00001200, 0x00007e00, 0xb6db6db7);
+        simple_instruction_test(Instruction::I32Mul, 0x00001240, 0x00007fc0, 0xb6db6db7);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x00000000, 0x00000000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000001, 0x00000001, 0x00000001);
+        simple_instruction_test(Instruction::I32Mul, 0x00000015, 0x00000003, 0x00000007);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x00000000, 0xffff8000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x80000000, 0x00000000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0x80000000, 0xffff8000);
+        simple_instruction_test(Instruction::I32Mul, 0x0000ff7f, 0xaaaaaaab, 0x0002fe7d);
+        simple_instruction_test(Instruction::I32Mul, 0x0000ff7f, 0x0002fe7d, 0xaaaaaaab);
+        simple_instruction_test(Instruction::I32Mul, 0x00000000, 0xff000000, 0xff000000);
+        simple_instruction_test(Instruction::I32Mul, 0x00000001, 0xffffffff, 0xffffffff);
+        simple_instruction_test(Instruction::I32Mul, 0xffffffff, 0xffffffff, 0x00000001);
+        simple_instruction_test(Instruction::I32Mul, 0xffffffff, 0x00000001, 0xffffffff);
+    }
+    #[test]
+    fn division_tests() {
+        simple_instruction_test(Instruction::I32DivU, 3, 20, 6);
+        simple_instruction_test(Instruction::I32DivU, 715_827_879, u32::MAX - 20 + 1, 6);
+        simple_instruction_test(Instruction::I32DivU, 0, 20, u32::MAX - 6 + 1);
+        simple_instruction_test(Instruction::I32DivU, 0, u32::MAX - 20 + 1, u32::MAX - 6 + 1);
+
+        simple_instruction_test(Instruction::I32DivU, 1 << 31, 1 << 31, 1);
+        simple_instruction_test(Instruction::I32DivU, 0, 1 << 31, u32::MAX - 1 + 1);
+
+        //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 1 << 31, 0);
+        // simple_instruction_test(Instruction::I32DivU, u32::MAX, 1, 0);
+        //  simple_instruction_test(Instruction::I32DivU, u32::MAX, 0, 0);
+
+        simple_instruction_test(Instruction::I32DivS, 3, 18, 6);
+        simple_instruction_test(Instruction::I32DivS, neg(6), neg(24), 4);
+        simple_instruction_test(Instruction::I32DivS, neg(2), 16, neg(8));
+        //   simple_instruction_test(Instruction::I32DivS, neg(1), 0, 0);
+
+        // Overflow cases
+        simple_instruction_test(Instruction::I32DivS, 1 << 31, 1 << 31, neg(1));
+        simple_instruction_test(Instruction::I32RemS, 0, 1 << 31, neg(1));
+    }
+    #[test]
+    fn remainder_tests() {
+        simple_instruction_test(Instruction::I32RemS, 7, 16, 9);
+        simple_instruction_test(Instruction::I32RemS, neg(4), neg(22), 6);
+        simple_instruction_test(Instruction::I32RemS, 1, 25, neg(3));
+        simple_instruction_test(Instruction::I32RemS, neg(2), neg(22), neg(4));
+        simple_instruction_test(Instruction::I32RemS, 0, 873, 1);
+        simple_instruction_test(Instruction::I32RemS, 0, 873, neg(1));
+        //simple_instruction_test(Instruction::I32RemS, 5, 5, 0);
+        //simple_instruction_test(Instruction::I32RemS, neg(5), neg(5), 0);
+        //simple_instruction_test(Instruction::I32RemS, 0, 0, 0);
+
+        simple_instruction_test(Instruction::I32RemU, 4, 18, 7);
+        simple_instruction_test(Instruction::I32RemU, 6, neg(20), 11);
+        simple_instruction_test(Instruction::I32RemU, 23, 23, neg(6));
+        simple_instruction_test(Instruction::I32RemU, neg(21), neg(21), neg(11));
+        // simple_instruction_test(Instruction::I32RemU, 5, 5, 0);
+        // simple_instruction_test(Instruction::I32RemU, neg(1), neg(1), 0);
+        // simple_instruction_test(Instruction::I32RemU, 0, 0, 0);
+    }
+    #[test]
+    #[allow(clippy::unreadable_literal)]
+    fn shift_tests() {
+        simple_instruction_test(Instruction::I32Shl, 0x00000001, 0x00000001, 0);
+        simple_instruction_test(Instruction::I32Shl, 0x00000002, 0x00000001, 1);
+        simple_instruction_test(Instruction::I32Shl, 0x00000080, 0x00000001, 7);
+        simple_instruction_test(Instruction::I32Shl, 0x00004000, 0x00000001, 14);
+        simple_instruction_test(Instruction::I32Shl, 0x80000000, 0x00000001, 31);
+        simple_instruction_test(Instruction::I32Shl, 0xffffffff, 0xffffffff, 0);
+        simple_instruction_test(Instruction::I32Shl, 0xfffffffe, 0xffffffff, 1);
+        simple_instruction_test(Instruction::I32Shl, 0xffffff80, 0xffffffff, 7);
+        simple_instruction_test(Instruction::I32Shl, 0xffffc000, 0xffffffff, 14);
+        simple_instruction_test(Instruction::I32Shl, 0x80000000, 0xffffffff, 31);
+        simple_instruction_test(Instruction::I32Shl, 0x21212121, 0x21212121, 0);
+        simple_instruction_test(Instruction::I32Shl, 0x42424242, 0x21212121, 1);
+        simple_instruction_test(Instruction::I32Shl, 0x90909080, 0x21212121, 7);
+        simple_instruction_test(Instruction::I32Shl, 0x48484000, 0x21212121, 14);
+        simple_instruction_test(Instruction::I32Shl, 0x80000000, 0x21212121, 31);
+        simple_instruction_test(Instruction::I32Shl, 0x21212121, 0x21212121, 0xffffffe0);
+        simple_instruction_test(Instruction::I32Shl, 0x42424242, 0x21212121, 0xffffffe1);
+        simple_instruction_test(Instruction::I32Shl, 0x90909080, 0x21212121, 0xffffffe7);
+        simple_instruction_test(Instruction::I32Shl, 0x48484000, 0x21212121, 0xffffffee);
+        simple_instruction_test(Instruction::I32Shl, 0x00000000, 0x21212120, 0xffffffff);
+
+        simple_instruction_test(Instruction::I32ShrU, 0xffff8000, 0xffff8000, 0);
+        simple_instruction_test(Instruction::I32ShrU, 0x7fffc000, 0xffff8000, 1);
+        simple_instruction_test(Instruction::I32ShrU, 0x01ffff00, 0xffff8000, 7);
+        simple_instruction_test(Instruction::I32ShrU, 0x0003fffe, 0xffff8000, 14);
+        simple_instruction_test(Instruction::I32ShrU, 0x0001ffff, 0xffff8001, 15);
+        simple_instruction_test(Instruction::I32ShrU, 0xffffffff, 0xffffffff, 0);
+        simple_instruction_test(Instruction::I32ShrU, 0x7fffffff, 0xffffffff, 1);
+        simple_instruction_test(Instruction::I32ShrU, 0x01ffffff, 0xffffffff, 7);
+        simple_instruction_test(Instruction::I32ShrU, 0x0003ffff, 0xffffffff, 14);
+        simple_instruction_test(Instruction::I32ShrU, 0x00000001, 0xffffffff, 31);
+        simple_instruction_test(Instruction::I32ShrU, 0x21212121, 0x21212121, 0);
+        simple_instruction_test(Instruction::I32ShrU, 0x10909090, 0x21212121, 1);
+        simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 7);
+        simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 14);
+        simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 31);
+        simple_instruction_test(Instruction::I32ShrU, 0x21212121, 0x21212121, 0xffffffe0);
+        simple_instruction_test(Instruction::I32ShrU, 0x10909090, 0x21212121, 0xffffffe1);
+        simple_instruction_test(Instruction::I32ShrU, 0x00424242, 0x21212121, 0xffffffe7);
+        simple_instruction_test(Instruction::I32ShrU, 0x00008484, 0x21212121, 0xffffffee);
+        simple_instruction_test(Instruction::I32ShrU, 0x00000000, 0x21212121, 0xffffffff);
+
+        simple_instruction_test(Instruction::I32ShrS, 0x00000000, 0x00000000, 0);
+        simple_instruction_test(Instruction::I32ShrS, 0xc0000000, 0x80000000, 1);
+        simple_instruction_test(Instruction::I32ShrS, 0xff000000, 0x80000000, 7);
+        simple_instruction_test(Instruction::I32ShrS, 0xfffe0000, 0x80000000, 14);
+        simple_instruction_test(Instruction::I32ShrS, 0xffffffff, 0x80000001, 31);
+        simple_instruction_test(Instruction::I32ShrS, 0x7fffffff, 0x7fffffff, 0);
+        simple_instruction_test(Instruction::I32ShrS, 0x3fffffff, 0x7fffffff, 1);
+        simple_instruction_test(Instruction::I32ShrS, 0x00ffffff, 0x7fffffff, 7);
+        simple_instruction_test(Instruction::I32ShrS, 0x0001ffff, 0x7fffffff, 14);
+        simple_instruction_test(Instruction::I32ShrS, 0x00000000, 0x7fffffff, 31);
+        simple_instruction_test(Instruction::I32ShrS, 0x81818181, 0x81818181, 0);
+        simple_instruction_test(Instruction::I32ShrS, 0xc0c0c0c0, 0x81818181, 1);
+        simple_instruction_test(Instruction::I32ShrS, 0xff030303, 0x81818181, 7);
+        simple_instruction_test(Instruction::I32ShrS, 0xfffe0606, 0x81818181, 14);
+        simple_instruction_test(Instruction::I32ShrS, 0xffffffff, 0x81818181, 31);
+    }
+    fn neg(a: u32) -> u32 {
+        u32::MAX - a + 1
+    }
+
+    #[test]
+    fn test_store() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(0.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
+    }
+
+
+    #[test]
+    fn test_store16() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0005;
+        let y_value: u32 = 0xFFFF_0008;
+        let addr: u32 = 0x10000;
+
+        //discuss why Instruction::I32Store16(0.into()),Instruction::I32Store16(1.into()) are not working if they are subsequent
+        let instructions =
+            vec![
+                Instruction::I32Const(addr.into()),
+                Instruction::I32Const(x_value.into()),
+                Instruction::I32Const(addr.into()),
+                Instruction::I32Const(y_value.into()),
+                Instruction::I32Store16(1.into()),
+                Instruction::I32Store16(0.into()),
+            ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(addr).unwrap().value,
+            (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16)
+        );
+    }
+
+    #[test]
+    fn test_store8() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFFF_0001;
+        let y_value: u32 = 0xFFFF_0002;
+        let z_value: u32 = 0xFFFF_0003;
+        let t_value: u32 = 0xFFFF_0004;
+        let addr: u32 = 0x10000;
+
+
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store8(0.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Store8(1.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Store8(2.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(t_value.into()),
+            Instruction::I32Store8(3.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(addr).unwrap().value,
+            ((x_value & 0x0000_00FF)
+                + ((y_value & 0x0000_00FF) << 8)
+                + ((z_value & 0x0000_00FF) << 16)
+                + ((t_value & 0x0000_00FF) << 24))
+        );
+    }
+
+    fn simple_memory_load_instruction_test(
+        mut mem: HashMap<u32, u32>,
+        instructions: Vec<Instruction>,
+        expected: u32,
+    ) {
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
+    }
+    fn simple_memory_store_instruction_test(
+        mut mems: Vec<Instruction>,
+        instructions: Vec<Instruction>,
+        address: u32,
+        expected: u32,
+    ) {
+        mems.extend(instructions);
+        let program = Program::new_with_memory(mems, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(address).unwrap().value, expected);
+    }
+
+  #[test]
+    fn test_simple_memory_instruction() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xFFF1_0005;
+        let y_value: u32 = 0xFFF2_0008;
+        let z_value: u32 = 0xFFF3_000a;
+        let t_value: u32 = 0xFFF4_000b;
+        let addr: u32 = 0xDD_0000;
+
+
+        let memInstructions = vec![Instruction::I32Const(addr.into()), Instruction::I32Const(x_value.into()),
+                                   Instruction::I32Const(addr.into()), Instruction::I32Const(y_value.into()),
+                                   Instruction::I32Const(addr.into()), Instruction::I32Const(z_value.into()),
+                                   Instruction::I32Const(addr.into()), Instruction::I32Const(t_value.into())];
+
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store(0.into())],
+            addr + 0,
+            t_value,
+        );
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store(16.into())],
+            addr + 16,
+            t_value,
+        );
+
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store16(0.into())],
+            addr,
+            (t_value & 0x0000_FFFF),
+        );
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store16(1.into())],
+            addr,
+            (t_value & 0x0000_FFFF) << 16,
+        );
+
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store8(0.into())],
+            addr,
+            (t_value & 0x0000_00FF),
+        );
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store8(1.into())],
+            addr,
+            (t_value & 0x0000_00FF) << 8,
+        );
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store8(2.into())],
+            addr,
+            (t_value & 0x0000_00FF) << 16,
+        );
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![Instruction::I32Store8(3.into())],
+            addr,
+            (t_value & 0x0000_00FF) << 24,
+        );
+
+      /*simple_memory_store_instruction_test(
+          memInstructions.clone(),
+          vec![Instruction::I32Store16(0.into()), Instruction::I32Store16(1.into())],
+          addr,
+          (z_value & 0x0000_FFFF) + ((t_value & 0x0000_FFFF) << 16),
+      );
+
+        simple_memory_store_instruction_test(
+            memInstructions.clone(),
+            vec![
+                Instruction::I32Store8(0.into()),
+                Instruction::I32Store8(1.into()),
+                Instruction::I32Store8(2.into()),
+                Instruction::I32Store8(3.into()),
+            ],
+            addr,
+            (x_value & 0x0000_00FF)
+                + ((y_value & 0x0000_00FF) << 8)
+                + ((z_value & 0x0000_00FF) << 16)
+                + ((t_value & 0x0000_00FF) << 24),
+        );*/
+
+        /*mem.insert(addr, x_value);
+        mem.insert(addr + 4, x_value + 4);
+        mem.insert(addr + 8, x_value + 8);
+        mem.insert(addr + 12, x_value + 12);
+        mem.insert(addr + 160, x_value + 16);
+
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(0.into())],
+            x_value,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(4.into())],
+            x_value + 4,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(8.into())],
+            x_value + 8,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(12.into())],
+            x_value + 12,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load(160.into())],
+            x_value + 16,
+        );
+
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16S(0.into())],
+            x_value & 0x0000_FFFF,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16U(0.into())],
+            x_value & 0x0000_FFFF,
+        );
+
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16U(2.into())],
+            (x_value & 0xFFFF_0000) >> 16,
+        );
+        let value = (x_value & 0xFFFF_0000) >> 16;
+        let expected = ((value as i16) as i32) as u32;
+        println!("expected u32 {} : actual i16 {}", expected, (value as i16));
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load16S(2.into())],
+            ((value as i16) as i32) as u32,
+        );
+
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(0.into())],
+            (x_value & 0x0000_00FF),
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(1.into())],
+            (x_value & 0x0000_FF) >> 8,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(2.into())],
+            (x_value & 0x00FF_FFFF) >> 16,
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8U(3.into())],
+            (x_value & 0xFF00_FFFF) >> 24,
+        );
+
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(0.into())],
+            (x_value & 0x0000_00FF),
+        );
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(1.into())],
+            (x_value & 0x0000_FF) >> 8,
+        );
+
+        let value = (x_value & 0x00FF_FFFF) >> 16;
+        let expected = ((value as i8) as i32) as u32;
+        println!("expected u32 {} : actual i8 {}", expected, (value as i8));
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(2.into())],
+            expected,
+        );
+
+        let value = (x_value & 0xFF00_FFFF) >> 24;
+        let expected = ((value as i8) as i32) as u32;
+        println!("expected u32 {} : actual i8 {}", expected, (value as i8));
+        simple_memory_load_instruction_test(
+            mem.clone(),
+            vec![Instruction::I32Load8S(3.into())],
+            expected,
+        );*/
+    }
+
+    #[test]
+    fn test_load32() {
+        let x_value: u32 = 5;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(0.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Load(0.into()),
+        ];
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
+    }
+
+    #[test]
+    fn test_load16u() {
+        let x_value: u32 = 0xFFFF_0005;
+        let addr: u32 = 0x10000;
+
+        //work on order
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store16(0.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Load16U(0.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_FFFF
+        );
+    }
+    #[test]
+    fn test_load16s_normal() {
+        let x_value: u32 = 65551i32 as u32 ;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(0.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Load16S(0.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_ffff
+        );
+    }
+    //todo #[test]
+    fn test_load16s() {
+        let x_value: u32 = (-5i16) as i32 as u32;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store16(0.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Load16S(0.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0x0000_ffff
+        );
+    }
+
+    #[test]
+    fn test_load8u() {
+        let x_value: u32 = 0xFFFF_05FF;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(1.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Load8U(1.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+
+        runtime.run().unwrap();
+        println!("output value {},",runtime.state.memory.get(addr).unwrap().value);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            (x_value & 0x0000_FF00) >> 8
+        );
+    }
+
+    //todo #[test]
+    fn test_load8s() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0xdFFF_00FF;
+        println!("x_value {}", x_value );
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Store8(0.into()),
+            Instruction::I32Const(addr.into()),
+            Instruction::I32Load8S(3.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        println!("expected {}", x_value & 0xFF00_0000);
+        assert_eq!(
+            runtime.state.memory.get(runtime.state.sp).unwrap().value,
+            x_value & 0xFF00_0000
+        );
+    }
+
+
+    #[test]
+    fn test_br() {
+       let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Shl,
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Shl,
+            Instruction::I32Const(x_value.into()),
+            Instruction::Br(4.into()),
+            Instruction::I32Shl,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1 << 1) << 1) << 1);
+    }
+
+    //todo #[test]
+    fn build_elf_branching() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x1;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const((x_value+1).into()),
+            Instruction::I32Const((x_value+2).into()),
+            Instruction::I32Const((x_value+3).into()),
+            Instruction::I32Const((x_value+4).into()),
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::I32Add,
+           // Instruction::BrIfNez(BranchOffset::from(12i32)),
+        ];
+
+        let program = Program::new_with_memory(instructions,HashMap::new(),0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
+    }
+
+    //todo #[test]
+    fn test_local_get() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x12345;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value + 20, x_value + 5);
+
+        let instructions = vec![
+           Instruction::LocalGet(20.into()),
+
+        ];
+
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5);
+    }
+
+    //todo #[test]
+    fn test_local_set() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x12345;
+
+        let mut mem = HashMap::new();
+        mem.insert(sp_value, x_value);
+        mem.insert(sp_value - 16, x_value + 5);
+
+        let instructions = vec![
+           Instruction::LocalSet(16.into()),
+
+        ];
+
+        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        println!("after {}", runtime.state.sp);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
+    }
+    //todo #[test]
+    fn test_locals() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 1;
+        let y_value: u32 = 22;
+        let z_value: u32 = 6;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::LocalGet(4.into()),
+            Instruction::I32Add
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        println!("before {}", runtime.state.sp);
+        runtime.run().unwrap();
+        println!("after {}", runtime.state.sp);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, y_value+z_value);
+    }
+
+    #[test]
+    fn test_local_tee() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x12345;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const((x_value + 2).into()),
+            Instruction::I32Const((x_value + 3).into()),
+            Instruction::I32Const((x_value + 4).into()),
+            Instruction::I32Const((x_value + 7).into()),
+            Instruction::LocalTee(16.into()), // get last element and put it into address (where address = last sp + 16)
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.sp, sp_value-20);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+7);
+    }
+
+    #[test]
+    fn test_i32const() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x12345;
+         let instructions = vec![
+           Instruction::I32Const(x_value.into()),
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.sp, sp_value -4);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
+    }
+
+    #[test]
+    fn test_call_internal_and_return() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x3;
+        let y_value: u32 = 0x5;
+        let z_value: u32 = 0x7;
+        let mut functions = vec![0,24];
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::CallInternal(1u32.into()),
+       // Instruction::Return(DropKeep::none()),
+        Instruction::I32Add, Instruction::I32Add,
+        Instruction::Return(DropKeep::none())];
+
+        let program = Program::new_with_memory_and_func(instructions, HashMap::new(),functions, 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value+z_value);
+     }
+    #[test]
+    fn test_i32constwithAdd() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 0x12345;
+        let y_value: u32 = 0x54321;
+
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::I32Add,
+
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        //  memory_image: BTreeMap::new() };
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        //assert_eq!(runtime.state.sp, sp_value+4);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+y_value);
+    }
 }

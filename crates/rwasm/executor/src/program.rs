@@ -36,6 +36,8 @@ pub struct Program {
     pub pc_base: u32,
     /// The initial memory image, useful for global constants.
     pub memory_image: HashMap<u32, u32>,
+     /// The funcindices for calling
+     pub index_offset: Vec<u32>,
     /// The shape for the preprocessed tables.
     pub preprocessed_shape: Option<Shape<RiscvAirId>>,
 }
@@ -49,9 +51,36 @@ impl Program {
             pc_start,
             pc_base,
             memory_image: HashMap::new(),
+            index_offset:vec![],
             preprocessed_shape: None,
         }
     }
+
+     /// Create a new [Program].
+     #[must_use]
+     pub fn new_with_memory(instructions: Vec<Instruction>,mem:HashMap<u32,u32>, pc_start: u32, pc_base: u32) -> Self {
+         Self {
+             instructions,
+             pc_start,
+             pc_base,
+             memory_image: mem,
+             index_offset:vec![],
+             preprocessed_shape: None,
+         }
+     }
+
+      /// Create a new [Program].
+      #[must_use]
+      pub fn new_with_memory_and_func(instructions: Vec<Instruction>,mem:HashMap<u32,u32>, funcs_indices_offset:Vec<u32>, pc_start: u32, pc_base: u32) -> Self {
+          Self {
+              instructions,
+              pc_start,
+              pc_base,
+              memory_image: mem,
+              index_offset:funcs_indices_offset,
+              preprocessed_shape: None,
+          }
+      }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM.
     ///

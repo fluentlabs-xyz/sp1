@@ -13,8 +13,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     events::{
-        AUIPCEvent, AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, CpuEvent, GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent
-    }, program::Program, syscalls::SyscallCode, RiscvAirId
+        AUIPCEvent, AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, CpuEvent,
+        GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent,
+        MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent,
+    },
+    program::Program,
+    syscalls::SyscallCode,
+    RiscvAirId,
 };
 
 /// A record of the execution of a program.
@@ -250,11 +255,11 @@ impl ExecutionRecord {
 #[derive(Debug, Copy, Clone, Default)]
 pub struct MemoryAccessRecord {
     /// The memory access of the `a` register.
-    pub a: Option<MemoryRecordEnum>,
+    pub arg1_record: Option<MemoryRecordEnum>,
     /// The memory access of the `b` register.
-    pub b: Option<MemoryRecordEnum>,
+    pub arg2_record: Option<MemoryRecordEnum>,
     /// The memory access of the `c` register.
-    pub c: Option<MemoryRecordEnum>,
+    pub res_record: Option<MemoryRecordEnum>,
     /// The memory access of the `memory` register.
     pub memory: Option<MemoryRecordEnum>,
 }
