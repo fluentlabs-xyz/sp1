@@ -9,7 +9,7 @@ use crate::profiler::Profiler;
 use clap::ValueEnum;
 use enum_map::EnumMap;
 use hashbrown::HashMap;
-use rwasm::engine::bytecode::Instruction;
+use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
 use serde::{Deserialize, Serialize};
 use sp1_primitives::consts::BABYBEAR_PRIME;
 use sp1_stark::{air::PublicValues, SP1CoreOpts};
@@ -249,6 +249,10 @@ pub enum ExecutionError {
     /// The program ended in unconstrained mode.
     #[error("program ended in unconstrained mode")]
     EndInUnconstrained(),
+
+     /// The program ended in unconstrained mode.
+     #[error("runtime divided by zero")]
+     DividedByZero(),
 
     /// The unconstrained cycle limit was exceeded.
     #[error("unconstrained cycle limit exceeded")]
@@ -694,20 +698,23 @@ impl<'a> Executor<'a> {
         )
     }
 
-    fn  binary_alu_stack_read(&mut self) -> (u32,u32) {
+    fn  binary_op_stack_read(&mut self) -> (u32,u32) {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
         let arg1_record = self.mr(sp+4, shard, clk, None);
-        let arg2_record = self.mr(sp, shard, clk, None);      
+        let arg2_record = self.mr(sp, shard, clk, None);
+        self.memory_accesses.arg1_record = Some(arg1_record.into());
+        self.memory_accesses.arg2_record = Some(arg2_record.into());
         (arg1_record.value,arg2_record.value)
     }
 
-    fn  unary_alu_stack_read(&mut self) -> u32 {
+    fn  unary_op_stack_read(&mut self) -> u32 {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
-        let arg1_record = self.mr(sp+4, shard, clk, None);
+        let arg1_record = self.mr(sp, shard, clk, None);
+        self.memory_accesses.arg1_record = Some(arg1_record.into());
         arg1_record.value
     }
 
@@ -719,6 +726,22 @@ impl<'a> Executor<'a> {
         let res_record = self.mw(sp,res,shard,clk, None);
         self.memory_accesses.res_record=Some(res_record.into());
     }
+
+    fn  memory_load(&mut self,instruction: &Instruction,)->(u32,u32) {
+        let offset:u32 = instruction.aux_value().unwrap().into();
+        let raw_addr= self.unary_op_stack_read();
+        let addr = offset.checked_add(raw_addr).unwrap();
+        println!("raw_addr:{}addr:{}",raw_addr,addr);
+        let clk = self.state.clk;  
+        let shard = self.shard();
+        let memory_record = self.mr(align(addr), shard, clk, None);
+        self.memory_accesses.memory=Some(memory_record.into());
+        println!("memory_record:{:?}",memory_record);
+        println!("addr:{}val:{}", addr,memory_record.value);
+        (addr,memory_record.value)
+       
+    }
+
 
     fn  memory_write(&mut self,addr:u32,res:u32) {
         
@@ -954,7 +977,9 @@ impl<'a> Executor<'a> {
         // The `clk` variable contains the cycle before the current instruction is executed.  The
         // `state.clk` can be updated before the end of this function by precompiles' execution.
         let mut clk = self.state.clk;
+        let sp = self.state.sp;
         let mut exit_code = 0u32;
+        
         let mut next_pc = self.state.pc.wrapping_add(4);
         // Will be set to a non-default value if the instruction is a syscall.
 
@@ -993,11 +1018,11 @@ impl<'a> Executor<'a> {
         } else if instruction.is_alu_instruction() {
             (arg1, arg2, res) = self.execute_alu(instruction);
         } else if instruction.is_memory_load_instruction() {
-            // (arg1, arg2, res) = self.execute_load(instruction)?;
+            (arg1, arg2, res) = self.execute_load(instruction)?;
         } else if instruction.is_memory_store_instruction() {
-            // (arg1, arg2, res) = self.execute_store(instruction)?;
+            (arg1, arg2, res) = self.execute_store(instruction)?;
         } else if instruction.is_branch_instruction() {
-            // (arg1, arg2, res, next_pc) = self.execute_branch(instruction, next_pc);
+            (arg1, arg2, res, next_pc) = self.execute_branch(instruction, next_pc);
         }  else if instruction.is_ecall_instruction() {
             // (arg1, arg2, res, clk, next_pc, syscall, exit_code) = self.execute_ecall()?;
         // } else if instruction.is_ebreak_instruction() {
@@ -1055,7 +1080,7 @@ impl<'a> Executor<'a> {
                 Instruction::I32Ctz=>unimplemented!(),
                 Instruction::I32Popcnt=>unimplemented!(),
                 Instruction::I32Eqz=>{
-                    let arg1 = self.unary_alu_stack_read();
+                    let arg1 = self.unary_op_stack_read();
                     let res = if arg1==0{
                         1
                     } else{
@@ -1067,7 +1092,7 @@ impl<'a> Executor<'a> {
                 _=>unreachable!() ,
             }
         } else{
-            let (arg1, arg2) = self.binary_alu_stack_read();
+            let (arg1, arg2) = self.binary_op_stack_read();
             let res = match instruction {
                 Instruction::I32Add => arg1.wrapping_add(arg2),
                 Instruction::I32Sub => arg1.wrapping_sub(arg2),
@@ -1170,6 +1195,13 @@ impl<'a> Executor<'a> {
                         arg1.wrapping_rem(arg2)
                     }
                 }
+                Instruction::I32Ne =>{
+                    if arg1 ==arg2{
+                        0
+                    } else{
+                        1
+                    }
+                }
                 _ => unreachable!(),
             };
             self.stack_resize(-1);
@@ -1179,94 +1211,115 @@ impl<'a> Executor<'a> {
        
     }
 
-    // /// Execute a load instruction.
-    // fn execute_load(
-    //     &mut self,
-    //     instruction: &Instruction,
-    // ) -> Result<(u32, u32, u32), ExecutionError> {
-    //     let (rd, b, c, addr, memory_read_value) = self.load_rr(instruction);
+    /// Execute a load instruction.
+    fn execute_load(
+        &mut self,
+        instruction: &Instruction,
+    ) -> Result<(u32, u32, u32), ExecutionError> {
+        let (addr,memory_read_value)= self.memory_load(instruction);
 
-    //     let a = match instruction.opcode {
-    //         Opcode::LB => ((memory_read_value >> ((addr % 4) * 8)) & 0xFF) as i8 as i32 as u32,
-    //         Opcode::LH => {
-    //             if addr % 2 != 0 {
-    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
-    //             }
-    //             ((memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF) as i16 as i32 as u32
-    //         }
-    //         Opcode::LW => {
-    //             if addr % 4 != 0 {
-    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
-    //             }
-    //             memory_read_value
-    //         }
-    //         Opcode::LBU => (memory_read_value >> ((addr % 4) * 8)) & 0xFF,
-    //         Opcode::LHU => {
-    //             if addr % 2 != 0 {
-    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::LHU, addr));
-    //             }
-    //             (memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF
-    //         }
-    //         _ => unreachable!(),
-    //     };
-    //     self.rw_cpu(rd, a);
-    //     Ok((a, b, c))
-    // }
+        let res = match instruction {
+            Instruction::I32Load8S(_) => ((memory_read_value >> ((addr % 4) * 8)) & 0xFF) as i8 as i32 as u32,
+            Instruction::I32Load16S(_)=> {
+                if addr % 2 != 0 {
+                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LH, addr));
+                }
+                ((memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF) as i16 as i32 as u32
+            }
+            Instruction::I32Load(_) => {
+                if addr % 4 != 0 {
+                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LW, addr));
+                }
+                memory_read_value
+            }
+            Instruction::I32Load8U(_) => (memory_read_value >> ((addr % 4) * 8)) & 0xFF,
+            Instruction::I32Load16U(_) => {
+                if addr % 2 != 0 {
+                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::LHU, addr));
+                }
+                (memory_read_value >> (((addr / 2) % 2) * 16)) & 0xFFFF
+            }
+            _ => unreachable!(),
+        };
+        self.stack_write(res);
+        Ok((addr, memory_read_value, res))
+    }
 
-    // /// Execute a store instruction.
-    // fn execute_store(
-    //     &mut self,
-    //     instruction: &Instruction,
-    // ) -> Result<(u32, u32, u32), ExecutionError> {
-    //     let (a, b, c, addr, memory_read_value) = self.store_rr(instruction);
+    /// Execute a store instruction.
+    fn execute_store(
+        &mut self,
+        instruction: &Instruction,
+    ) -> Result<(u32, u32, u32), ExecutionError> {
+        let (raw_addr,store_value)=self.binary_op_stack_read();
+        let offset:u32 = instruction.aux_value().unwrap().into();
+        let addr = raw_addr.checked_add(offset).unwrap();
+        let memory_read_value = self.word(align(addr));
+        let memory_store_value = match instruction {
+            Instruction::I32Store8(_) => {
+                let shift = (addr % 4) * 8;
+                ((store_value & 0xFF) << shift) | (memory_read_value & !(0xFF << shift))
+            }
+            Instruction::I32Store16(_)  => {
+                if addr % 2 != 0 {
+                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::SH, addr));
+                }
+                let shift = ((addr / 2) % 2) * 16;
+                ((store_value & 0xFFFF) << shift) | (memory_read_value & !(0xFFFF << shift))
+            }
+            Instruction::I32Store(_)  => {
+                if addr % 4 != 0 {
+                    return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, addr));
+                }
+                store_value
+            }
+            _ => unreachable!(),
+        };
+        self.memory_write(align(addr), memory_store_value);
+        Ok((raw_addr, memory_read_value, memory_store_value))
+    }
 
-    //     let memory_store_value = match instruction.opcode {
-    //         Opcode::SB => {
-    //             let shift = (addr % 4) * 8;
-    //             ((a & 0xFF) << shift) | (memory_read_value & !(0xFF << shift))
-    //         }
-    //         Opcode::SH => {
-    //             if addr % 2 != 0 {
-    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::SH, addr));
-    //             }
-    //             let shift = ((addr / 2) % 2) * 16;
-    //             ((a & 0xFFFF) << shift) | (memory_read_value & !(0xFFFF << shift))
-    //         }
-    //         Opcode::SW => {
-    //             if addr % 4 != 0 {
-    //                 return Err(ExecutionError::InvalidMemoryAccess(Opcode::SW, addr));
-    //             }
-    //             a
-    //         }
-    //         _ => unreachable!(),
-    //     };
-    //     self.mw_cpu(align(addr), memory_store_value);
-    //     Ok((a, b, c))
-    // }
-
-    // /// Execute a branch instruction.
-    // fn execute_branch(
-    //     &mut self,
-    //     instruction: &Instruction,
-    //     mut next_pc: u32,
-    // ) -> (u32, u32, u32, u32) {
-    //     let (a, b, c) = self.branch_rr(instruction);
-    //     let branch = match instruction.opcode {
-    //         Opcode::BEQ => a == b,
-    //         Opcode::BNE => a != b,
-    //         Opcode::BLT => (a as i32) < (b as i32),
-    //         Opcode::BGE => (a as i32) >= (b as i32),
-    //         Opcode::BLTU => a < b,
-    //         Opcode::BGEU => a >= b,
-    //         _ => {
-    //             unreachable!()
-    //         }
-    //     };
-    //     if branch {
-    //         next_pc = self.state.pc.wrapping_add(c);
-    //     }
-    //     (a, b, c, next_pc)
-    // }
+    /// Execute a branch instruction.
+    fn execute_branch(
+        &mut self,
+        instruction: &Instruction,
+        mut next_pc: u32,
+    ) -> (u32, u32, u32, u32) {
+        let (mut branch,offset):(bool,u32);   
+        let mut arg1:u32 =0;
+        match instruction{
+            Instruction::Br(branch_offset)=>{
+                branch=true;
+                offset=(branch_offset.to_i32() as u32);
+            }
+            Instruction::BrIfEqz(branch_offset)=>{
+                arg1 = self.unary_op_stack_read();
+                if arg1==0{
+                    branch=true;
+                    offset=(branch_offset.to_i32() as u32);
+                } else{
+                    branch= false;
+                    offset=4;
+                }
+                self.stack_resize(-1);
+            }  
+            Instruction::BrIfNez(branch_offset)=>{
+                arg1 = self.unary_op_stack_read();
+                if arg1!=0{
+                    branch=true;
+                    offset=(branch_offset.to_i32() as u32);
+                } else{
+                    branch= false;
+                    offset=4;
+                }
+                self.stack_resize(-1);
+            },
+            _=>unreachable!()
+        }
+        if branch {
+            next_pc = self.state.pc.wrapping_add(offset);
+        }
+        (arg1, 0, 0, next_pc)
+    }
 
     // /// Execute an ecall instruction.
     // #[allow(clippy::type_complexity)]
@@ -3026,7 +3079,7 @@ mod tests {
             Instruction::I32Add,
             Instruction::I32Add,
             Instruction::I32Add,
-           // Instruction::BrIfNez(BranchOffset::from(12i32)),
+            Instruction::BrIfNez(BranchOffset::from(12i32)),
         ];
 
         let program = Program::new_with_memory(instructions,HashMap::new(),0, 0);
