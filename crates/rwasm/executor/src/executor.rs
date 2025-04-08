@@ -3212,26 +3212,24 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
 
-        let mut mem = HashMap::new();
-
-
         let instructions = vec![
             Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+4).into()),
+            Instruction::I32Const((x_value+3).into()),
+            Instruction::I32Const((x_value+2).into()),
+            Instruction::I32Const((x_value+1).into()),
             Instruction::I32Const((x_value).into()),
             Instruction::LocalGet(6.into()),
-
+            Instruction::LocalGet(6.into()),
+            Instruction::I32Add,
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         peek_stack(&runtime);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5 + x_value+4);
     }
 
     #[test]
