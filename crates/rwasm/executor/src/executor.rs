@@ -427,7 +427,7 @@ impl<'a> Executor<'a> {
         registers
     }
 
-   
+
 
     /// Get the current value of a word.
     ///
@@ -466,7 +466,7 @@ impl<'a> Executor<'a> {
     /// Get the current timestamp for a given memory access position.
     #[must_use]
     pub const fn timestamp(&self) -> u32 {
-        self.state.clk 
+        self.state.clk
     }
 
     /// Get the current shard.
@@ -585,9 +585,9 @@ impl<'a> Executor<'a> {
         )
     }
 
-   
 
-   
+
+
     /// Write a word to memory and create an access record.
     pub fn mw(
         &mut self,
@@ -732,19 +732,19 @@ impl<'a> Executor<'a> {
         let raw_addr= self.unary_op_stack_read();
         let addr = offset.checked_add(raw_addr).unwrap();
         println!("raw_addr:{}addr:{}",raw_addr,addr);
-        let clk = self.state.clk;  
+        let clk = self.state.clk;
         let shard = self.shard();
         let memory_record = self.mr(align(addr), shard, clk, None);
         self.memory_accesses.memory=Some(memory_record.into());
         println!("memory_record:{:?}",memory_record);
         println!("addr:{}val:{}", addr,memory_record.value);
         (addr,memory_record.value)
-       
+
     }
 
 
     fn  memory_write(&mut self,addr:u32,res:u32) {
-        
+
         self.state.clk+=4;
         let shard = self.shard();
         let res_record = self.mw(addr,res,shard,self.state.clk, None);
@@ -755,10 +755,10 @@ impl<'a> Executor<'a> {
        let new_sp = (self.state.sp as i32).wrapping_add(change*(-4));
        self.state.sp=new_sp as u32;
     }
-   
-   
 
-  
+
+
+
 
     /// Emit events for this cycle.
     #[allow(clippy::too_many_arguments)]
@@ -847,7 +847,7 @@ impl<'a> Executor<'a> {
     //         Instruction::I32Mul  => {
     //             self.record.mul_events.push(event);
     //         }
-    //         Instruction::I32DivS | Instruction::I32DivU | 
+    //         Instruction::I32DivS | Instruction::I32DivU |
     //         Instruction::I32RemS | Instruction::I32RemU => {
     //             self.record.divrem_events.push(event);
     //             emit_divrem_dependencies(self, event);
@@ -898,7 +898,7 @@ impl<'a> Executor<'a> {
     //     emit_branch_dependencies(self, event);
     // }
 
-   
+
 
     // /// Emit an AUIPC event.
     // #[inline]
@@ -964,7 +964,7 @@ impl<'a> Executor<'a> {
         self.record.syscall_events.push(syscall_event);
     }
 
-  
+
     /// Fetch the instruction at the current program counter.
     #[inline]
     fn fetch(&self) -> Instruction {
@@ -979,11 +979,11 @@ impl<'a> Executor<'a> {
         let mut clk = self.state.clk;
         let sp = self.state.sp;
         let mut exit_code = 0u32;
-        
+
         let mut next_pc = self.state.pc.wrapping_add(4);
         // Will be set to a non-default value if the instruction is a syscall.
 
-        
+
 
         let (mut arg1, mut arg2, mut res): (u32, u32, u32)=(0,0,0);
 
@@ -1014,7 +1014,7 @@ impl<'a> Executor<'a> {
         // }
         //TODO: fix report find way to count instruction
         if instruction.is_const_instruction(){
-            (arg1, arg2, res) = self.execute_const(instruction);       
+            (arg1, arg2, res) = self.execute_const(instruction);
         } else if instruction.is_alu_instruction() {
             (arg1, arg2, res) = self.execute_alu(instruction);
         } else if instruction.is_memory_load_instruction() {
@@ -1035,7 +1035,7 @@ impl<'a> Executor<'a> {
             unreachable!()
         }
 
-     
+
 
         // Emit the events for this cycle.
         if self.executor_mode == ExecutorMode::Trace {
@@ -1166,7 +1166,7 @@ impl<'a> Executor<'a> {
                     }
                 }
                 Instruction::I32Mul => arg1.wrapping_mul(arg2),
-              
+
                 Instruction::I32DivS => {
                     if arg2 == 0 {
                         u32::MAX
@@ -1208,7 +1208,7 @@ impl<'a> Executor<'a> {
             self.stack_write(res);
             (res, arg1, arg2)
         }
-       
+
     }
 
     /// Execute a load instruction.
@@ -1284,7 +1284,7 @@ impl<'a> Executor<'a> {
         instruction: &Instruction,
         mut next_pc: u32,
     ) -> (u32, u32, u32, u32) {
-        let (mut branch,offset):(bool,u32);   
+        let (mut branch,offset):(bool,u32);
         let mut arg1:u32 =0;
         match instruction{
             Instruction::Br(branch_offset)=>{
@@ -1301,7 +1301,7 @@ impl<'a> Executor<'a> {
                     offset=4;
                 }
                 self.stack_resize(-1);
-            }  
+            }
             Instruction::BrIfNez(branch_offset)=>{
                 arg1 = self.unary_op_stack_read();
                 if arg1!=0{
@@ -1414,7 +1414,7 @@ impl<'a> Executor<'a> {
     //     Ok((a, b, c, clk, precompile_next_pc, syscall, returned_exit_code))
     // }
 
-   
+
 
     /// Executes one cycle of the program, returning whether the program has finished.
     #[inline]
@@ -2088,8 +2088,8 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value);
-
         println!("initial sp_value {} and last state.sp {}", sp_value, runtime.state.sp);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_sub() {
@@ -2107,6 +2107,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value - y_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_xor() {
@@ -2125,6 +2126,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value ^ y_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_or() {
@@ -2142,6 +2144,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value | y_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_and() {
@@ -2159,6 +2162,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value & y_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_addi_negative() {
@@ -2177,6 +2181,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value - 1 + z_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
     #[test]
@@ -2199,6 +2204,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value | y_value | z_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_andi() {
@@ -2219,6 +2225,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value & y_value & z_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_mul() {
@@ -2236,6 +2243,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_eq() {
@@ -2253,11 +2261,12 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_ne() {
         let sp_value: u32 = SP_START;
-        let x_value: u32 = 32;
+        let x_value: u32 = 1;
         let y_value: u32 = 32;
         let z_value: u32 = 1;
 
@@ -2272,7 +2281,8 @@ mod tests {
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_eqz() {
@@ -2288,6 +2298,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
     #[test]
     fn test_lts_ltu() {
@@ -2307,6 +2318,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
 
     #[test]
@@ -2329,6 +2341,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
     #[test]
     fn test_ges_geu() {
@@ -2349,6 +2362,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
 
     #[test]
@@ -2370,6 +2384,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
     #[test]
     fn test_divs_divu() {
@@ -2397,6 +2412,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value / (y_value / z_value)
         );
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
     #[test]
     fn test_rems_remu() {
@@ -2420,6 +2436,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value % (y_value % z_value)
         );
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
     #[test]
     fn test_shl() {
@@ -2443,6 +2460,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value << (y_value << z_value)
         );
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
     #[test]
     fn test_shr_shru() {
@@ -2466,6 +2484,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value >> (y_value >> z_value)
         );
+        assert_eq!( sp_value, runtime.state.sp+4);
     }
 
     fn simple_instruction_test(opcode: Instruction, expected: u32, a: u32, b: u32) {
@@ -2621,6 +2640,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
+        assert_eq!( sp_value, runtime.state.sp);
     }
 
 
@@ -2649,6 +2669,7 @@ mod tests {
             runtime.state.memory.get(addr).unwrap().value,
             (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16)
         );
+       // assert_eq!( sp_value, runtime.state.sp+8);
     }
 
     #[test]
