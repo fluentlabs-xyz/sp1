@@ -3175,9 +3175,10 @@ mod tests {
 
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1 << 1) << 1) << 1);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
-    //todo #[test]
+    #[test]
     fn build_elf_branching() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x1;
@@ -3186,20 +3187,24 @@ mod tests {
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const((x_value+1).into()),
             Instruction::I32Const((x_value+2).into()),
+            Instruction::I32Add,
+            Instruction::I32Add,
+            Instruction::I32Const((5).into()),
+            Instruction::BrIfNez(BranchOffset::from(16i32)),
             Instruction::I32Const((x_value+3).into()),
             Instruction::I32Const((x_value+4).into()),
             Instruction::I32Add,
             Instruction::I32Add,
-            Instruction::I32Add,
-            Instruction::I32Add,
-            Instruction::BrIfNez(BranchOffset::from(12i32)),
+
         ];
 
         let program = Program::new_with_memory(instructions,HashMap::new(),0, 0);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
+
+        println!("initial.sp {} , state.sp {}", sp_value, runtime.state.sp);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 6);
     }
 
     #[test]
