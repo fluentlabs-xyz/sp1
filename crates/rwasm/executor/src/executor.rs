@@ -3230,6 +3230,7 @@ mod tests {
         runtime.run().unwrap();
         peek_stack(&runtime);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5 + x_value+4);
+        assert_eq!( sp_value, runtime.state.sp + 7*4);
     }
 
     #[test]
