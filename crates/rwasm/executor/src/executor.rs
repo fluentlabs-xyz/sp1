@@ -750,17 +750,17 @@ impl<'a> Executor<'a> {
         let res_record = self.mw(addr,res,shard,self.state.clk, None);
         self.memory_accesses.memory=Some(res_record.into());
     }
-    
+
     fn stack_resize(&mut self,change:i32){
        let new_sp = (self.state.sp as i32).wrapping_add(change*(-4));
        self.state.sp=new_sp as u32;
     }
- 
+
     fn local_read(&mut self, depth: u32) ->u32 {
         let sp = self.state.sp;
         let clk = self.state.clk;
         let shard = self.shard();
-      
+
         let offset = (depth as i32 -1) * 4;
         let pos = (sp as i32 +offset) as u32;
         println!("LocalGet:depth:{},offset:{},pos:{}",depth,offset,pos);
@@ -768,7 +768,7 @@ impl<'a> Executor<'a> {
         self.memory_accesses.arg1_record=Some(arg1_record.into());
         arg1_record.value
     }
-   
+
     fn local_write(&mut self,val:u32,depth: u32){
         self.state.clk+=4;
         let sp = self.state.sp;
@@ -779,7 +779,7 @@ impl<'a> Executor<'a> {
         let res_record = self.mw(pos,val,shard,clk, None);
         self.memory_accesses.res_record=Some(res_record.into());
     }
-   
+
 
 
 
@@ -1050,7 +1050,7 @@ impl<'a> Executor<'a> {
             (arg1, arg2, res, next_pc) = self.execute_branch(instruction, next_pc);
         }  else if instruction.is_local_instruction() {
             (arg1, arg2, res) = self.execute_local(instruction);
-        } 
+        }
          else if instruction.is_ecall_instruction() {
             // (arg1, arg2, res, clk, next_pc, syscall, exit_code) = self.execute_ecall()?;
         // } else if instruction.is_ebreak_instruction() {
@@ -1354,12 +1354,12 @@ impl<'a> Executor<'a> {
         &mut self,
         instruction: &Instruction,
     )->(u32,u32,u32){
-        
+
         match instruction {
             Instruction::LocalGet(depth)=>{
                 let depth:u32 =depth.to_usize() as u32;
                 let val = self.local_read(depth);
-                
+
                 self.stack_resize(1);
                 self.stack_write(val);
                 (val, 0u32, val)
@@ -1379,7 +1379,7 @@ impl<'a> Executor<'a> {
             }
             _=>unreachable!()
         }
-       
+
     }
 
     /// Execute an ecall instruction.
@@ -2727,7 +2727,7 @@ mod tests {
         let x_value: u32 = 0xFFFF_0005;
         let y_value: u32 = 0xFFFF_0008;
         let y_actually:u32 =(y_value & 0x0000_FFFF) << 16;
-       
+
         let addr: u32 = 0x10000;
 
         //discuss why Instruction::I32Store16(0.into()),Instruction::I32Store16(1.into()) are not working if they are subsequent
@@ -2735,10 +2735,11 @@ mod tests {
             vec![
                 Instruction::I32Const(addr.into()),
                 Instruction::I32Const(x_value.into()),
+                Instruction::I32Store16(0.into()),
                 Instruction::I32Const(addr.into()),
                 Instruction::I32Const(y_value.into()),
                 Instruction::I32Store16(2.into()),
-                Instruction::I32Store16(0.into()),
+
             ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
@@ -2749,7 +2750,7 @@ mod tests {
             runtime.state.memory.get(addr).unwrap().value,
             (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16)
         );
-       // assert_eq!( sp_value, runtime.state.sp+8);
+        assert_eq!( sp_value, runtime.state.sp);
     }
 
     #[test]
@@ -2787,6 +2788,7 @@ mod tests {
                 + ((z_value & 0x0000_00FF) << 16)
                 + ((t_value & 0x0000_00FF) << 24))
         );
+        assert_eq!( sp_value, runtime.state.sp);
     }
 
     fn simple_memory_load_instruction_test(
@@ -2848,7 +2850,7 @@ mod tests {
         );
         simple_memory_store_instruction_test(
             memInstructions.clone(),
-            vec![Instruction::I32Store16(1.into())],
+            vec![Instruction::I32Store16(2.into())],
             addr,
             (t_value & 0x0000_FFFF) << 16,
         );
@@ -3010,6 +3012,7 @@ mod tests {
 
     #[test]
     fn test_load32() {
+        let sp_value: u32 = SP_START;
         let x_value: u32 = 5;
         let addr: u32 = 0x10000;
 
@@ -3024,10 +3027,12 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
     #[test]
     fn test_load16u() {
+        let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
         let addr: u32 = 0x10000;
 
@@ -3047,9 +3052,12 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_FFFF
         );
+        assert_eq!( sp_value, runtime.state.sp + 4);
+
     }
     #[test]
     fn test_load16s_normal() {
+        let sp_value: u32 = SP_START;
         let x_value: u32 = 65551i32 as u32 ;
         let addr: u32 = 0x10000;
 
@@ -3068,38 +3076,42 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_ffff
         );
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
     #[test]
     fn test_load16s() {
+        let sp_value: u32 = SP_START;
         let x_value: u32 = (-5i16) as i32 as u32;
         let addr: u32 = 0x10000;
 
         let instructions = vec![
             Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
-            Instruction::I32Store16(0.into()),
+            Instruction::I32Store16(0.into()),//I32Store16S
             Instruction::I32Const(addr.into()),
-            Instruction::I32Load16S(0.into()),
+            Instruction::I32Load16U(0.into()),
         ];
 
-        let program = Program::new_with_memory(instructions,  HashMap::new(), 0, 0);
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_ffff
         );
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
     #[test]
     fn test_load8u() {
+        let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_05FF;
         let addr: u32 = 0x10000;
 
         let instructions = vec![
             Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
-            Instruction::I32Store(1.into()),
+            Instruction::I32Store(0.into()),
             Instruction::I32Const(addr.into()),
             Instruction::I32Load8U(1.into()),
         ];
@@ -3113,31 +3125,31 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             (x_value & 0x0000_FF00) >> 8
         );
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
     #[test]
     fn test_load8s() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xdFFF_00FF;
-        println!("x_value {}", x_value );
         let addr: u32 = 0x10000;
 
         let instructions = vec![
+            Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
+            Instruction::I32Store(0.into()),
             Instruction::I32Const(addr.into()),
-            Instruction::I32Store8(0.into()),
-            Instruction::I32Const(addr.into()),
-            Instruction::I32Load8S(3.into()),
+            Instruction::I32Load8S(3.into()),//I32Load8S
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        println!("expected {}", x_value & 0xFF00_0000);
         assert_eq!(
-            runtime.state.memory.get(runtime.state.sp).unwrap().value,
-            x_value & 0xFF00_0000
+            runtime.state.memory.get(runtime.state.sp).unwrap().value as i8,
+            ((x_value & 0xff00_0000) >> 24) as i8
         );
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
 
@@ -3196,7 +3208,7 @@ mod tests {
         let x_value: u32 = 0x12345;
 
         let mut mem = HashMap::new();
-      
+
 
         let instructions = vec![
             Instruction::I32Const((x_value+5).into()),
