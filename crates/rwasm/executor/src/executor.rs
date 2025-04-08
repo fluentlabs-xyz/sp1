@@ -750,11 +750,36 @@ impl<'a> Executor<'a> {
         let res_record = self.mw(addr,res,shard,self.state.clk, None);
         self.memory_accesses.memory=Some(res_record.into());
     }
-
+    
     fn stack_resize(&mut self,change:i32){
        let new_sp = (self.state.sp as i32).wrapping_add(change*(-4));
        self.state.sp=new_sp as u32;
     }
+ 
+    fn local_read(&mut self, depth: u32) ->u32 {
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+      
+        let offset = (depth as i32 -1) * 4;
+        let pos = (sp as i32 +offset) as u32;
+        println!("LocalGet:depth:{},offset:{},pos:{}",depth,offset,pos);
+        let arg1_record = self.mr(pos, shard, clk, None);
+        self.memory_accesses.arg1_record=Some(arg1_record.into());
+        arg1_record.value
+    }
+   
+    fn local_write(&mut self,val:u32,depth: u32){
+        self.state.clk+=4;
+        let sp = self.state.sp;
+        let clk = self.state.clk;
+        let shard = self.shard();
+        let offset = (depth as i32 -1) * -4;
+        let pos = (sp as i32 +offset) as u32;
+        let res_record = self.mw(pos,val,shard,clk, None);
+        self.memory_accesses.res_record=Some(res_record.into());
+    }
+   
 
 
 
@@ -1023,7 +1048,10 @@ impl<'a> Executor<'a> {
             (arg1, arg2, res) = self.execute_store(instruction)?;
         } else if instruction.is_branch_instruction() {
             (arg1, arg2, res, next_pc) = self.execute_branch(instruction, next_pc);
-        }  else if instruction.is_ecall_instruction() {
+        }  else if instruction.is_local_instruction() {
+            (arg1, arg2, res) = self.execute_local(instruction);
+        } 
+         else if instruction.is_ecall_instruction() {
             // (arg1, arg2, res, clk, next_pc, syscall, exit_code) = self.execute_ecall()?;
         // } else if instruction.is_ebreak_instruction() {
         //     return Err(ExecutionError::Breakpoint());
@@ -1274,6 +1302,7 @@ impl<'a> Executor<'a> {
             }
             _ => unreachable!(),
         };
+        self.stack_resize(-2);
         self.memory_write(align(addr), memory_store_value);
         Ok((raw_addr, memory_read_value, memory_store_value))
     }
@@ -1321,98 +1350,130 @@ impl<'a> Executor<'a> {
         (arg1, 0, 0, next_pc)
     }
 
-    // /// Execute an ecall instruction.
-    // #[allow(clippy::type_complexity)]
-    // fn execute_ecall(
-    //     &mut self,
-    // ) -> Result<(u32, u32, u32, u32, u32, SyscallCode, u32), ExecutionError> {
-    //     // We peek at register x5 to get the syscall id. The reason we don't `self.rr` this
-    //     // register is that we write to it later.
-    //     let t0 = todo!();
-    //     let syscall_id = todo!();
-    //     let c = todo!();
-    //     let b = todo!();
-    //     let syscall = SyscallCode::from_u32(syscall_id);
+    fn execute_local(
+        &mut self,
+        instruction: &Instruction,
+    )->(u32,u32,u32){
+        
+        match instruction {
+            Instruction::LocalGet(depth)=>{
+                let depth:u32 =depth.to_usize() as u32;
+                let val = self.local_read(depth);
+                
+                self.stack_resize(1);
+                self.stack_write(val);
+                (val, 0u32, val)
+            }
+            Instruction::LocalSet(depth)=>{
+                let depth:u32 =depth.to_usize() as u32;
+                let val =self.unary_op_stack_read();
+                self.stack_resize(-1);
+                self.local_write(val,depth);
+                (val, 0u32, val)
+            }
+            Instruction::LocalTee(depth)=>{
+                let depth:u32 =depth.to_usize() as u32;
+                let val =self.unary_op_stack_read();
+                self.local_write(val,depth);
+                (val, 0u32, val)
+            }
+            _=>unreachable!()
+        }
+       
+    }
 
-    //     if self.print_report && !self.unconstrained {
-    //         self.report.syscall_counts[syscall] += 1;
-    //     }
+    /// Execute an ecall instruction.
+    #[allow(clippy::type_complexity)]
+    fn execute_ecall(
+        &mut self,
+    ) -> Result<(u32, u32, u32, u32, u32, SyscallCode, u32), ExecutionError> {
+        // We peek at register x5 to get the syscall id. The reason we don't `self.rr` this
+        // register is that we write to it later.
+        let t0 = todo!();
+        let syscall_id = todo!();
+        let c = todo!();
+        let b = todo!();
+        let syscall = SyscallCode::from_u32(syscall_id);
 
-    //     // `hint_slice` is allowed in unconstrained mode since it is used to write the hint.
-    //     // Other syscalls are not allowed because they can lead to non-deterministic
-    //     // behavior, especially since many syscalls modify memory in place,
-    //     // which is not permitted in unconstrained mode. This will result in
-    //     // non-zero memory interactions when generating a proof.
+        if self.print_report && !self.unconstrained {
+            self.report.syscall_counts[syscall] += 1;
+        }
 
-    //     if self.unconstrained
-    //         && (syscall != SyscallCode::EXIT_UNCONSTRAINED && syscall != SyscallCode::WRITE)
-    //     {
-    //         return Err(ExecutionError::InvalidSyscallUsage(syscall_id as u64));
-    //     }
+        // `hint_slice` is allowed in unconstrained mode since it is used to write the hint.
+        // Other syscalls are not allowed because they can lead to non-deterministic
+        // behavior, especially since many syscalls modify memory in place,
+        // which is not permitted in unconstrained mode. This will result in
+        // non-zero memory interactions when generating a proof.
 
-    //     // Update the syscall counts.
-    //     let syscall_for_count = syscall.count_map();
-    //     let syscall_count = self.state.syscall_counts.entry(syscall_for_count).or_insert(0);
-    //     *syscall_count += 1;
+        if self.unconstrained
+            && (syscall != SyscallCode::EXIT_UNCONSTRAINED && syscall != SyscallCode::WRITE)
+        {
+            return Err(ExecutionError::InvalidSyscallUsage(syscall_id as u64));
+        }
 
-    //     let syscall_impl = self.get_syscall(syscall).cloned();
-    //     let mut precompile_rt = SyscallContext::new(self);
-    //     let (a, precompile_next_pc, precompile_cycles, returned_exit_code) =
-    //         if let Some(syscall_impl) = syscall_impl {
-    //             // Executing a syscall optionally returns a value to write to the t0
-    //             // register. If it returns None, we just keep the
-    //             // syscall_id in t0.
-    //             let res = syscall_impl.execute(&mut precompile_rt, syscall, b, c);
-    //             let a = if let Some(val) = res { val } else { syscall_id };
+        // Update the syscall counts.
+        let syscall_for_count = syscall.count_map();
+        let syscall_count = self.state.syscall_counts.entry(syscall_for_count).or_insert(0);
+        *syscall_count += 1;
 
-    //             // If the syscall is `HALT` and the exit code is non-zero, return an error.
-    //             if syscall == SyscallCode::HALT && precompile_rt.exit_code != 0 {
-    //                 return Err(ExecutionError::HaltWithNonZeroExitCode(precompile_rt.exit_code));
-    //             }
+        let syscall_impl = self.get_syscall(syscall).cloned();
+        let mut precompile_rt = SyscallContext::new(self);
+        let (a, precompile_next_pc, precompile_cycles, returned_exit_code) =
+            if let Some(syscall_impl) = syscall_impl {
+                // Executing a syscall optionally returns a value to write to the t0
+                // register. If it returns None, we just keep the
+                // syscall_id in t0.
+                let res = syscall_impl.execute(&mut precompile_rt, syscall, b, c);
+                let a = if let Some(val) = res { val } else { syscall_id };
 
-    //             (a, precompile_rt.next_pc, syscall_impl.num_extra_cycles(), precompile_rt.exit_code)
-    //         } else {
-    //             return Err(ExecutionError::UnsupportedSyscall(syscall_id));
-    //         };
+                // If the syscall is `HALT` and the exit code is non-zero, return an error.
+                if syscall == SyscallCode::HALT && precompile_rt.exit_code != 0 {
+                    return Err(ExecutionError::HaltWithNonZeroExitCode(precompile_rt.exit_code));
+                }
 
-    //     if let (Some(estimator), Some(syscall_id)) =
-    //         (&mut self.record_estimator, syscall.as_air_id())
-    //     {
-    //         let threshold = match syscall_id {
-    //             RiscvAirId::ShaExtend => self.opts.split_opts.sha_extend,
-    //             RiscvAirId::ShaCompress => self.opts.split_opts.sha_compress,
-    //             RiscvAirId::KeccakPermute => self.opts.split_opts.keccak,
-    //             _ => self.opts.split_opts.deferred,
-    //         } as u64;
-    //         let shards = &mut estimator.precompile_records[syscall_id];
-    //         let local_memory_ct =
-    //             estimator.current_precompile_touched_compressed_addresses.len() as u64;
-    //         match shards.last_mut().filter(|shard| shard.0 < threshold) {
-    //             Some((shard_precompile_event_ct, shard_local_memory_ct)) => {
-    //                 *shard_precompile_event_ct += 1;
-    //                 *shard_local_memory_ct += local_memory_ct;
-    //             }
-    //             None => shards.push((1, local_memory_ct)),
-    //         }
-    //         estimator.current_precompile_touched_compressed_addresses.clear();
-    //     }
+                (a, precompile_rt.next_pc, syscall_impl.num_extra_cycles(), precompile_rt.exit_code)
+            } else {
+                return Err(ExecutionError::UnsupportedSyscall(syscall_id));
+            };
 
-    //     // // If the syscall is `EXIT_UNCONSTRAINED`, the memory was restored to pre-unconstrained code
-    //     // // in the execute function, so we need to re-read from x10 and x11.  Just do a peek on the
-    //     // // registers.
-    //     // let (b, c) = if syscall == SyscallCode::EXIT_UNCONSTRAINED {
-    //     //     (self.register(Register::X10), self.register(Register::X11))
-    //     // } else {
-    //     //     (b, c)
-    //     // };
+        if let (Some(estimator), Some(syscall_id)) =
+            (&mut self.record_estimator, syscall.as_air_id())
+        {
+            let threshold = match syscall_id {
+                RiscvAirId::ShaExtend => self.opts.split_opts.sha_extend,
+                RiscvAirId::ShaCompress => self.opts.split_opts.sha_compress,
+                RiscvAirId::KeccakPermute => self.opts.split_opts.keccak,
+                _ => self.opts.split_opts.deferred,
+            } as u64;
+            let shards = &mut estimator.precompile_records[syscall_id];
+            let local_memory_ct =
+                estimator.current_precompile_touched_compressed_addresses.len() as u64;
+            match shards.last_mut().filter(|shard| shard.0 < threshold) {
+                Some((shard_precompile_event_ct, shard_local_memory_ct)) => {
+                    *shard_precompile_event_ct += 1;
+                    *shard_local_memory_ct += local_memory_ct;
+                }
+                None => shards.push((1, local_memory_ct)),
+            }
+            estimator.current_precompile_touched_compressed_addresses.clear();
+        }
 
-    //     // Allow the syscall impl to modify state.clk/pc (exit unconstrained does this)
-    //     // self.rw_cpu(t0, a); TODO:check wether we need this
-    //     let clk = self.state.clk;
-    //     self.state.clk += precompile_cycles;
+        // // If the syscall is `EXIT_UNCONSTRAINED`, the memory was restored to pre-unconstrained code
+        // // in the execute function, so we need to re-read from x10 and x11.  Just do a peek on the
+        // // registers.
+        // let (b, c) = if syscall == SyscallCode::EXIT_UNCONSTRAINED {
+        //     (self.register(Register::X10), self.register(Register::X11))
+        // } else {
+        //     (b, c)
+        // };
 
-    //     Ok((a, b, c, clk, precompile_next_pc, syscall, returned_exit_code))
-    // }
+        // Allow the syscall impl to modify state.clk/pc (exit unconstrained does this)
+        // self.rw_cpu(t0, a); TODO:check wether we need this
+        let clk = self.state.clk;
+        self.state.clk += precompile_cycles;
+
+        Ok((a, b, c, clk, precompile_next_pc, syscall, returned_exit_code))
+    }
 
 
 
@@ -2071,7 +2132,23 @@ mod tests {
     use hashbrown::HashMap;
     use rwasm::engine::{bytecode::{BranchOffset, Instruction}, DropKeep};
     use sp1_stark::SP1CoreOpts;
-
+    fn peek_stack(rt:&Executor){
+        let start=SP_START;
+        for idx in (1..10){
+            let rec= rt.state.memory.get(SP_START-4*idx);
+            match rec{
+                Some(rec) => {println!("pos:{},val:{}",idx,rec.value);}
+                None => {println!("pos:{},empty",idx);},
+            }
+        }
+        for idx in (1..10){
+            let rec= rt.state.memory.get(SP_START+4*idx);
+            match rec{
+                Some(rec) => {println!("Error ! pos:-{},val:{}",idx,rec.value);}
+                None => {println!("pos:-{},empty",idx);},
+            }
+        }
+    }
     #[test]
     fn test_add() {
         let sp_value: u32 = SP_START;
@@ -2649,6 +2726,8 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xFFFF_0005;
         let y_value: u32 = 0xFFFF_0008;
+        let y_actually:u32 =(y_value & 0x0000_FFFF) << 16;
+       
         let addr: u32 = 0x10000;
 
         //discuss why Instruction::I32Store16(0.into()),Instruction::I32Store16(1.into()) are not working if they are subsequent
@@ -2658,13 +2737,14 @@ mod tests {
                 Instruction::I32Const(x_value.into()),
                 Instruction::I32Const(addr.into()),
                 Instruction::I32Const(y_value.into()),
-                Instruction::I32Store16(1.into()),
+                Instruction::I32Store16(2.into()),
                 Instruction::I32Store16(0.into()),
             ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
+        println!("stack val:{:x}", runtime.state.memory.get(addr).unwrap().value);
         assert_eq!(
             runtime.state.memory.get(addr).unwrap().value,
             (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16)
@@ -2989,7 +3069,7 @@ mod tests {
             x_value & 0x0000_ffff
         );
     }
-    //todo #[test]
+    #[test]
     fn test_load16s() {
         let x_value: u32 = (-5i16) as i32 as u32;
         let addr: u32 = 0x10000;
@@ -3035,7 +3115,7 @@ mod tests {
         );
     }
 
-    //todo #[test]
+    #[test]
     fn test_load8s() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0xdFFF_00FF;
@@ -3110,17 +3190,22 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 2);
     }
 
-    //todo #[test]
+    #[test]
     fn test_local_get() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value + 20, x_value + 5);
+      
 
         let instructions = vec![
-           Instruction::LocalGet(20.into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value).into()),
+            Instruction::LocalGet(6.into()),
 
         ];
 
@@ -3128,10 +3213,11 @@ mod tests {
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
+        peek_stack(&runtime);
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value+5);
     }
 
-    //todo #[test]
+    #[test]
     fn test_local_set() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
@@ -3141,7 +3227,13 @@ mod tests {
         mem.insert(sp_value - 16, x_value + 5);
 
         let instructions = vec![
-           Instruction::LocalSet(16.into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value).into()),
+            Instruction::LocalSet(5.into()),
 
         ];
 
@@ -3149,10 +3241,11 @@ mod tests {
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
+        peek_stack(&runtime);
         println!("after {}", runtime.state.sp);
         assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
     }
-    //todo #[test]
+    #[test]
     fn test_locals() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 1;
@@ -3163,7 +3256,7 @@ mod tests {
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const(y_value.into()),
             Instruction::I32Const(z_value.into()),
-            Instruction::LocalGet(4.into()),
+            Instruction::LocalGet(2.into()),
             Instruction::I32Add
         ];
 
