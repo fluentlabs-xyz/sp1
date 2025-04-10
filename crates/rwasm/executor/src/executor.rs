@@ -2,7 +2,7 @@
 use std::{fs::File, io::BufWriter};
 use std::{str::FromStr, sync::Arc};
 
-use crate::{estimator::RecordEstimator, events::SyscallEvent};
+use crate::{estimator::RecordEstimator, events::SyscallEvent, SP_START};
 #[cfg(feature = "profiling")]
 use crate::profiler::Profiler;
 
@@ -752,6 +752,7 @@ impl<'a> Executor<'a> {
     }
     
     fn stack_resize(&mut self,change:i32){
+        
        let new_sp = (self.state.sp as i32).wrapping_add(change*(-4));
        self.state.sp=new_sp as u32;
     }
@@ -775,7 +776,8 @@ impl<'a> Executor<'a> {
         let clk = self.state.clk;
         let shard = self.shard();
         let offset = (depth as i32 -1) * -4;
-        let pos = (sp as i32 +offset) as u32;
+        let pos = (sp as i32 -offset) as u32;
+        println!("sp:{}offset:{},pos:{}val:{}",sp,offset,pos,val);
         let res_record = self.mw(pos,val,shard,clk, None);
         self.memory_accesses.res_record=Some(res_record.into());
     }
@@ -1085,7 +1087,6 @@ impl<'a> Executor<'a> {
 
         // Update the clk to the next cycle.
         self.state.clk += 4;
-
         Ok(())
     }
      /// Execute an Constant instruction.
@@ -2119,6 +2120,23 @@ impl Default for ExecutorMode {
         Self::Simple
     }
 }
+fn peek_stack(rt:&Executor){
+    let start=SP_START;
+    for idx in (1..10){
+        let rec= rt.state.memory.get(SP_START-4*idx);
+        match rec{
+            Some(rec) => {println!("addr: {}pos:{},val:{}",SP_START-4*idx,idx,rec.value);}
+            None => {println!("pos:{},empty",idx);},
+        }
+    }
+    for idx in (1..10){
+        let rec= rt.state.memory.get(SP_START+4*idx);
+        match rec{
+            Some(rec) => {println!("Error ! addr: {},pos:-{},val:{}",SP_START+4*idx,idx,rec.value);}
+            None => {println!("pos:-{},empty",idx);},
+        }
+    }
+}
 
 /// Aligns an address to the nearest word below or equal to it.
 #[must_use]
@@ -2128,27 +2146,12 @@ pub const fn align(addr: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Executor, Program, SP_START};
+    use crate::{align, Executor, Program, SP_START};
     use hashbrown::HashMap;
     use rwasm::engine::{bytecode::{BranchOffset, Instruction}, DropKeep};
     use sp1_stark::SP1CoreOpts;
-    fn peek_stack(rt:&Executor){
-        let start=SP_START;
-        for idx in (1..10){
-            let rec= rt.state.memory.get(SP_START-4*idx);
-            match rec{
-                Some(rec) => {println!("pos:{},val:{}",idx,rec.value);}
-                None => {println!("pos:{},empty",idx);},
-            }
-        }
-        for idx in (1..10){
-            let rec= rt.state.memory.get(SP_START+4*idx);
-            match rec{
-                Some(rec) => {println!("Error ! pos:-{},val:{}",idx,rec.value);}
-                None => {println!("pos:-{},empty",idx);},
-            }
-        }
-    }
+    use super::peek_stack;
+  
     #[test]
     fn test_add() {
         let sp_value: u32 = SP_START;
@@ -3099,7 +3102,7 @@ mod tests {
         let instructions = vec![
             Instruction::I32Const(addr.into()),
             Instruction::I32Const(x_value.into()),
-            Instruction::I32Store(1.into()),
+            Instruction::I32Store8(1.into()),
             Instruction::I32Const(addr.into()),
             Instruction::I32Load8U(1.into()),
         ];
@@ -3108,7 +3111,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
-        println!("output value {},",runtime.state.memory.get(addr).unwrap().value);
+        println!("output value {},",runtime.state.memory.get(align(addr)).unwrap().value);
         assert_eq!(
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             (x_value & 0x0000_FF00) >> 8
@@ -3223,14 +3226,12 @@ mod tests {
         let x_value: u32 = 0x12345;
 
         let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 16, x_value + 5);
-
+       
         let instructions = vec![
-            Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
-            Instruction::I32Const((x_value+5).into()),
+            Instruction::I32Const((x_value+1).into()),
+            Instruction::I32Const((x_value+2).into()),
+            Instruction::I32Const((x_value+3).into()),
+            Instruction::I32Const((x_value+4).into()),
             Instruction::I32Const((x_value+5).into()),
             Instruction::I32Const((x_value).into()),
             Instruction::LocalSet(5.into()),
@@ -3242,8 +3243,9 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         peek_stack(&runtime);
-        println!("after {}", runtime.state.sp);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp - 16).unwrap().value, x_value);
+        println!("after sp: {}", runtime.state.sp);
+        println!("after pos{}", (SP_START-runtime.state.sp)/4);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp + 16).unwrap().value, x_value);
     }
     #[test]
     fn test_locals() {
