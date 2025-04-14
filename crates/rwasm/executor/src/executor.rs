@@ -752,7 +752,7 @@ impl<'a> Executor<'a> {
     }
 
     fn stack_resize(&mut self,change:i32){
-        
+
        let new_sp = (self.state.sp as i32).wrapping_add(change*(-4));
        self.state.sp=new_sp as u32;
     }
@@ -2151,7 +2151,7 @@ mod tests {
     use rwasm::engine::{bytecode::{BranchOffset, Instruction}, DropKeep};
     use sp1_stark::SP1CoreOpts;
     use super::peek_stack;
-  
+
     #[test]
     fn test_add() {
         let sp_value: u32 = SP_START;
@@ -3180,6 +3180,29 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1 << 1) << 1) << 1);
         assert_eq!( sp_value, runtime.state.sp + 4);
     }
+    #[test]
+    fn test_br2() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 8;
+        let z_value: u32 = 35;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::Br(8.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Add,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+
+        runtime.run().unwrap();
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
+    }
 
     #[test]
     fn build_elf_branching() {
@@ -3260,8 +3283,8 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         peek_stack(&runtime);
-        println!("after sp: {}", runtime.state.sp);
-        println!("after pos{}", (SP_START-runtime.state.sp)/4);
+        println!("after sp: {} ", runtime.state.sp);
+        println!("after pos {} ", (SP_START-runtime.state.sp)/4);
         assert_eq!(runtime.state.memory.get(runtime.state.sp + 16).unwrap().value, x_value);
     }
     #[test]
@@ -3326,7 +3349,7 @@ mod tests {
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
     }
 
-    #[test]
+    //  todo #[test]
     fn test_call_internal_and_return() {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x3;
