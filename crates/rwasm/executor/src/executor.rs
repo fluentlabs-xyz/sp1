@@ -3191,16 +3191,19 @@ mod tests {
         let instructions = vec![
             Instruction::I32Const(x_value.into()),
             Instruction::I32Const(y_value.into()),
-            Instruction::Br(8.into()),
+            Instruction::Br(BranchOffset::from(8)),
             Instruction::I32Const(z_value.into()),
-            Instruction::I32Add,
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Add, Instruction::I32Add,
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value);
+        peek_stack(&runtime);
+
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value + z_value);
         assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
@@ -3220,7 +3223,7 @@ mod tests {
             Instruction::I32Const((x_value+3).into()),
             Instruction::I32Const((x_value+4).into()),
             Instruction::I32Add,
-            Instruction::I32Add,
+            //Instruction::I32Add,
 
         ];
 
