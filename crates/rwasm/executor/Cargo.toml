@@ -1,5 +1,5 @@
 [package]
-name = "rwasm-core-executor"
+name = "rwasm-executor"
 description = "SP1 is a performant, 100% open-source, contributor-friendly zkVM."
 readme = "../../../README.md"
 version = { workspace = true }

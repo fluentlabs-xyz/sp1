@@ -5446,7 +5446,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rwasm-core-executor"
+name = "rwasm-executor"
 version = "4.2.0"
 dependencies = [
  "bincode",
@@ -5487,6 +5487,64 @@ dependencies = [
  "tracing",
  "typenum",
  "vec_map",
+]
+
+[[package]]
+name = "rwasm-machine"
+version = "4.2.0"
+dependencies = [
+ "bincode",
+ "cbindgen",
+ "cc",
+ "cfg-if",
+ "criterion",
+ "elliptic-curve",
+ "generic-array 1.1.0",
+ "glob",
+ "hashbrown 0.14.5",
+ "hex",
+ "itertools 0.13.0",
+ "k256",
+ "num",
+ "num_cpus",
+ "p256",
+ "p3-air",
+ "p3-baby-bear",
+ "p3-challenger",
+ "p3-field",
+ "p3-keccak-air",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "p3-uni-stark",
+ "p3-util",
+ "pathdiff",
+ "rand 0.8.5",
+ "rayon",
+ "rayon-scan",
+ "rwasm-executor",
+ "serde",
+ "serde_json",
+ "size",
+ "snowbridge-amcl",
+ "sp1-curves",
+ "sp1-derive",
+ "sp1-primitives",
+ "sp1-stark",
+ "sp1-zkvm",
+ "static_assertions",
+ "strum",
+ "strum_macros",
+ "tempfile",
+ "test-artifacts",
+ "thiserror 1.0.69",
+ "tiny-keccak",
+ "tracing",
+ "tracing-forest",
+ "tracing-subscriber 0.3.19",
+ "typenum",
+ "web-time",
 ]
 
 [[package]]
