@@ -1,7 +1,7 @@
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
-use sp1_core_executor::syscalls::SyscallCode;
+use rwasm_executor::syscalls::SyscallCode;
 use sp1_stark::air::{InteractionScope, SP1AirBuilder};
 
 use super::{ShaExtendChip, ShaExtendCols, NUM_SHA_EXTEND_COLS};

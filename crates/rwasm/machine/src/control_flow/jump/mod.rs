@@ -21,7 +21,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::AbstractField;
     use p3_matrix::dense::RowMajorMatrix;
-    use sp1_core_executor::{ExecutionRecord, Instruction, Opcode, Program};
+    use rwasm_executor::{ExecutionRecord, Instruction, Opcode, Program};
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
         MachineProver, Val,

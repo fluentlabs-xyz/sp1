@@ -10,7 +10,7 @@ pub use fp2_mul::*;
 mod tests {
     use sp1_stark::CpuProver;
 
-    use sp1_core_executor::Program;
+    use rwasm_executor::Program;
     use test_artifacts::{
         BLS12381_FP2_ADDSUB_ELF, BLS12381_FP2_MUL_ELF, BLS12381_FP_ELF, BN254_FP2_ADDSUB_ELF,
         BN254_FP2_MUL_ELF, BN254_FP_ELF,

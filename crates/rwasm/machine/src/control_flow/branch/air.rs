@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use p3_air::{Air, AirBuilder};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
-use sp1_core_executor::{Opcode, DEFAULT_PC_INC, UNUSED_PC};
+use rwasm_executor::{Opcode, DEFAULT_PC_INC, UNUSED_PC};
 use sp1_stark::{
     air::{BaseAirBuilder, SP1AirBuilder},
     Word,

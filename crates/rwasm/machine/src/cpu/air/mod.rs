@@ -4,7 +4,7 @@ use core::borrow::Borrow;
 use p3_air::{Air, AirBuilder, AirBuilderWithPublicValues, BaseAir};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
-use sp1_core_executor::{ByteOpcode, DEFAULT_PC_INC};
+use rwasm_executor::{ByteOpcode, DEFAULT_PC_INC};
 use sp1_stark::{
     air::{BaseAirBuilder, PublicValues, SP1AirBuilder, SP1_PROOF_NUM_PV_ELTS},
     Word,

@@ -2,7 +2,7 @@ use std::borrow::BorrowMut;
 
 use p3_field::PrimeField32;
 use p3_matrix::dense::RowMajorMatrix;
-use sp1_core_executor::{ByteOpcode, ExecutionRecord, Program};
+use rwasm_executor::{ByteOpcode, ExecutionRecord, Program};
 use sp1_stark::air::MachineAir;
 
 use crate::utils::zeroed_f_vec;

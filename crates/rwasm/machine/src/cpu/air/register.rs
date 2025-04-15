@@ -6,7 +6,7 @@ use crate::{
     cpu::{columns::CpuCols, CpuChip},
     memory::MemoryCols,
 };
-use sp1_core_executor::events::MemoryAccessPosition;
+use rwasm_executor::events::MemoryAccessPosition;
 
 impl CpuChip {
     /// Computes whether the opcode is a branch instruction.

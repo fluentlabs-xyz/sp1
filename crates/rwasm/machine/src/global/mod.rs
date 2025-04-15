@@ -8,7 +8,7 @@ use rayon::iter::{
     ParallelIterator,
 };
 use rayon_scan::ScanParallelIterator;
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, GlobalInteractionEvent},
     ExecutionRecord, Program,
 };
@@ -268,7 +268,7 @@ mod tests {
     use crate::programs::tests::*;
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
-    use sp1_core_executor::{ExecutionRecord, Executor};
+    use rwasm_executor::{ExecutionRecord, Executor};
     use sp1_stark::{air::MachineAir, SP1CoreOpts};
 
     #[test]

@@ -4,7 +4,7 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::AbstractField;
 use p3_keccak_air::{KeccakAir, NUM_KECCAK_COLS, NUM_ROUNDS, U64_LIMBS};
 use p3_matrix::Matrix;
-use sp1_core_executor::syscalls::SyscallCode;
+use rwasm_executor::syscalls::SyscallCode;
 use sp1_stark::air::{InteractionScope, SP1AirBuilder, SubAirBuilder};
 
 use super::{
@@ -140,7 +140,7 @@ mod test {
     use sp1_primitives::io::SP1PublicValues;
 
     use rand::{Rng, SeedableRng};
-    use sp1_core_executor::{Program, SP1Context};
+    use rwasm_executor::{Program, SP1Context};
     use sp1_stark::{
         baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, MachineProver, SP1CoreOpts,
         StarkGenericConfig,

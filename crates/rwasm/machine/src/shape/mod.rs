@@ -11,7 +11,7 @@ use num::Integer;
 use p3_baby_bear::BabyBear;
 use p3_field::PrimeField32;
 use p3_util::log2_ceil_usize;
-use sp1_core_executor::{ExecutionRecord, Program, RiscvAirId};
+use rwasm_executor::{ExecutionRecord, Program, RiscvAirId};
 use sp1_stark::{
     air::MachineAir,
     shape::{OrderedShape, Shape, ShapeCluster},

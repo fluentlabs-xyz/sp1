@@ -8,7 +8,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::Rng;
-    use sp1_core_executor::{
+    use rwasm_executor::{
         events::{
             MemoryReadRecord, MemoryWriteRecord, PrecompileEvent, SyscallEvent, U256xU2048MulEvent,
         },

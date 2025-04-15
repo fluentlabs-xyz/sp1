@@ -32,7 +32,7 @@ impl ShaCompressChip {
 #[cfg(test)]
 pub mod compress_tests {
 
-    use sp1_core_executor::{syscalls::SyscallCode, Instruction, Opcode, Program};
+    use rwasm_executor::{syscalls::SyscallCode, Instruction, Opcode, Program};
     use sp1_stark::CpuProver;
     use test_artifacts::SHA_COMPRESS_ELF;
 

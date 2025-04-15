@@ -34,7 +34,7 @@ pub mod extend_tests {
     use p3_baby_bear::BabyBear;
 
     use p3_matrix::dense::RowMajorMatrix;
-    use sp1_core_executor::{
+    use rwasm_executor::{
         events::AluEvent, syscalls::SyscallCode, ExecutionRecord, Instruction, Opcode, Program,
     };
     use sp1_stark::{air::MachineAir, CpuProver};

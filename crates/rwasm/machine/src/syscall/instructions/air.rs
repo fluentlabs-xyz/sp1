@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use p3_air::{Air, AirBuilder};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
-use sp1_core_executor::{
+use rwasm_executor::{
     events::MemoryAccessPosition, syscalls::SyscallCode, Opcode, Register::X5,
 };
 use sp1_stark::{

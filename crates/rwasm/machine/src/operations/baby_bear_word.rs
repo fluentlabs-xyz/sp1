@@ -1,6 +1,6 @@
 use p3_air::AirBuilder;
 use p3_field::{AbstractField, Field, PrimeField32};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     ByteOpcode,
 };

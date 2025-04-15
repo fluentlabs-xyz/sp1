@@ -1,5 +1,5 @@
 use p3_field::PrimeField32;
-use sp1_core_executor::events::{
+use rwasm_executor::events::{
     ByteRecord, MemoryReadRecord, MemoryRecord, MemoryRecordEnum, MemoryWriteRecord,
 };
 

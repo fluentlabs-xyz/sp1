@@ -1,5 +1,5 @@
 use itertools::izip;
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     ByteOpcode,
 };

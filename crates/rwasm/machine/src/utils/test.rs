@@ -3,7 +3,7 @@ use p3_baby_bear::BabyBear;
 use p3_matrix::dense::RowMajorMatrix;
 use p3_uni_stark::SymbolicAirBuilder;
 use serde::{de::DeserializeOwned, Serialize};
-use sp1_core_executor::{ExecutionRecord, Executor, Program, SP1Context};
+use rwasm_executor::{ExecutionRecord, Executor, Program, SP1Context};
 use sp1_primitives::io::SP1PublicValues;
 use sp1_stark::{
     air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, Com, CpuProver,

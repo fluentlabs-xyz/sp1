@@ -13,7 +13,7 @@ use p3_air::{Air, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{IntoParallelRefIterator, ParallelIterator, ParallelSlice};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, EllipticCurveAddEvent, FieldOperation, PrecompileEvent},
     syscalls::SyscallCode,
     ExecutionRecord, Program,
@@ -333,7 +333,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use sp1_core_executor::Program;
+    use rwasm_executor::Program;
     use sp1_stark::CpuProver;
     use test_artifacts::{ED25519_ELF, ED_ADD_ELF};
 

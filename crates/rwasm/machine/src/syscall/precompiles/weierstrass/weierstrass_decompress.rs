@@ -10,7 +10,7 @@ use num::{BigUint, One, Zero};
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteRecord, FieldOperation, PrecompileEvent},
     syscalls::SyscallCode,
     ExecutionRecord, Program,
@@ -513,7 +513,7 @@ mod tests {
     };
     use elliptic_curve::sec1::ToEncodedPoint;
     use rand::{thread_rng, Rng};
-    use sp1_core_executor::Program;
+    use rwasm_executor::Program;
     use sp1_stark::CpuProver;
     use test_artifacts::{
         BLS12381_DECOMPRESS_ELF, SECP256K1_DECOMPRESS_ELF, SECP256R1_DECOMPRESS_ELF,

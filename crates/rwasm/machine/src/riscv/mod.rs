@@ -4,7 +4,7 @@ use core::fmt;
 
 use hashbrown::{HashMap, HashSet};
 use p3_field::PrimeField32;
-use sp1_core_executor::{ExecutionRecord, Program, RiscvAirId};
+use rwasm_executor::{ExecutionRecord, Program, RiscvAirId};
 use sp1_curves::weierstrass::{bls12_381::Bls12381BaseField, bn254::Bn254BaseField};
 use sp1_stark::{
     air::{InteractionScope, MachineAir, SP1_PROOF_NUM_PV_ELTS},
@@ -582,7 +582,7 @@ pub mod tests {
     use hashbrown::HashMap;
     use itertools::Itertools;
     use p3_baby_bear::BabyBear;
-    use sp1_core_executor::{Instruction, Opcode, Program, RiscvAirId, SP1Context};
+    use rwasm_executor::{Instruction, Opcode, Program, RiscvAirId, SP1Context};
     use sp1_stark::air::MachineAir;
     use sp1_stark::{
         baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, MachineProver, SP1CoreOpts,

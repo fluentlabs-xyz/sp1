@@ -12,7 +12,7 @@ use p3_air::{Air, BaseAir, PairBuilder};
 use p3_field::PrimeField32;
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator};
-use sp1_core_executor::{ExecutionRecord, Program};
+use rwasm_executor::{ExecutionRecord, Program};
 use sp1_derive::AlignedBorrow;
 use sp1_stark::air::{MachineAir, SP1AirBuilder};
 
@@ -180,7 +180,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
 
     use p3_matrix::dense::RowMajorMatrix;
-    use sp1_core_executor::{ExecutionRecord, Instruction, Opcode, Program};
+    use rwasm_executor::{ExecutionRecord, Instruction, Opcode, Program};
     use sp1_stark::air::MachineAir;
 
     use crate::program::ProgramChip;

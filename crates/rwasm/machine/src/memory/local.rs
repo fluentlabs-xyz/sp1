@@ -12,8 +12,8 @@ use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{
     IndexedParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
-use sp1_core_executor::events::GlobalInteractionEvent;
-use sp1_core_executor::{ExecutionRecord, Program};
+use rwasm_executor::events::GlobalInteractionEvent;
+use rwasm_executor::{ExecutionRecord, Program};
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
     air::{AirInteraction, InteractionScope, MachineAir, SP1AirBuilder},
@@ -280,7 +280,7 @@ mod tests {
     };
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
-    use sp1_core_executor::{ExecutionRecord, Executor};
+    use rwasm_executor::{ExecutionRecord, Executor};
     use sp1_stark::{
         air::{InteractionScope, MachineAir},
         baby_bear_poseidon2::BabyBearPoseidon2,
@@ -380,7 +380,7 @@ mod tests {
     fn get_test_execution_record() -> ExecutionRecord {
         use p3_field::PrimeField32;
         use rand::{thread_rng, Rng};
-        use sp1_core_executor::events::{MemoryLocalEvent, MemoryRecord};
+        use rwasm_executor::events::{MemoryLocalEvent, MemoryRecord};
 
         let cpu_local_memory_access = (0..=255)
             .flat_map(|_| {

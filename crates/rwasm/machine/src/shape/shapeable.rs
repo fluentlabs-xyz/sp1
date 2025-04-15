@@ -1,7 +1,7 @@
 use hashbrown::HashMap;
 use itertools::Itertools;
 
-use sp1_core_executor::{events::PrecompileLocalMemory, ExecutionRecord, RiscvAirId};
+use rwasm_executor::{events::PrecompileLocalMemory, ExecutionRecord, RiscvAirId};
 use sp1_stark::MachineRecord;
 
 use crate::memory::NUM_LOCAL_MEMORY_ENTRIES_PER_ROW;

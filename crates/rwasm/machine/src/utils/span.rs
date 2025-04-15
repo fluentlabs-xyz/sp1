@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, iter::once};
 
-use sp1_core_executor::events::{format_table_line, sorted_table_lines};
+use rwasm_executor::events::{format_table_line, sorted_table_lines};
 use thiserror::Error;
 
 /// A builder to create a [`Span`].

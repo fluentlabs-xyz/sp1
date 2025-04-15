@@ -4,7 +4,7 @@ use p3_field::PrimeField32;
 use p3_keccak_air::{generate_trace_rows, NUM_KECCAK_COLS, NUM_ROUNDS};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, KeccakPermuteEvent, PrecompileEvent, SyscallEvent},
     syscalls::SyscallCode,
     ExecutionRecord, Program,
@@ -17,7 +17,7 @@ use super::{
     columns::{KeccakMemCols, NUM_KECCAK_MEM_COLS},
     KeccakPermuteChip, STATE_SIZE,
 };
-use sp1_core_executor::events::ByteRecord;
+use rwasm_executor::events::ByteRecord;
 
 impl<F: PrimeField32> MachineAir<F> for KeccakPermuteChip {
     type Record = ExecutionRecord;

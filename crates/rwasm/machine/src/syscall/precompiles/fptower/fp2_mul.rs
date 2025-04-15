@@ -10,7 +10,7 @@ use num::{BigUint, Zero};
 use p3_air::{Air, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, FieldOperation, PrecompileEvent},
     syscalls::SyscallCode,
     ExecutionRecord, Program,

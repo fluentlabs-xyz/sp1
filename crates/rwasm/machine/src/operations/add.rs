@@ -1,4 +1,4 @@
-use sp1_core_executor::events::ByteRecord;
+use rwasm_executor::events::ByteRecord;
 use sp1_stark::{air::SP1AirBuilder, Word};
 
 use p3_air::AirBuilder;

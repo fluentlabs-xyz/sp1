@@ -3,7 +3,7 @@ use core::borrow::Borrow;
 use p3_air::{Air, BaseAir, PairBuilder};
 use p3_field::{AbstractField, Field};
 use p3_matrix::Matrix;
-use sp1_core_executor::ByteOpcode;
+use rwasm_executor::ByteOpcode;
 use sp1_stark::air::SP1AirBuilder;
 
 use super::{

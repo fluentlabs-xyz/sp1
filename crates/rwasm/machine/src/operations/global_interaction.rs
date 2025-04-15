@@ -10,7 +10,7 @@ use p3_field::AbstractExtensionField;
 use p3_field::AbstractField;
 use p3_field::Field;
 use p3_field::PrimeField32;
-use sp1_core_executor::ByteOpcode;
+use rwasm_executor::ByteOpcode;
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
     air::SP1AirBuilder,

@@ -68,7 +68,7 @@ use core::{
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     get_msb, get_quotient_and_remainder, is_signed_operation, ByteOpcode, ExecutionRecord, Opcode,
     Program, DEFAULT_PC_INC, UNUSED_PC,
@@ -843,7 +843,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{thread_rng, Rng};
-    use sp1_core_executor::{
+    use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
         ExecutionRecord, Instruction, Opcode, Program,
     };

@@ -5,7 +5,7 @@ pub mod columns;
 pub mod trace;
 pub mod utils;
 
-use sp1_core_executor::{events::ByteLookupEvent, ByteOpcode};
+use rwasm_executor::{events::ByteLookupEvent, ByteOpcode};
 
 use core::borrow::BorrowMut;
 use std::marker::PhantomData;

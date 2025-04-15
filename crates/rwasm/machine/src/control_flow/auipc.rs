@@ -4,7 +4,7 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     ExecutionRecord, Opcode, Program, DEFAULT_PC_INC, UNUSED_PC,
 };
@@ -230,7 +230,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::AbstractField;
     use p3_matrix::dense::RowMajorMatrix;
-    use sp1_core_executor::{
+    use rwasm_executor::{
         ExecutionError, ExecutionRecord, Executor, Instruction, Opcode, Program,
     };
     use sp1_stark::{

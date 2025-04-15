@@ -10,7 +10,7 @@ use crate::{
     memory::MemoryCols,
     operations::{BabyBearWordRangeChecker, IsZeroOperation},
 };
-use sp1_core_executor::{
+use rwasm_executor::{
     events::MemoryAccessPosition, ByteOpcode, Opcode, DEFAULT_PC_INC, UNUSED_PC,
 };
 

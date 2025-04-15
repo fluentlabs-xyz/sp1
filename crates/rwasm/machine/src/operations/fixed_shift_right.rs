@@ -1,5 +1,5 @@
 use p3_field::{AbstractField, Field};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
     ByteOpcode,
 };

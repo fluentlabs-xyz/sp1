@@ -2,7 +2,7 @@ use std::iter::once;
 
 use p3_air::AirBuilder;
 use p3_field::AbstractField;
-use sp1_core_executor::ByteOpcode;
+use rwasm_executor::ByteOpcode;
 use sp1_stark::{
     air::{AirInteraction, BaseAirBuilder, ByteAirBuilder, InteractionScope},
     InteractionKind,

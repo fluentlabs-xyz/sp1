@@ -11,7 +11,7 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{
         ByteLookupEvent, ByteRecord, EllipticCurveAddEvent, FieldOperation, MemoryReadRecord,
         PrecompileEvent, SyscallEvent,
@@ -472,7 +472,7 @@ impl<E: EllipticCurve> WeierstrassAddAssignChip<E> {
 #[cfg(test)]
 mod tests {
 
-    use sp1_core_executor::Program;
+    use rwasm_executor::Program;
     use sp1_stark::CpuProver;
     use test_artifacts::{
         BLS12381_ADD_ELF, BLS12381_DOUBLE_ELF, BLS12381_MUL_ELF, BN254_ADD_ELF, BN254_MUL_ELF,

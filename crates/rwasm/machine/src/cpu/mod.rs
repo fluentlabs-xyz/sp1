@@ -1,4 +1,4 @@
-use sp1_core_executor::RiscvAirId;
+use rwasm_executor::RiscvAirId;
 
 pub mod air;
 pub mod columns;

@@ -12,8 +12,8 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
-use sp1_core_executor::events::GlobalInteractionEvent;
-use sp1_core_executor::{events::MemoryInitializeFinalizeEvent, ExecutionRecord, Program};
+use rwasm_executor::events::GlobalInteractionEvent;
+use rwasm_executor::{events::MemoryInitializeFinalizeEvent, ExecutionRecord, Program};
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
     air::{
@@ -442,7 +442,7 @@ mod tests {
         utils::setup_logger,
     };
     use p3_baby_bear::BabyBear;
-    use sp1_core_executor::Executor;
+    use rwasm_executor::Executor;
     use sp1_stark::InteractionKind;
     use sp1_stark::{
         baby_bear_poseidon2::BabyBearPoseidon2, debug_interactions_with_all_chips, SP1CoreOpts,

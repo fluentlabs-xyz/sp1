@@ -27,13 +27,13 @@ use crate::{
     io::SP1Stdin,
     utils::{chunk_vec, concurrency::TurnBasedSync},
 };
-use sp1_core_executor::{
+use rwasm_executor::{
     estimator::RecordEstimator,
     events::{format_table_line, sorted_table_lines},
     ExecutionState, RiscvAirId,
 };
 
-use sp1_core_executor::{
+use rwasm_executor::{
     subproof::NoOpSubproofVerifier, ExecutionError, ExecutionRecord, ExecutionReport, Executor,
     Program, SP1Context,
 };

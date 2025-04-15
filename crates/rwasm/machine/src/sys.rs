@@ -6,12 +6,12 @@ use crate::{
 };
 use p3_baby_bear::BabyBear;
 
-use sp1_core_executor::events::{
+use rwasm_executor::events::{
     AluEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryReadRecord, MemoryRecordEnum,
     MemoryWriteRecord, SyscallEvent,
 };
 
-#[link(name = "sp1-core-machine-sys", kind = "static")]
+#[link(name = "rwasm-machine-sys", kind = "static")]
 extern "C-unwind" {
     pub fn add_sub_event_to_row_babybear(event: &AluEvent, cols: &mut AddSubCols<BabyBear>);
     pub fn mul_event_to_row_babybear(event: &AluEvent, cols: &mut MulCols<BabyBear>);

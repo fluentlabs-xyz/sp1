@@ -31,12 +31,12 @@ pub mod sys;
 pub mod syscall;
 pub mod utils;
 
-// Re-export the `SP1ReduceProof` struct from sp1_core_machine.
+// Re-export the `SP1ReduceProof` struct from rwasm_machine.
 //
-// This is done to avoid a circular dependency between sp1_core_machine and sp1_core_executor, and
-// enable crates that depend on sp1_core_machine to import the `SP1ReduceProof` type directly.
+// This is done to avoid a circular dependency between rwasm_machine and rwasm_executor, and
+// enable crates that depend on rwasm_machine to import the `SP1ReduceProof` type directly.
 pub mod reduce {
-    pub use sp1_core_executor::SP1ReduceProof;
+    pub use rwasm_executor::SP1ReduceProof;
 }
 
 #[cfg(test)]
@@ -44,7 +44,7 @@ pub mod programs {
     #[allow(dead_code)]
     #[allow(missing_docs)]
     pub mod tests {
-        use sp1_core_executor::{Instruction, Opcode, Program};
+        use rwasm_executor::{Instruction, Opcode, Program};
 
         pub use test_artifacts::{
             FIBONACCI_ELF, PANIC_ELF, SECP256R1_ADD_ELF, SECP256R1_DOUBLE_ELF, SSZ_WITHDRAWALS_ELF,

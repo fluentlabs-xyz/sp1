@@ -1,5 +1,5 @@
 use p3_field::PrimeField;
-use sp1_core_executor::{Instruction, Register};
+use rwasm_executor::{Instruction, Register};
 use sp1_derive::AlignedBorrow;
 use sp1_stark::Word;
 use std::{iter::once, mem::size_of, vec::IntoIter};

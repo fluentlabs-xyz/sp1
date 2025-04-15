@@ -3,7 +3,7 @@ use itertools::Itertools;
 use p3_field::PrimeField32;
 use p3_matrix::dense::RowMajorMatrix;
 use p3_maybe_rayon::prelude::{ParallelIterator, ParallelSlice};
-use sp1_core_executor::{
+use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, PrecompileEvent, ShaExtendEvent},
     syscalls::SyscallCode,
     ExecutionRecord, Program,

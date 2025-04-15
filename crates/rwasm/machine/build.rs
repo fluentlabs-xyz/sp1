@@ -99,9 +99,9 @@ mod sys {
             .with_parse_include(&[
                 "sp1-stark",
                 "sp1-primitives",
-                "sp1-core-machine",
+                "rwasm-machine",
                 "p3-baby-bear",
-                "sp1-core-executor",
+                "rwasm-executor",
             ])
             .with_parse_extra_bindings(&["sp1-stark", "sp1-primitives", "p3-baby-bear"])
             .rename_item("BabyBear", "BabyBearP3")
@@ -119,7 +119,7 @@ mod sys {
             .include_item("Poseidon2StateCols")
             .include_item("GlobalCols")
             .include_item("INTERACTION_KIND_GLOBAL")
-            .with_namespace("sp1_core_machine_sys")
+            .with_namespace("rwasm_machine_sys")
             .with_crate(crate_dir)
             .generate()
         {
