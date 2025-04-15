@@ -23,7 +23,7 @@
 mod air;
 mod context;
 mod cost;
-// mod dependencies;
+mod dependencies;
 pub mod estimator;
 pub mod events;
 mod executor;

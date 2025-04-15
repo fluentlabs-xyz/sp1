@@ -13,23 +13,21 @@ use super::MemoryRecordEnum;
 pub struct AluEvent {
     /// The program counter.
     pub pc: u32,
-   /// The instruction
-    pub instruction:Instruction,
+    /// riscv opcode
+    pub opcode: Opcode,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
     pub b: u32,
     /// The third operand value.
     pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
 }
 
 impl AluEvent {
     /// Create a new [`AluEvent`].
     #[must_use]
-    pub fn new(pc: u32, instruction:Instruction, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, instruction, a, b, c, op_a_0 }
+    pub fn new(pc: u32, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
+        Self { pc, opcode, a, b, c }
     }
 }
 
@@ -46,15 +44,13 @@ pub struct MemInstrEvent {
     /// The program counter.
     pub pc: u32,
     /// The instruction
-    pub instruction:Instruction,
+    pub instruction: Instruction,
     /// The first operand value.
-    pub a: u32,
+    pub arg1: u32,
     /// The second operand value.
-    pub b: u32,
+    pub arg2: u32,
     /// The third operand value.
-    pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
+    pub res: u32,
     /// The memory access record for memory operations.
     pub mem_access: MemoryRecordEnum,
 }
@@ -67,14 +63,14 @@ impl MemInstrEvent {
         shard: u32,
         clk: u32,
         pc: u32,
-        instruction:Instruction,
+        instruction: Instruction,
         a: u32,
         b: u32,
         c: u32,
-        op_a_0: bool,
+
         mem_access: MemoryRecordEnum,
     ) -> Self {
-        Self { shard, clk, pc, instruction, a, b, c, op_a_0, mem_access }
+        Self { shard, clk, pc, instruction, arg1: a, arg2: b, res: c, mem_access }
     }
 }
 
@@ -88,32 +84,22 @@ pub struct BranchEvent {
     pub pc: u32,
     /// The next program counter.
     pub next_pc: u32,
-    /// The opcode.
-    pub opcode: Opcode,
+    /// The instruction
+    pub instruction: Instruction,
     /// The first operand value.
-    pub a: u32,
+    pub res: u32,
     /// The second operand value.
-    pub b: u32,
+    pub arg1: u32,
     /// The third operand value.
-    pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
+    pub arg2: u32,
 }
 
 impl BranchEvent {
     /// Create a new [`BranchEvent`].
     #[must_use]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
-        pc: u32,
-        next_pc: u32,
-        opcode: Opcode,
-        a: u32,
-        b: u32,
-        c: u32,
-        op_a_0: bool,
-    ) -> Self {
-        Self { pc, next_pc, opcode, a, b, c, op_a_0 }
+    pub fn new(pc: u32, next_pc: u32, instruction: Instruction, a: u32, b: u32, c: u32) -> Self {
+        Self { pc, next_pc, instruction, res: a, arg1: b, arg2: c }
     }
 }
 
@@ -128,7 +114,7 @@ pub struct JumpEvent {
     /// The next program counter.
     pub next_pc: u32,
     /// The opcode.
-    pub instruction:Instruction,
+    pub instruction: Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
@@ -148,7 +134,7 @@ pub struct AUIPCEvent {
     /// The program counter.
     pub pc: u32,
     /// The instruction.
-    pub instruction:Instruction,
+    pub instruction: Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
@@ -162,7 +148,7 @@ pub struct AUIPCEvent {
 impl AUIPCEvent {
     /// Create a new [`AUIPCEvent`].
     #[must_use]
-    pub fn new(pc: u32, instruction:Instruction, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
+    pub fn new(pc: u32, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
         Self { pc, instruction, a, b, c, op_a_0 }
     }
 }
