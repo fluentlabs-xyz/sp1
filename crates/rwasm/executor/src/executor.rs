@@ -3222,7 +3222,33 @@ mod tests {
 
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, ((1 << 1) << 1) << 1);
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!( sp_value, runtime.state.sp + 4);
+    }
+    #[test]
+    fn test_br2() {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = 5;
+        let y_value: u32 = 8;
+        let z_value: u32 = 35;
+        let addr: u32 = 0x10000;
+
+        let instructions = vec![
+            Instruction::I32Const(x_value.into()),
+            Instruction::I32Const(y_value.into()),
+            Instruction::Br(BranchOffset::from(8)),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Const(z_value.into()),
+            Instruction::I32Add, Instruction::I32Add,
+        ];
+
+        let program = Program::new_with_memory(instructions, HashMap::new(), 0, 0);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+
+        runtime.run().unwrap();
+        peek_stack(&runtime);
+
+        assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value + z_value);
+        assert_eq!( sp_value, runtime.state.sp + 4);
     }
 
     #[test]
