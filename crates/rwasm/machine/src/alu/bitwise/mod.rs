@@ -144,24 +144,13 @@ impl BitwiseChip {
         cols.a = Word::from(event.a);
         cols.b = Word::from(event.b);
         cols.c = Word::from(event.c);
-        cols.op_a_not_0 = F::from_bool(!event.op_a_0);
+      
 
         cols.is_xor = F::from_bool(event.opcode == Opcode::XOR);
         cols.is_or = F::from_bool(event.opcode == Opcode::OR);
         cols.is_and = F::from_bool(event.opcode == Opcode::AND);
 
-        if !event.op_a_0 {
-            for ((b_a, b_b), b_c) in a.into_iter().zip(b).zip(c) {
-                let byte_event = ByteLookupEvent {
-                    opcode: ByteOpcode::from(event.opcode),
-                    a1: b_a as u16,
-                    a2: 0,
-                    b: b_b,
-                    c: b_c,
-                };
-                blu.add_byte_lookup_event(byte_event);
-            }
-        }
+       
     }
 }
 
@@ -220,8 +209,6 @@ where
             local.a,
             local.b,
             local.c,
-            AB::Expr::one() - local.op_a_not_0,
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),

@@ -4,7 +4,7 @@ use p3_air::{Air, AirBuilder};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
 use rwasm_executor::{
-    events::MemoryAccessPosition, syscalls::SyscallCode, Opcode, Register::X5,
+     syscalls::SyscallCode, Opcode, 
 };
 use sp1_stark::{
     air::{
@@ -67,8 +67,6 @@ where
             *local.op_a_access.value(),
             local.op_b_value,
             local.op_c_value,
-            AB::Expr::zero(), // op_a is always register 5 for ecall instructions.
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::one(),
             local.is_halt,
@@ -88,14 +86,14 @@ where
             self.get_num_extra_ecall_cycles::<AB>(local),
         );
 
-        // Do the memory eval for op_a. For syscall instructions, we need to eval at register X5.
-        builder.eval_memory_access(
-            local.shard,
-            local.clk + AB::F::from_canonical_u32(MemoryAccessPosition::A as u32),
-            AB::Expr::from_canonical_u32(X5 as u32),
-            &local.op_a_access,
-            local.is_real,
-        );
+        // // Do the memory eval for op_a. For syscall instructions, we need to eval at register X5.
+        // builder.eval_memory_access(
+        //     local.shard,
+        //     local.clk 
+        //     AB::Expr::from_canonical_u32(X5 as u32),
+        //     &local.op_a_access,
+        //     local.is_real,
+        // );
 
         // ECALL instruction.
         self.eval_ecall(builder, local);

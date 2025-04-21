@@ -391,19 +391,7 @@ where
             builder.when(local.is_real).assert_eq(local.timestamp, AB::F::one());
         }
 
-        // Constraints related to register %x0.
-
-        // Register %x0 should always be 0. See 2.6 Load and Store Instruction on
-        // P.18 of the RISC-V spec.  To ensure that, we will constrain that the value is zero
-        // whenever the `is_first_comp` flag is set to to zero as well. This guarantees that the
-        // presence of this flag asserts the initialization/finalization of %x0 to zero.
-        //
-        // **Remark**: it is up to the verifier to ensure that this flag is set to zero exactly
-        // once, this can be constrained by the public values setting `previous_init_addr_bits` or
-        // `previous_finalize_addr_bits` to zero.
-        for i in 0..32 {
-            builder.when_first_row().when_not(local.is_first_comp).assert_zero(local.value[i]);
-        }
+      
 
         // Make assertions for the final value. We need to connect the final valid address to the
         // corresponding `last_addr` value.

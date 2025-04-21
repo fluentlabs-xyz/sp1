@@ -1,4 +1,4 @@
-pub mod register;
+
 
 use core::borrow::Borrow;
 use p3_air::{Air, AirBuilder, AirBuilderWithPublicValues, BaseAir};
@@ -45,8 +45,6 @@ where
         // The `pc` and `instruction` is taken from the `ProgramChip`, where these are preprocessed.
         builder.send_program(local.pc, local.instruction, local.is_real);
 
-        // Register constraints.
-        self.eval_registers::<AB>(builder, local, clk.clone());
 
         // Assert the shard and clk to send.  Only the memory and syscall instructions need the
         // actual shard and clk values for memory access evals.
@@ -81,8 +79,6 @@ where
             local.op_a_val(),
             local.op_b_val(),
             local.op_c_val(),
-            local.instruction.op_a_0,
-            local.op_a_immutable,
             local.is_memory,
             local.is_syscall,
             local.is_halt,
@@ -100,8 +96,6 @@ where
 
         // Check that when `is_real=0` that all flags that send interactions are zero.
         let not_real = AB::Expr::one() - local.is_real;
-        builder.when(not_real.clone()).assert_zero(AB::Expr::one() - local.instruction.imm_b);
-        builder.when(not_real.clone()).assert_zero(AB::Expr::one() - local.instruction.imm_c);
         builder.when(not_real.clone()).assert_zero(AB::Expr::one() - local.is_syscall);
     }
 }

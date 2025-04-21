@@ -14,7 +14,7 @@ use strum_macros::{EnumDiscriminants, EnumIter};
 
 use crate::{bytes::trace::NUM_ROWS as BYTE_CHIP_NUM_ROWS, shape::Shapeable};
 use crate::{
-    control_flow::{AuipcChip, BranchChip, JumpChip},
+    control_flow::{BranchChip},
     global::GlobalChip,
     memory::{MemoryChipType, MemoryInstructionsChip, MemoryLocalChip},
     syscall::{
@@ -66,7 +66,7 @@ pub const MAX_NUMBER_OF_SHARDS: usize = 1 << MAX_LOG_NUMBER_OF_SHARDS;
 /// This enum contains all the different AIRs that are used in the Sp1 RISC-V IOP. Each variant is
 /// a different AIR that is used to encode a different part of the RISC-V execution, and the
 /// different AIR variants have a joint lookup argument.
-#[derive(sp1_derive::MachineAir, EnumDiscriminants)]
+#[derive(sp1_derive::MachineAirRwasm, EnumDiscriminants)]
 #[strum_discriminants(derive(Hash, EnumIter))]
 pub enum RiscvAir<F: PrimeField32> {
     /// An AIR that contains a preprocessed program table and a lookup for the instructions.
@@ -88,13 +88,9 @@ pub enum RiscvAir<F: PrimeField32> {
     /// An AIR for RISC-V SRL and SRA instruction.
     ShiftRight(ShiftRightChip),
     /// An AIR for RISC-V memory instructions.
-    Memory(MemoryInstructionsChip),
-    /// An AIR for RISC-V AUIPC instruction.
-    AUIPC(AuipcChip),
+    Memory(MemoryInstructionsChip), 
     /// An AIR for RISC-V branch instructions.
     Branch(BranchChip),
-    /// An AIR for RISC-V jump instructions.
-    Jump(JumpChip),
     /// An AIR for RISC-V ecall instructions.
     SyscallInstrs(SyscallInstrsChip),
     /// A lookup table for byte operations.

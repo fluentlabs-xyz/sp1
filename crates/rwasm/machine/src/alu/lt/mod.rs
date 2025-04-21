@@ -183,7 +183,6 @@ impl LtChip {
         cols.a = F::from_canonical_u8(a[0]);
         cols.b = Word(b.map(F::from_canonical_u8));
         cols.c = Word(c.map(F::from_canonical_u8));
-        cols.op_a_not_0 = F::from_bool(!event.op_a_0);
 
         // If this is SLT, mask the MSB of b & c before computing cols.bits.
         let masked_b = b[3] & 0x7f;
@@ -455,8 +454,6 @@ where
             Word::extend_var::<AB>(local.a),
             local.b,
             local.c,
-            AB::Expr::one() - local.op_a_not_0,
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),

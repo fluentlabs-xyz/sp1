@@ -88,10 +88,10 @@ impl BranchChip {
         cols.is_bltu = F::from_bool(matches!(event.opcode, Opcode::BLTU));
         cols.is_bgeu = F::from_bool(matches!(event.opcode, Opcode::BGEU));
 
-        cols.op_a_value = event.a.into();
-        cols.op_b_value = event.b.into();
-        cols.op_c_value = event.c.into();
-        cols.op_a_0 = F::from_bool(event.op_a_0);
+        cols.op_a_value = event.res.into();
+        cols.op_b_value = event.arg1.into();
+        cols.op_c_value = event.arg2.into();
+       
 
         let a_eq_b = event.a == event.b;
 

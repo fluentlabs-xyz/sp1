@@ -224,7 +224,7 @@ impl ShiftRightChip {
             cols.a = Word::from(event.a);
             cols.b = Word::from(event.b);
             cols.c = Word::from(event.c);
-            cols.op_a_not_0 = F::from_bool(!event.op_a_0);
+          
 
             cols.b_msb = F::from_canonical_u32((event.b >> 31) & 1);
 
@@ -528,8 +528,6 @@ where
             local.a,
             local.b,
             local.c,
-            AB::Expr::one() - local.op_a_not_0,
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),

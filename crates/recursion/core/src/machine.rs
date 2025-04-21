@@ -29,10 +29,10 @@ use crate::{
     ExpReverseBitsInstr, Instruction, RecursionProgram, D,
 };
 
-#[derive(sp1_derive::MachineAir)]
-#[sp1_core_path = "sp1_core_machine"]
-#[execution_record_path = "crate::ExecutionRecord<F>"]
-#[program_path = "crate::RecursionProgram<F>"]
+#[derive(sp1_derive::MachineAirRwasm)]
+#[sp1_rwasm_path = "rwasm_machine"]
+#[rwasm_execution_record_path = "crate::ExecutionRecord<F>"]
+#[rwasm_program_path = "crate::RecursionProgram<F>"]
 #[builder_path = "crate::builder::SP1RecursionAirBuilder<F = F>"]
 #[eval_trait_bound = "AB::Var: 'static"]
 pub enum RecursionAir<F: PrimeField32 + BinomiallyExtendable<D>, const DEGREE: usize> {

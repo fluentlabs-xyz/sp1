@@ -6,28 +6,7 @@ pub const fn align(addr: u32) -> u32 {
     addr - addr % 4
 }
 
-macro_rules! assert_valid_memory_access {
-    ($addr:expr, $position:expr) => {
-        #[cfg(debug_assertions)]
-        {
-            use p3_baby_bear::BabyBear;
-            use p3_field::AbstractField;
-            match $position {
-                MemoryAccessPosition::Memory => {
-                    assert_eq!($addr % 4, 0, "addr is not aligned");
-                    BabyBear::from_canonical_u32($addr);
-                    assert!($addr > 40);
-                }
-                _ => {
-                    Register::from_u8($addr);
-                }
-            };
-        }
 
-        #[cfg(not(debug_assertions))]
-        {}
-    };
-}
 
 impl<'a> Runtime<'a> {
     #[inline]

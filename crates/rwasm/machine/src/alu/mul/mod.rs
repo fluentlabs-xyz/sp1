@@ -206,7 +206,7 @@ impl MulChip {
 
         let mut b = b_word.to_vec();
         let mut c = c_word.to_vec();
-        cols.op_a_not_0 = F::from_bool(!event.op_a_0);
+      
 
         // Handle b and c's signs.
         {
@@ -459,8 +459,6 @@ where
             local.a,
             local.b,
             local.c,
-            AB::Expr::one() - local.op_a_not_0,
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),

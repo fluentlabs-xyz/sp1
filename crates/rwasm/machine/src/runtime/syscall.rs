@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::EnumIter;
 
 use crate::operations::field::field_op::FieldOperation;
-use crate::runtime::{Register, Runtime};
+use crate::runtime::{Runtime};
 use crate::syscall::precompiles::edwards::EdAddAssignChip;
 use crate::syscall::precompiles::edwards::EdDecompressChip;
 use crate::syscall::precompiles::fptower::{Fp2AddSubSyscall, Fp2MulAssignChip, FpOpSyscall};
@@ -317,11 +317,7 @@ impl<'a, 'b> SyscallContext<'a, 'b> {
         records
     }
 
-    /// Get the current value of a register, but doesn't use a memory record.
-    /// This is generally unconstrained, so you must be careful using it.
-    pub fn register_unsafe(&mut self, register: Register) -> u32 {
-        self.rt.register(register)
-    }
+   
 
     pub fn byte_unsafe(&mut self, addr: u32) -> u8 {
         self.rt.byte(addr)

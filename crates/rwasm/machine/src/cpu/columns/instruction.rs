@@ -1,9 +1,8 @@
 use p3_field::PrimeField;
-use rwasm_executor::{Instruction, Register};
 use sp1_derive::AlignedBorrow;
 use sp1_stark::Word;
 use std::{iter::once, mem::size_of, vec::IntoIter};
-
+use rwasm::engine::bytecode::Instruction;
 pub const NUM_INSTRUCTION_COLS: usize = size_of::<InstructionCols<u8>>();
 
 /// The column layout for instructions.
@@ -22,14 +21,7 @@ pub struct InstructionCols<T> {
     /// The third operand for this instruction.
     pub op_c: Word<T>,
 
-    /// Flags to indicate if op_a is register 0.
-    pub op_a_0: T,
 
-    /// Whether op_b is an immediate value.
-    pub imm_b: T,
-
-    /// Whether op_c is an immediate value.
-    pub imm_c: T,
 }
 
 impl<F: PrimeField> InstructionCols<F> {
@@ -39,9 +31,7 @@ impl<F: PrimeField> InstructionCols<F> {
         self.op_b = instruction.op_b.into();
         self.op_c = instruction.op_c.into();
 
-        self.op_a_0 = F::from_bool(instruction.op_a == Register::X0 as u8);
-        self.imm_b = F::from_bool(instruction.imm_b);
-        self.imm_c = F::from_bool(instruction.imm_c);
+        
     }
 }
 
@@ -54,9 +44,6 @@ impl<T> IntoIterator for InstructionCols<T> {
             .chain(once(self.op_a))
             .chain(self.op_b)
             .chain(self.op_c)
-            .chain(once(self.op_a_0))
-            .chain(once(self.imm_b))
-            .chain(once(self.imm_c))
             .collect::<Vec<_>>()
             .into_iter()
     }

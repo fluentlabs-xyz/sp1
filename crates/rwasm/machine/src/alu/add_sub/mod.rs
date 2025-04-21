@@ -168,7 +168,7 @@ impl AddSubChip {
         cols.add_operation.populate(blu, operand_1, operand_2);
         cols.operand_1 = Word::from(operand_1);
         cols.operand_2 = Word::from(operand_2);
-        cols.op_a_not_0 = F::from_bool(!event.op_a_0);
+       
     }
 }
 
@@ -233,8 +233,6 @@ where
             local.add_operation.value,
             local.operand_1,
             local.operand_2,
-            AB::Expr::one() - local.op_a_not_0,
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
@@ -261,8 +259,6 @@ where
             local.operand_1,
             local.add_operation.value,
             local.operand_2,
-            AB::Expr::one() - local.op_a_not_0,
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),

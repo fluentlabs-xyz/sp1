@@ -44,10 +44,7 @@ where
         builder.assert_bool(local.is_bgeu);
         let is_real = local.is_beq
             + local.is_bne
-            + local.is_blt
-            + local.is_bge
-            + local.is_bltu
-            + local.is_bgeu;
+          
         builder.assert_bool(is_real.clone());
 
         let opcode = local.is_beq * Opcode::BEQ.as_field::<AB::F>()
@@ -75,8 +72,6 @@ where
             local.op_a_value,
             local.op_b_value,
             local.op_c_value,
-            local.op_a_0,
-            AB::Expr::one(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
@@ -114,8 +109,6 @@ where
                 local.next_pc,
                 local.pc,
                 local.op_c_value,
-                AB::Expr::zero(),
-                AB::Expr::zero(),
                 AB::Expr::zero(),
                 AB::Expr::zero(),
                 AB::Expr::zero(),
@@ -209,8 +202,6 @@ where
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::zero(),
             is_real.clone(),
         );
 
@@ -226,8 +217,6 @@ where
             Word::extend_var::<AB>(local.a_gt_b),
             local.op_b_value,
             local.op_a_value,
-            AB::Expr::zero(),
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),

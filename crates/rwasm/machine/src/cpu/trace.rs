@@ -9,8 +9,10 @@ use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, CpuEvent, MemoryRecordEnum},
     syscalls::SyscallCode,
     ByteOpcode::{self, U16Range},
-    ExecutionRecord, Instruction, Program,
+    ExecutionRecord,  Program,
 };
+use rwasm::engine::bytecode::Instruction;
+
 use sp1_stark::air::MachineAir;
 use tracing::instrument;
 

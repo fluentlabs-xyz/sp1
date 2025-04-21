@@ -5523,6 +5523,7 @@ dependencies = [
  "rand 0.8.5",
  "rayon",
  "rayon-scan",
+ "rwasm",
  "rwasm-executor",
  "serde",
  "serde_json",

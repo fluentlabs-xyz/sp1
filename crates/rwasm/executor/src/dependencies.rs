@@ -1,7 +1,7 @@
 use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
 
 use crate::{
-    events::{AUIPCEvent, AluEvent, BranchEvent, JumpEvent, MemInstrEvent, MemoryRecord},
+    events::{ AluEvent, BranchEvent, MemInstrEvent, MemoryRecord},
     utils::{get_msb, get_quotient_and_remainder, is_signed_operation},
     Executor, Opcode, UNUSED_PC,
 };

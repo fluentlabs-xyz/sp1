@@ -11,7 +11,7 @@ use crate::{
     operations::{BabyBearWordRangeChecker, IsZeroOperation},
 };
 use rwasm_executor::{
-    events::MemoryAccessPosition, ByteOpcode, Opcode, DEFAULT_PC_INC, UNUSED_PC,
+     ByteOpcode, Opcode, DEFAULT_PC_INC, UNUSED_PC,
 };
 
 use super::{columns::MemoryInstructionsColumns, MemoryInstructionsChip};
@@ -76,8 +76,6 @@ where
             local.op_a_value,
             local.op_b_value,
             local.op_c_value,
-            local.op_a_0,
-            local.is_sb + local.is_sh + local.is_sw,
             AB::Expr::one(),
             AB::Expr::zero(),
             AB::Expr::zero(),
@@ -126,8 +124,6 @@ impl MemoryInstructionsChip {
             local.addr_word,
             local.op_b_value,
             local.op_c_value,
-            AB::Expr::zero(),
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
@@ -195,7 +191,7 @@ impl MemoryInstructionsChip {
         // value into the memory columns.
         builder.eval_memory_access(
             local.shard,
-            local.clk + AB::F::from_canonical_u32(MemoryAccessPosition::Memory as u32),
+            local.clk ,
             local.addr_aligned,
             &local.memory_access,
             is_real.clone(),
@@ -259,8 +255,6 @@ impl MemoryInstructionsChip {
             local.op_a_value,
             local.unsigned_mem_val,
             signed_value,
-            AB::Expr::zero(),
-            AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::zero(),
