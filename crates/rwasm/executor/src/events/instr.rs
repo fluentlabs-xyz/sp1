@@ -14,20 +14,22 @@ pub struct AluEvent {
     /// The program counter.
     pub pc: u32,
     /// riscv opcode
-    pub opcode: Opcode,
+    pub instruction:Instruction,
     /// The first operand value.
     pub a: u32,
     /// The second operand value.
     pub b: u32,
     /// The third operand value.
     pub c: u32,
+    ///
+    pub code:u32
 }
 
 impl AluEvent {
     /// Create a new [`AluEvent`].
     #[must_use]
-    pub fn new(pc: u32, opcode: Opcode, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, opcode, a, b, c }
+    pub fn new(pc: u32, instruction:Instruction, a: u32, b: u32, c: u32,code:u32,) -> Self {
+        Self { pc, instruction, a, b, c,code }
     }
 }
 

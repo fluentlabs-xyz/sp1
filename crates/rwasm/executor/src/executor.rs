@@ -5,10 +5,7 @@ use std::{str::FromStr, sync::Arc};
 #[cfg(feature = "profiling")]
 use crate::profiler::Profiler;
 use crate::{
-    dependencies::{emit_branch_dependencies, emit_divrem_dependencies, emit_memory_dependencies},
-    estimator::RecordEstimator,
-    events::SyscallEvent,
-    rwasm_ins_to_riscv_ins, SP_START,
+    dependencies::{emit_branch_dependencies, emit_divrem_dependencies, emit_memory_dependencies}, estimator::RecordEstimator, events::SyscallEvent, rwasm_ins_to_code, rwasm_ins_to_riscv_ins, SP_START
 };
 
 use clap::ValueEnum;
@@ -842,7 +839,8 @@ impl<'a> Executor<'a> {
     /// Emit an ALU event.
     fn emit_alu_event(&mut self, instruction: Instruction, arg1: u32, arg2: u32, res: u32) {
         let opcode = rwasm_ins_to_riscv_ins(instruction);
-        let event = AluEvent { pc: self.state.pc, opcode, a: res, b: arg1, c: arg2 };
+        let event = AluEvent { pc: self.state.pc, instruction, a: res, b: arg1, c: arg2,
+            code:rwasm_ins_to_code(instruction) };
         match instruction {
             Instruction::I32Add => {
                 self.record.add_events.push(event);
@@ -885,20 +883,26 @@ impl<'a> Executor<'a> {
                 } else {
                     event.b > event.c
                 };
-
+                let cmp_ins = {if use_signed_comparison{
+                    Instruction::I32LtS
+                } else{
+                    Instruction::I32LtU
+                }};
                 let lt_comp_event = AluEvent {
                     pc: UNUSED_PC,
-                    opcode: Opcode::SLT,
+                    instruction:cmp_ins,
                     a: arg1_lt_arg2 as u32,
                     b: event.b,
                     c: event.c,
+                    code:rwasm_ins_to_code(cmp_ins)
                 };
                 let gt_comp_event = AluEvent {
                     pc: UNUSED_PC,
-                    opcode: Opcode::SLT,
+                    instruction:cmp_ins,
                     a: arg1_gt_arg2 as u32,
                     b: event.c,
                     c: event.b,
+                    code:rwasm_ins_to_code(cmp_ins)
                 };
                 self.record.lt_events.push(gt_comp_event);
                 self.record.lt_events.push(lt_comp_event);

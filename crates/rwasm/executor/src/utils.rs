@@ -1,8 +1,9 @@
 use std::{hash::Hash, str::FromStr};
 
 use hashbrown::HashMap;
-use rwasm::{engine::bytecode::Instruction, rwasm::instruction};
+use rwasm::{engine::bytecode::Instruction, rwasm::{instruction, InstructionExtra}};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use sp1_curves::p256::elliptic_curve::generic_array::arr::Inc;
 
 use crate::{Opcode, RiscvAirId};
 
@@ -29,18 +30,18 @@ pub fn deserialize_hashmap_as_vec<
 
 /// Returns `true` if the given `opcode` is a signed operation.
 #[must_use]
-pub fn is_signed_operation(opcode: Opcode) -> bool {
-    opcode == Opcode::DIV || opcode == Opcode::REM
+pub fn is_signed_operation(ins:Instruction) -> bool {
+    ins==Instruction::I32DivS || ins ==Instruction::I32RemS
 }
 
 /// Calculate the correct `quotient` and `remainder` for the given `b` and `c` per RISC-V spec.
 #[must_use]
-pub fn get_quotient_and_remainder(b: u32, c: u32, opcode: Opcode) -> (u32, u32) {
+pub fn get_quotient_and_remainder(b: u32, c: u32, ins:Instruction) -> (u32, u32) {
     if c == 0 {
         // When c is 0, the quotient is 2^32 - 1 and the remainder is b regardless of whether we
         // perform signed or unsigned division.
         (u32::MAX, b)
-    } else if is_signed_operation(opcode) {
+    } else if is_signed_operation(ins) {
         ((b as i32).wrapping_div(c as i32) as u32, (b as i32).wrapping_rem(c as i32) as u32)
     } else {
         (b.wrapping_div(c), b.wrapping_rem(c))
@@ -116,3 +117,14 @@ pub fn rwasm_ins_to_riscv_ins(instruction:Instruction)->Opcode{
             _ => Opcode::UNIMP,
         }
      }
+
+
+pub fn rwasm_ins_to_code(ins:Instruction)->u32{
+    ins.code_value() as u32
+}
+
+
+///  these are psudeo rwasm instruction for chips
+pub const I32MULH_CODE:u32=0x0101;
+pub const I32MULHU_CODE:u32=0x0102;
+pub const I32MULHSU_CODE:u32=0x0102;

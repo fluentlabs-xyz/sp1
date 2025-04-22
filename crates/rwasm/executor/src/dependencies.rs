@@ -1,20 +1,18 @@
 use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
 
 use crate::{
-    events::{ AluEvent, BranchEvent, MemInstrEvent, MemoryRecord},
-    utils::{get_msb, get_quotient_and_remainder, is_signed_operation},
-    Executor, Opcode, UNUSED_PC,
+    events::{ AluEvent, BranchEvent, MemInstrEvent, MemoryRecord}, rwasm_ins_to_code, utils::{get_msb, get_quotient_and_remainder, is_signed_operation}, Executor, Opcode, I32MULHU_CODE, I32MULH_CODE, UNUSED_PC
 };
 
 /// Emits the dependencies for division and remainder operations.
 #[allow(clippy::too_many_lines)]
 pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
-    let (quotient, remainder) = get_quotient_and_remainder(event.b, event.c, event.opcode);
+    let (quotient, remainder) = get_quotient_and_remainder(event.b, event.c, event.instruction);
     let c_msb = get_msb(event.c);
     let rem_msb = get_msb(remainder);
     let mut c_neg = 0;
     let mut rem_neg = 0;
-    let is_signed_operation = is_signed_operation(event.opcode);
+    let is_signed_operation = is_signed_operation(event.instruction);
     if is_signed_operation {
         c_neg = c_msb; // same as abs_c_alu_event
         rem_neg = rem_msb; // same as abs_rem_alu_event
@@ -23,19 +21,21 @@ pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
     if c_neg == 1 {
         executor.record.add_events.push(AluEvent {
             pc: UNUSED_PC,
-            opcode: Opcode::ADD,
+            instruction:Instruction::I32Add,
             a: 0,
             b: event.c,
             c: (event.c as i32).unsigned_abs(),
+            code:rwasm_ins_to_code(Instruction::I32Add)
         });
     }
     if rem_neg == 1 {
         executor.record.add_events.push(AluEvent {
             pc: UNUSED_PC,
-            opcode: Opcode::ADD,
+            instruction:Instruction::I32Add,
             a: 0,
             b: remainder,
             c: (remainder as i32).unsigned_abs(),
+            code:rwasm_ins_to_code(Instruction::I32Add)
         });
     }
 
@@ -51,43 +51,47 @@ pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
 
     let lower_multiplication = AluEvent {
         pc: UNUSED_PC,
-        opcode: Opcode::MUL,
+        instruction:Instruction::I32Mul,
         a: lower_word,
         c: event.c,
         b: quotient,
+        code:rwasm_ins_to_code(Instruction::I32Mul)
     };
     executor.record.mul_events.push(lower_multiplication);
 
     let upper_multiplication = AluEvent {
         pc: UNUSED_PC,
-        opcode: {
-            if is_signed_operation {
-                Opcode::MULH
-            } else {
-                Opcode::MULHU
-            }
-        },
+        instruction:Instruction::I32Mul,
         a: upper_word,
         c: event.c,
         b: quotient,
+        code:{
+            if is_signed_operation {
+                I32MULH_CODE
+            } else {
+                I32MULHU_CODE
+            }
+        },
     };
     executor.record.mul_events.push(upper_multiplication);
 
     let lt_event = if is_signed_operation {
         AluEvent {
             pc: UNUSED_PC,
-            opcode: Opcode::SLTU,
+            instruction:Instruction::I32LtU,
             a: 1,
             b: (remainder as i32).unsigned_abs(),
             c: u32::max(1, (event.c as i32).unsigned_abs()),
+            code:rwasm_ins_to_code(Instruction::I32LtU),
         }
     } else {
         AluEvent {
             pc: UNUSED_PC,
-            opcode: Opcode::SLTU,
+            instruction:Instruction::I32LtU,
             a: 1,
             b: remainder,
             c: u32::max(1, event.c),
+            code:rwasm_ins_to_code(Instruction::I32LtU),
         }
     };
 
@@ -118,10 +122,11 @@ pub fn emit_memory_dependencies(
         // Add event to ALU check to check that addr == b + c
         let add_event = AluEvent {
             pc:UNUSED_PC,
-            opcode: Opcode::ADD,
+            instruction:Instruction::I32Add,
             a: memory_addr,
             b: event.arg1,
             c: offset,
+            code:rwasm_ins_to_code(Instruction::I32Add),
         };
         executor.record.add_events.push(add_event);
         let addr_offset = (memory_addr % 4_u32) as u8;
@@ -151,10 +156,12 @@ pub fn emit_memory_dependencies(
             if most_sig_mem_value_byte >> 7 & 0x01 == 1 {
                 let sub_event = AluEvent {
                     pc:UNUSED_PC,
-                    opcode: Opcode::SUB,
+                    instruction:Instruction::I32Sub,
                     a: event.res,
                     b: unsigned_mem_val,
                     c: sign_value,
+                    code:rwasm_ins_to_code(Instruction::I32Sub),
+
                 };
                 executor.record.add_events.push(sub_event);
             }
@@ -172,17 +179,18 @@ pub fn emit_branch_dependencies(executor: &mut Executor, event: BranchEvent) {
        
         let a_gt_zero = event.arg1 >0;
 
-        let alu_op_code =  Opcode::SLTU;
+        let cmp_ins =  Instruction::I32LtU;
         // Add the ALU events for the comparisons
         match event.instruction{
             Instruction::BrIfEqz(_)|
             Instruction::BrIfNez(_)=> {
                 let gt_comp_event = AluEvent {
                     pc:UNUSED_PC,
-                    opcode: alu_op_code,
+                    instruction: cmp_ins,
                     a: a_gt_zero as u32,
                     b: 0,
                     c: event.arg1,
+                    code:rwasm_ins_to_code(cmp_ins)
                 };
                 executor.record.lt_events.push(gt_comp_event);
             }
@@ -201,10 +209,11 @@ pub fn emit_branch_dependencies(executor: &mut Executor, event: BranchEvent) {
             let next_pc = ((event.pc as i32).wrapping_add(offset)) as u32;
             let add_event = AluEvent {
                 pc:UNUSED_PC,
-                opcode: Opcode::ADD,
+                instruction: Instruction::I32Add,
                 a: next_pc,
                 b: event.pc,
                 c: offset as u32,
+                code:rwasm_ins_to_code(Instruction::I32Add),
             };
             executor.record.add_events.push(add_event);
         }
