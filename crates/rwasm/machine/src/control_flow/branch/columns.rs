@@ -25,16 +25,11 @@ pub struct BranchColumns<T> {
     /// The value of the third operand.
     pub op_c_value: Word<T>,
 
-    /// Whether the first operand is register 0.
-    pub op_a_0: T,
 
     /// Branch Instructions.
-    pub is_beq: T,
-    pub is_bne: T,
-    pub is_blt: T,
-    pub is_bge: T,
-    pub is_bltu: T,
-    pub is_bgeu: T,
+    pub is_br: T,
+    pub is_brifnez :T,
+    pub is_brifeqz: T,
 
     /// The is_branching column is equal to:
     ///
@@ -56,12 +51,12 @@ pub struct BranchColumns<T> {
     /// CPU table, so I'm preserving those columns/constraints for now.
     pub not_branching: T,
 
-    /// Whether a equals b.
-    pub a_eq_b: T,
+    /// Whether a equals zerp.
+    pub a_eq_zero: T,
 
-    /// Whether a is greater than b.
-    pub a_gt_b: T,
+   
+    /// Whether a is zero.
+    pub a_lt_zero: T,
 
-    /// Whether a is less than b.
-    pub a_lt_b: T,
+ 
 }

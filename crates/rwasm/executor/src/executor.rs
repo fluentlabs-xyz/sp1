@@ -11,7 +11,7 @@ use crate::{
 use clap::ValueEnum;
 use enum_map::EnumMap;
 use hashbrown::HashMap;
-use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
+use rwasm::{rwasm::InstructionExtra};
 use serde::{Deserialize, Serialize};
 use sp1_primitives::consts::BABYBEAR_PRIME;
 use sp1_stark::{air::PublicValues, SP1CoreOpts};
@@ -44,7 +44,7 @@ use crate::{
     Program,
     RiscvAirId,
 };
-
+pub type Instruction = rwasm::engine::bytecode::Instruction;
 /// The default increment for the program counter.  Is used for all instructions except
 /// for branches and jumps.
 pub const DEFAULT_PC_INC: u32 = 4;

@@ -1,12 +1,12 @@
 use std::{hash::Hash, str::FromStr};
 
 use hashbrown::HashMap;
-use rwasm::{engine::bytecode::Instruction, rwasm::{instruction, InstructionExtra}};
+use rwasm::{rwasm::{ InstructionExtra}};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sp1_curves::p256::elliptic_curve::generic_array::arr::Inc;
 
 use crate::{Opcode, RiscvAirId};
-
+type Instruction = rwasm::engine::bytecode::Instruction;
 /// Serialize a `HashMap<u32, V>` as a `Vec<(u32, V)>`.
 pub fn serialize_hashmap_as_vec<K: Eq + Hash + Serialize, V: Serialize, S: Serializer>(
     map: &HashMap<K, V>,
@@ -128,3 +128,4 @@ pub fn rwasm_ins_to_code(ins:Instruction)->u32{
 pub const I32MULH_CODE:u32=0x0101;
 pub const I32MULHU_CODE:u32=0x0102;
 pub const I32MULHSU_CODE:u32=0x0102;
+

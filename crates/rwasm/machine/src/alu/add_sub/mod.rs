@@ -9,6 +9,7 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator};
+use rwasm::engine::bytecode::Instruction;
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
     ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
@@ -158,7 +159,7 @@ impl AddSubChip {
     ) {
         cols.pc = F::from_canonical_u32(event.pc);
 
-        let is_add = event.opcode == Opcode::ADD;
+        let is_add = event.instruction==Instruction::I32Add;
         cols.is_add = F::from_bool(is_add);
         cols.is_sub = F::from_bool(!is_add);
 

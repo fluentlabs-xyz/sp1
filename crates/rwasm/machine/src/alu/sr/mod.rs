@@ -53,14 +53,14 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
-use rwasm_executor::{
+use rwasm_executor::{Instruction,
     events::{AluEvent, ByteLookupEvent, ByteRecord},
     ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
 use sp1_stark::{air::MachineAir, Word};
-
+use rwasm_executor::rwasm_ins_to_code;
 use crate::{
     air::SP1CoreAirBuilder,
     alu::sr::utils::{nb_bits_to_shift, nb_bytes_to_shift},
@@ -228,8 +228,8 @@ impl ShiftRightChip {
 
             cols.b_msb = F::from_canonical_u32((event.b >> 31) & 1);
 
-            cols.is_srl = F::from_bool(event.opcode == Opcode::SRL);
-            cols.is_sra = F::from_bool(event.opcode == Opcode::SRA);
+            cols.is_srl = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32ShrU));
+            cols.is_sra = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32ShrS));
 
             cols.is_real = F::one();
 
@@ -258,7 +258,7 @@ impl ShiftRightChip {
                 cols.shift_by_n_bytes[i] = F::from_bool(num_bytes_to_shift == i);
             }
             let sign_extended_b = {
-                if event.opcode == Opcode::SRA {
+                if event.code ==rwasm_ins_to_code(Instruction::I32ShrS) {
                     // Sign extension is necessary only for arithmetic right shift.
                     ((event.b as i32) as i64).to_le_bytes()
                 } else {

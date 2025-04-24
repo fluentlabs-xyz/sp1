@@ -41,8 +41,7 @@ use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
 use rwasm_executor::{
-    events::{AluEvent, ByteLookupEvent, ByteRecord},
-    ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
+    events::{AluEvent, ByteLookupEvent, ByteRecord}, rwasm_ins_to_code, ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC, I32MULHSU_CODE, I32MULHU_CODE, I32MULH_CODE
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::{BYTE_SIZE, LONG_WORD_SIZE, WORD_SIZE};
@@ -53,7 +52,7 @@ use crate::{
     alu::mul::utils::get_msb,
     utils::{next_power_of_two, zeroed_f_vec},
 };
-
+use rwasm_executor::Instruction;
 /// The number of main trace columns for `MulChip`.
 pub const NUM_MUL_COLS: usize = size_of::<MulCols<u8>>();
 
@@ -216,13 +215,13 @@ impl MulChip {
             cols.c_msb = F::from_canonical_u8(c_msb);
 
             // If b is signed and it is negative, sign extend b.
-            if (event.opcode == Opcode::MULH || event.opcode == Opcode::MULHSU) && b_msb == 1 {
+            if (event.code == I32MULH_CODE || event.code == I32MULHSU_CODE ) && b_msb == 1 {
                 cols.b_sign_extend = F::one();
                 b.resize(LONG_WORD_SIZE, BYTE_MASK);
             }
 
             // If c is signed and it is negative, sign extend c.
-            if event.opcode == Opcode::MULH && c_msb == 1 {
+            if event.code == I32MULH_CODE && c_msb == 1 {
                 cols.c_sign_extend = F::one();
                 c.resize(LONG_WORD_SIZE, BYTE_MASK);
             }
@@ -272,10 +271,10 @@ impl MulChip {
         cols.b = Word(b_word.map(F::from_canonical_u8));
         cols.c = Word(c_word.map(F::from_canonical_u8));
         cols.is_real = F::one();
-        cols.is_mul = F::from_bool(event.opcode == Opcode::MUL);
-        cols.is_mulh = F::from_bool(event.opcode == Opcode::MULH);
-        cols.is_mulhu = F::from_bool(event.opcode == Opcode::MULHU);
-        cols.is_mulhsu = F::from_bool(event.opcode == Opcode::MULHSU);
+        cols.is_mul = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32Mul));
+        cols.is_mulh = F::from_bool(event.code == I32MULH_CODE);
+        cols.is_mulhu = F::from_bool(event.code == I32MULHU_CODE);
+        cols.is_mulhsu = F::from_bool(event.code == I32MULHSU_CODE);
 
         // Range check.
         {

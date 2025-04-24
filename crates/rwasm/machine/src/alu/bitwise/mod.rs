@@ -9,6 +9,7 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{IntoParallelRefIterator, ParallelIterator, ParallelSlice};
+use rwasm::engine::bytecode::Instruction;
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
     ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
@@ -146,9 +147,9 @@ impl BitwiseChip {
         cols.c = Word::from(event.c);
       
 
-        cols.is_xor = F::from_bool(event.opcode == Opcode::XOR);
-        cols.is_or = F::from_bool(event.opcode == Opcode::OR);
-        cols.is_and = F::from_bool(event.opcode == Opcode::AND);
+        cols.is_xor = F::from_bool(event.instruction == Instruction::I32Xor);
+        cols.is_or = F::from_bool(event.instruction == Instruction::I32Or);
+        cols.is_and = F::from_bool(event.instruction == Instruction::I32And);
 
        
     }

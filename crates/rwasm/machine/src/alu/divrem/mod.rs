@@ -68,10 +68,9 @@ use core::{
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
+use rwasm::engine::bytecode::Instruction;
 use rwasm_executor::{
-    events::{ByteLookupEvent, ByteRecord},
-    get_msb, get_quotient_and_remainder, is_signed_operation, ByteOpcode, ExecutionRecord, Opcode,
-    Program, DEFAULT_PC_INC, UNUSED_PC,
+    events::{ByteLookupEvent, ByteRecord}, get_msb, get_quotient_and_remainder, is_signed_operation, rwasm_ins_to_code, ByteOpcode, ExecutionRecord, Program, DEFAULT_PC_INC, I32MULHU_CODE, I32MULH_CODE, UNUSED_PC
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
@@ -217,10 +216,10 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
         let divrem_events = input.divrem_events.clone();
         for event in divrem_events.iter() {
             assert!(
-                event.opcode == Opcode::DIVU
-                    || event.opcode == Opcode::REMU
-                    || event.opcode == Opcode::REM
-                    || event.opcode == Opcode::DIV
+                event.instruction==Instruction::I32DivU
+                    || event.instruction==Instruction::I32RemU
+                    || event.instruction==Instruction::I32RemS
+                    || event.instruction==Instruction::I32DivS
             );
             let mut row = [F::zero(); NUM_DIVREM_COLS];
             let cols: &mut DivRemCols<F> = row.as_mut_slice().borrow_mut();
@@ -233,14 +232,14 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
                 cols.b = Word::from(event.b);
                 cols.c = Word::from(event.c);
                 cols.is_real = F::one();
-                cols.is_divu = F::from_bool(event.opcode == Opcode::DIVU);
-                cols.is_remu = F::from_bool(event.opcode == Opcode::REMU);
-                cols.is_div = F::from_bool(event.opcode == Opcode::DIV);
-                cols.is_rem = F::from_bool(event.opcode == Opcode::REM);
+                cols.is_divu = F::from_bool(event.instruction==Instruction::I32DivU);
+                cols.is_remu = F::from_bool(event.instruction==Instruction::I32RemU);
+                cols.is_div = F::from_bool(event.instruction==Instruction::I32DivS);
+                cols.is_rem = F::from_bool(event.instruction==Instruction::I32RemS);
                 cols.is_c_0.populate(event.c);
             }
 
-            let (quotient, remainder) = get_quotient_and_remainder(event.b, event.c, event.opcode);
+            let (quotient, remainder) = get_quotient_and_remainder(event.b, event.c, event.instruction);
             cols.quotient = Word::from(quotient);
             cols.remainder = Word::from(remainder);
 
@@ -251,7 +250,7 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
                 cols.c_msb = F::from_canonical_u8(get_msb(event.c));
                 cols.is_overflow_b.populate(event.b, i32::MIN as u32);
                 cols.is_overflow_c.populate(event.c, -1i32 as u32);
-                if is_signed_operation(event.opcode) {
+                if is_signed_operation(event.instruction) {
                     cols.rem_neg = cols.rem_msb;
                     cols.b_neg = cols.b_msb;
                     cols.c_neg = cols.c_msb;
@@ -296,7 +295,7 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
             // Calculate c * quotient + remainder.
             {
                 let c_times_quotient = {
-                    if is_signed_operation(event.opcode) {
+                    if is_signed_operation(event.instruction) {
                         (((quotient as i32) as i64) * ((event.c as i32) as i64)).to_le_bytes()
                     } else {
                         ((quotient as u64) * (event.c as u64)).to_le_bytes()
@@ -305,7 +304,7 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
                 cols.c_times_quotient = c_times_quotient.map(F::from_canonical_u8);
 
                 let remainder_bytes = {
-                    if is_signed_operation(event.opcode) {
+                    if is_signed_operation(event.instruction) {
                         ((remainder as i32) as i64).to_le_bytes()
                     } else {
                         (remainder as u64).to_le_bytes()
@@ -433,7 +432,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(Opcode::MUL as u32),
+                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Mul)),
                 Word(lower_half),
                 local.quotient,
                 local.c,
@@ -444,8 +443,8 @@ where
             );
 
             let opcode_for_upper_half = {
-                let mulh = AB::Expr::from_canonical_u32(Opcode::MULH as u32);
-                let mulhu = AB::Expr::from_canonical_u32(Opcode::MULHU as u32);
+                let mulh = AB::Expr::from_canonical_u32(I32MULH_CODE);
+                let mulhu = AB::Expr::from_canonical_u32(I32MULHU_CODE);
                 let is_signed = local.is_div + local.is_rem;
                 let is_unsigned = local.is_divu + local.is_remu;
                 is_signed * mulh + is_unsigned * mulhu
@@ -635,7 +634,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(Opcode::ADD as u32),
+                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Add)),
                 Word([zero.clone(), zero.clone(), zero.clone(), zero.clone()]),
                 local.c,
                 local.abs_c,
@@ -650,7 +649,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(Opcode::ADD as u32),
+                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Add)),
                 Word([zero.clone(), zero.clone(), zero.clone(), zero.clone()]),
                 local.remainder,
                 local.abs_remainder,
@@ -703,7 +702,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(Opcode::SLTU as u32),
+                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32LtU)),
                 Word([one.clone(), zero.clone(), zero.clone(), zero.clone()]),
                 local.abs_remainder,
                 local.max_abs_c_or_1,
@@ -777,10 +776,10 @@ where
             );
 
             let opcode = {
-                let divu: AB::Expr = AB::F::from_canonical_u32(Opcode::DIVU as u32).into();
-                let remu: AB::Expr = AB::F::from_canonical_u32(Opcode::REMU as u32).into();
-                let div: AB::Expr = AB::F::from_canonical_u32(Opcode::DIV as u32).into();
-                let rem: AB::Expr = AB::F::from_canonical_u32(Opcode::REM as u32).into();
+                let divu: AB::Expr = AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32DivU)).into();
+                let remu: AB::Expr = AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32RemU)).into();
+                let div: AB::Expr = AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32DivS)).into();
+                let rem: AB::Expr = AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32RemS)).into();
 
                 local.is_divu * divu
                     + local.is_remu * remu
@@ -831,8 +830,7 @@ mod tests {
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{thread_rng, Rng};
     use rwasm_executor::{
-        events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, Program,
+        events::{AluEvent, MemoryRecordEnum}, rwasm_ins_to_code, ExecutionRecord, Program
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -840,11 +838,13 @@ mod tests {
     };
 
     use super::DivRemChip;
+    use rwasm::engine::bytecode::Instruction;
 
     #[test]
+
     fn generate_trace() {
         let mut shard = ExecutionRecord::default();
-        shard.divrem_events = vec![AluEvent::new(0, Opcode::DIVU, 2, 17, 3, false)];
+        shard.divrem_events = vec![AluEvent::new(0,Instruction::I32DivU, 2, 17, 3, rwasm_ins_to_code(Instruction::I32DivU))];
         let chip = DivRemChip::default();
         let trace: RowMajorMatrix<BabyBear> =
             chip.generate_trace(&shard, &mut ExecutionRecord::default());

@@ -73,6 +73,7 @@ sp1-stark = { path = "crates/stark", version = "4.2.0" }
 sp1-lib = { path = "crates/zkvm/lib", version = "4.2.0", default-features = false }
 sp1-zkvm = { path = "crates/zkvm/entrypoint", version = "4.2.0", default-features = false }
 rwasm-executor = { path = "crates/rwasm/executor", version = "4.2.0", default-features = false }
+rwasm-machine = { path = "crates/rwasm/machine", version = "4.2.0", default-features = false }
 
 # For testing.
 test-artifacts = { path = "crates/test-artifacts" }

@@ -41,9 +41,8 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelIterator, ParallelSlice};
-use rwasm_executor::{
-    events::{AluEvent, ByteLookupEvent, ByteRecord},
-    ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
+use rwasm_executor::{Instruction,
+    events::{AluEvent, ByteLookupEvent, ByteRecord}, rwasm_ins_to_code, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
@@ -401,7 +400,7 @@ where
             local.pc,
             local.pc + AB::Expr::from_canonical_u32(DEFAULT_PC_INC),
             AB::Expr::zero(),
-            AB::F::from_canonical_u32(Opcode::SLL as u32),
+            AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Shl)),
             local.a,
             local.b,
             local.c,
