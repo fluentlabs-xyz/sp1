@@ -56,7 +56,7 @@ pub struct BranchColumns<T> {
 
    
     /// Whether a is zero.
-    pub a_lt_zero: T,
+    pub a_gt_zero: T,
 
  
 }

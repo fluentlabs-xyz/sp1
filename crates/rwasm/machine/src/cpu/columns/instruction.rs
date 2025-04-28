@@ -1,8 +1,9 @@
 use p3_field::PrimeField;
+use rwasm_executor::rwasm_ins_to_code;
 use sp1_derive::AlignedBorrow;
 use sp1_stark::Word;
 use std::{iter::once, mem::size_of, vec::IntoIter};
-use rwasm::engine::bytecode::Instruction;
+use rwasm::{engine::bytecode::Instruction, rwasm::InstructionExtra};
 pub const NUM_INSTRUCTION_COLS: usize = size_of::<InstructionCols<u8>>();
 
 /// The column layout for instructions.
@@ -12,26 +13,15 @@ pub struct InstructionCols<T> {
     /// The opcode for this cycle.
     pub opcode: T,
 
-    /// The first operand for this instruction.
-    pub op_a: T,
-
-    /// The second operand for this instruction.
-    pub op_b: Word<T>,
-
-    /// The third operand for this instruction.
-    pub op_c: Word<T>,
+    pub aux_val: T,
 
 
 }
 
 impl<F: PrimeField> InstructionCols<F> {
     pub fn populate(&mut self, instruction: &Instruction) {
-        self.opcode = instruction.opcode.as_field::<F>();
-        self.op_a = F::from_canonical_u8(instruction.op_a);
-        self.op_b = instruction.op_b.into();
-        self.op_c = instruction.op_c.into();
-
-        
+        self.opcode = F::from_canonical_u32(rwasm_ins_to_code(*instruction));
+        self.aux_val= F::from_canonical_u32(instruction.aux_value().unwrap().into());
     }
 }
 
@@ -41,9 +31,7 @@ impl<T> IntoIterator for InstructionCols<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         once(self.opcode)
-            .chain(once(self.op_a))
-            .chain(self.op_b)
-            .chain(self.op_c)
+            .chain(once(self.aux_val))
             .collect::<Vec<_>>()
             .into_iter()
     }

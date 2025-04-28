@@ -51,8 +51,6 @@ impl<F: PrimeField32> MachineAir<F> for CpuChip {
                     let cols: &mut CpuCols<F> = row.borrow_mut();
 
                     if idx >= input.cpu_events.len() {
-                        cols.instruction.imm_b = F::one();
-                        cols.instruction.imm_c = F::one();
                         cols.is_syscall = F::one();
                     } else {
                         let mut byte_lookup_events = Vec::new();

@@ -5,9 +5,9 @@ use itertools::Itertools;
 use p3_field::PrimeField32;
 use p3_matrix::dense::RowMajorMatrix;
 use rayon::iter::{ParallelBridge, ParallelIterator};
+
 use rwasm_executor::{
-    events::{BranchEvent, ByteLookupEvent, ByteRecord},
-    ExecutionRecord, Opcode, Program,
+    events::{BranchEvent, ByteLookupEvent, ByteRecord}, ExecutionRecord, Instruction, Opcode, Program
 };
 use sp1_stark::air::MachineAir;
 
@@ -88,30 +88,19 @@ impl BranchChip {
         cols.op_c_value = event.arg2.into();
        
 
-        let a_eq_b = event.a == event.b;
+        let a_eq_zero = event.arg1 == 0;
+        let a_gt_zero = event.arg1 >0;
+       
+      
 
-        let use_signed_comparison = matches!(event.opcode, Opcode::BLT | Opcode::BGE);
+        cols.a_eq_zero = F::from_bool(a_eq_zero);
+       
+        cols.a_gt_zero = F::from_bool(a_gt_zero);
 
-        let a_lt_b = if use_signed_comparison {
-            (event.a as i32) < (event.b as i32)
-        } else {
-            event.a < event.b
-        };
-        let a_gt_b = if use_signed_comparison {
-            (event.a as i32) > (event.b as i32)
-        } else {
-            event.a > event.b
-        };
-
-        cols.a_eq_b = F::from_bool(a_eq_b);
-        cols.a_lt_b = F::from_bool(a_lt_b);
-        cols.a_gt_b = F::from_bool(a_gt_b);
-
-        let branching = match event.opcode {
-            Opcode::BEQ => a_eq_b,
-            Opcode::BNE => !a_eq_b,
-            Opcode::BLT | Opcode::BLTU => a_lt_b,
-            Opcode::BGE | Opcode::BGEU => a_eq_b || a_gt_b,
+        let branching = match event.instruction {
+            Instruction::Br(_) => true,
+            Instruction::BrIfEqz(_) => a_eq_zero,
+            Instruction::BrIfNez(_)=>!a_eq_zero,
             _ => unreachable!(),
         };
 

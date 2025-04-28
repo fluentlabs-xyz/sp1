@@ -47,8 +47,8 @@ where
         builder.assert_bool(is_real.clone());
 
         let opcode = local.is_br * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::Br(0.into())))
-            + local.is_brifeqz *AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::BrIfEqz(0.into())))
-            + local.is_brifnez * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::BrIfNez(0.into()));
+            + local.is_brifeqz * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::BrIfEqz(0.into())))
+            + local.is_brifnez * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::BrIfNez(0.into())));
             
 
         // SAFETY: This checks the following.
@@ -134,66 +134,31 @@ where
 
         // Evaluate branching value constraints.
         {
-            // When the opcode is BEQ and we are branching, assert that a_eq_b is true.
-            builder.when(local.is_beq * local.is_branching).assert_one(local.a_eq_b);
+          // When the opcode is BEQ and we are branching, assert that a_eq_b is true.
+          builder.when(local.is_brifeqz * local.is_branching).assert_one(local.a_eq_zero);
 
-            // When the opcode is BEQ and we are not branching, assert that either a_gt_b or a_lt_b
-            // is true.
-            builder
-                .when(local.is_beq)
-                .when_not(local.is_branching)
-                .assert_one(local.a_gt_b + local.a_lt_b);
+           
 
-            // When the opcode is BNE and we are branching, assert that either a_gt_b or a_lt_b is
-            // true.
-            builder.when(local.is_bne * local.is_branching).assert_one(local.a_gt_b + local.a_lt_b);
-
-            // When the opcode is BNE and we are not branching, assert that a_eq_b is true.
-            builder.when(local.is_bne).when_not(local.is_branching).assert_one(local.a_eq_b);
-
-            // When the opcode is BLT or BLTU and we are branching, assert that a_lt_b is true.
-            builder
-                .when((local.is_blt + local.is_bltu) * local.is_branching)
-                .assert_one(local.a_lt_b);
-
-            // When the opcode is BLT or BLTU and we are not branching, assert that either a_eq_b
-            // or a_gt_b is true.
-            builder
-                .when(local.is_blt + local.is_bltu)
-                .when_not(local.is_branching)
-                .assert_one(local.a_eq_b + local.a_gt_b);
-
-            // When the opcode is BGE or BGEU and we are branching, assert that a_gt_b is true.
-            builder
-                .when((local.is_bge + local.is_bgeu) * local.is_branching)
-                .assert_one(local.a_gt_b + local.a_eq_b);
-
-            // When the opcode is BGE or BGEU and we are not branching, assert that either a_eq_b
-            // or a_lt_b is true.
-            builder
-                .when(local.is_bge + local.is_bgeu)
-                .when_not(local.is_branching)
-                .assert_one(local.a_lt_b);
-        }
+          // When the opcode is BNE and we are branching, assert that either a_gt_b or a_lt_b is
+          // true.
+          builder
+              .when(local.is_brifnez * local.is_branching)
+              .assert_one(local.a_gt_zero);
 
         // When it's a branch instruction and a_eq_b, assert that a == b.
         builder
-            .when(is_real.clone() * local.a_eq_b)
-            .assert_word_eq(local.op_a_value, local.op_b_value);
+            .when(is_real.clone() * local.a_eq_zero)
+            .assert_word_eq(local.op_a_value,Word::<AB::F>::from(0));
 
-        // Calculate a_lt_b <==> a < b (using appropriate signedness).
-        // SAFETY: `use_signed_comparison` is boolean, since at most one selector is turned on.
-        let use_signed_comparison = local.is_blt + local.is_bge;
+       
         builder.send_instruction(
             AB::Expr::zero(),
             AB::Expr::zero(),
             AB::Expr::from_canonical_u32(UNUSED_PC),
             AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
             AB::Expr::zero(),
-            use_signed_comparison.clone() * Opcode::SLT.as_field::<AB::F>()
-                + (AB::Expr::one() - use_signed_comparison.clone())
-                    * Opcode::SLTU.as_field::<AB::F>(),
-            Word::extend_var::<AB>(local.a_lt_b),
+            AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32LtU)),
+            Word::extend_var::<AB>(local.a_gt_zero),
             local.op_a_value,
             local.op_b_value,
             AB::Expr::zero(),
@@ -202,22 +167,6 @@ where
             is_real.clone(),
         );
 
-        // Calculate a_gt_b <==> a > b (using appropriate signedness).
-        builder.send_instruction(
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::from_canonical_u32(UNUSED_PC),
-            AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
-            AB::Expr::zero(),
-            use_signed_comparison.clone() * Opcode::SLT.as_field::<AB::F>()
-                + (AB::Expr::one() - use_signed_comparison) * Opcode::SLTU.as_field::<AB::F>(),
-            Word::extend_var::<AB>(local.a_gt_b),
-            local.op_b_value,
-            local.op_a_value,
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            is_real.clone(),
-        );
+    }
     }
 }
