@@ -3,6 +3,7 @@ use std::{fs, path::Path};
 use hashbrown::HashMap;
 use log::debug;
 use rwasm::engine::bytecode::Instruction;
+use rwasm::engine::DropKeep;
 use rwasm::rwasm::BinaryFormat;
 use rwasm::rwasm::{InstructionExtra, RwasmModule};
 use rwasm::Engine;
@@ -41,20 +42,53 @@ pub fn convert_module_to_executable(rwasm_module: RwasmModule) -> Program {
     let rwasm_instr: Vec<Instruction> = rwasm_module.code_section.instr.clone();
     let mut instr_vec = rwasm_instr.clone();
     for x in instr_vec.iter_mut() {
+        println!("rwasmins:{:?}",x);
         match x {
             Instruction::BrIfEqz(_) => {
                 let aux_val: i32 = x.aux_value().unwrap().as_i32();
                 *x = Instruction::BrIfEqz((aux_val * 4).into());
+                println!("new rwasmins:{:?}",x);
+            }
+            Instruction::BrIfNez(_) => {
+                let aux_val: i32 = x.aux_value().unwrap().as_i32();
+                *x = Instruction::BrIfNez((aux_val * 4).into());
+                println!("new rwasmins:{:?}",x);
+            }
+            Instruction::Br(_) => {
+                let aux_val: i32 = x.aux_value().unwrap().as_i32();
+                *x = Instruction::Br((aux_val * 4).into());
+                println!("new rwasmins:{:?}",x);
             }
             Instruction::LocalGet(_) => {
                 let aux_val: i32 = x.aux_value().unwrap().as_i32();
                 *x = Instruction::LocalGet(((aux_val * 4 - 4) as u32).into());
+                println!("new rwasmins:{:?}",x);
+            }
+            Instruction::LocalSet(_) => {
+                let aux_val: i32 = x.aux_value().unwrap().as_i32();
+                *x = Instruction::LocalSet(((aux_val * 4 - 4) as u32).into());
+                println!("new rwasmins:{:?}",x);
+            }
+            Instruction::LocalTee(_) => {
+                let aux_val: i32 = x.aux_value().unwrap().as_i32();
+                *x = Instruction::LocalTee(((aux_val * 4 - 4) as u32).into());
+                println!("new rwasmins:{:?}",x);
+            }
+            Instruction::Return(dk) => {
+                if dk.drop()>1{
+                    *x=Instruction::Return(DropKeep::new(1, 1).unwrap());
+                    println!("new rwasmins:{:?}",x);
+                } else{
+                    *x=Instruction::Return(*dk);
+                }
+
             }
             _ => (),
         }
     }
 
     let func_indices = build_index_offset(&rwasm_module.func_section);
+    println!("{:?}",func_indices);
     let program = Program::new_with_memory_and_func(instr_vec, HashMap::new(), func_indices, 1, 1);
     program
 }
@@ -64,7 +98,7 @@ pub fn build_index_offset(func_length_vec: &Vec<u32>) -> Vec<u32> {
     let mut acc = 0;
     let mut res = vec![];
     for item in func_length_vec {
-        acc += item;
+        acc += 4*item;
         res.push(acc);
     }
     res
@@ -114,6 +148,20 @@ mod test {
     #[test]
     fn test_execute_fib() {
         let wasm_bin = read_wat(Path::new(FIB_REC_PATH));
+        let rwasm_module = build_rwams_bin(&wasm_bin);
+        let acc_func_section = build_index_offset(&rwasm_module.func_section);
+
+        let program = convert_module_to_executable(rwasm_module);
+
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        runtime.run().unwrap();
+        // for event in runtime.records[0].cpu_events.iter(){
+        //     println!("event:{:?}",event);
+        // }
+    }
+    #[test]
+    fn test_execute_non_rec_fib() {
+        let wasm_bin = read_wat(Path::new(FIB_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
         let acc_func_section = build_index_offset(&rwasm_module.func_section);
 

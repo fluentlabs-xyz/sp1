@@ -691,18 +691,19 @@ impl<'a> Executor<'a> {
         let mut res_record: Option<MemoryWriteRecord> = None;
         let mut res_is_writtten_back_to_stack: bool = false;
        // println!("ins:{:?},pc:{},sp:{},clk:{}",instruction,pc,sp,clk);
-        // let mut i = 0;
-        // loop{
-        //     let item = self.state.memory.get(self.state.sp+4*i);
-        //     match item{
-        //         Some(mr)=>{
-        //             println!("pos:{},value:{}",self.state.sp+4*i,mr.value);
-        //         }
-        //         None=>break,
-        //     }
-        //     i+=1;
-        // }
-
+        let mut i = 0;
+        loop{
+            let item = self.state.memory.get(self.state.sp+4*i);
+            match item{
+                Some(mr)=>{
+                    println!("pos:{},value:{}",self.state.sp+4*i,mr.value);
+                }
+                None=>break,
+            }
+            i+=1;
+        }
+        println!("ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
+        instruction,sp,next_sp,pc,next_pc,depth,next_depth);
 
         if self.executor_mode == ExecutorMode::Trace {
             // TODO: add rwasm memory record
@@ -1219,9 +1220,7 @@ impl<'a> Executor<'a> {
                 next_sp = sp + 4;
                 res_is_writtten_back_to_stack = true;
                 self.emit_alu(clk, Opcode::ADD, res, arg1, arg2, lookup_id);
-                println!("Instruction::I32Add: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
-                instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("Instruction::I32Add: res_record:{:?}",res_record);
+                
             }
             Instruction::I32Sub => {
                 (arg1_record, arg2_record) = self.fetch_binary_op_data();

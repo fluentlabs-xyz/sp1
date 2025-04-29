@@ -1291,7 +1291,7 @@ pub mod tests {
 
     #[cfg(test)]
     use serial_test::serial;
-    use sp1_rwasm_executor::disassembler::binary::{convert_module_to_executable, FIB_REC_PATH};
+    use sp1_rwasm_executor::disassembler::binary::{convert_module_to_executable, FIB_REC_PATH,FIB_PATH};
     #[cfg(test)]
     use sp1_rwasm_machine::utils::setup_logger;
     use utils::sp1_vkey_digest_babybear;
@@ -1341,6 +1341,11 @@ pub mod tests {
         let (pk, vk) = prover.setup_program(&mut program);
 
         tracing::info!("prove core");
+        let core_proof = prover.prove_core_program(&pk, program.clone(), &stdin, opts, context.clone());
+        match core_proof {
+            Ok(_)=>(),
+            Err(err)=>{println!("{}",err)},
+        }
         let core_proof = prover.prove_core_program(&pk, program, &stdin, opts, context)?;
         let public_values = core_proof.public_values.clone();
 
@@ -1603,6 +1608,25 @@ pub mod tests {
         let opts = SP1ProverOpts::default();
         let prover = SP1Prover::<DefaultProverComponents>::new();
         let wasm_bin = read_wat(Path::new(FIB_REC_PATH));
+        let rwasm_module = build_rwams_bin(&wasm_bin);
+        let mut program = convert_module_to_executable(rwasm_module);
+        run_e2e_prover_with_options::<DefaultProverComponents>(
+            &prover,
+            program,
+            SP1Stdin::default(),
+            opts,
+            Test::Wrap,
+            true,
+        )
+    }
+
+    #[test]
+    #[serial]
+    fn test_nonrec_fibonacci() -> Result<()> {
+        setup_logger();
+        let opts = SP1ProverOpts::default();
+        let prover = SP1Prover::<DefaultProverComponents>::new();
+        let wasm_bin = read_wat(Path::new(FIB_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
         let mut program = convert_module_to_executable(rwasm_module);
         run_e2e_prover_with_options::<DefaultProverComponents>(
