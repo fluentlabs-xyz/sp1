@@ -49,7 +49,7 @@ impl<F: PrimeField32> MachineAir<F> for CpuChip {
                     let idx = i * chunk_size + j;
                     let cols: &mut CpuCols<F> = row.borrow_mut();
                     let mut byte_lookup_events = Vec::new();
-                    println!("event.clk:{}", &input.cpu_events[idx].clk);
+                    // println!("event.clk:{}", &input.cpu_events[idx].clk);
                     self.event_to_row(
                         &input.cpu_events[idx],
                         &input.nonce_lookup,
@@ -133,7 +133,7 @@ impl CpuChip {
 
         // Populate memory accesses for a, b, and c.
         if let Some(record) = event.arg1_record {
-            println!("ins+:{},arg_1 record+:{:?}",event.instruction,record);
+            // println!("ins+:{},arg_1 record+:{:?}",event.instruction,record);
             cols.op_arg1_access.populate(record, blu_events);
         }
 
@@ -176,11 +176,11 @@ impl CpuChip {
 
         } else{
             if let Some(record) = event.arg2_record {
-                println!("arg_2 record:{:?}",record);
+                // println!("arg_2 record:{:?}",record);
                 cols.op_arg2_access.populate(record, blu_events);
             }
             if let Some(record) = event.res_record {
-                println!("arg_res record:{:?}",record);
+                // println!("arg_res record:{:?}",record);
                 cols.op_res_access.populate(record, blu_events);
             }
         }
@@ -637,7 +637,7 @@ impl CpuChip {
                 },
                 _=>(),
             }
-            println!(" funcall:{:?},event ins: {},depth:{},next_depth:{}",funccall,event.instruction,event.depth,event.next_depth);
+            // println!(" funcall:{:?},event ins: {},depth:{},next_depth:{}",funccall,event.instruction,event.depth,event.next_depth);
         }
       
     } 

@@ -10,7 +10,7 @@ use sp1_recursion_compiler::{
     constraints::{Constraint, ConstraintCompiler},
     ir::Builder,
 };
-use sp1_rwasm_executor::{disassembler::binary::{build_rwams_bin, convert_module_to_executable, read_wat, HELLO_PATH}, SP1Context};
+use sp1_rwasm_executor::{disassembler::binary::{build_rwams_bin, convert_module_to_executable, read_wat, FIB_REC_PATH}, SP1Context};
 use sp1_rwasm_machine::{io::SP1Stdin, utils::setup_logger};
 
 use sp1_recursion_core::air::RecursionPublicValues;
@@ -152,7 +152,7 @@ pub fn dummy_proof() -> (StarkVerifyingKey<OuterSC>, ShardProof<OuterSC>) {
     setup_logger();
     let opts = SP1ProverOpts::default();
     
-    let wasm_bin = read_wat(Path::new(HELLO_PATH));
+    let wasm_bin = read_wat(Path::new(FIB_REC_PATH));
     let rwasm_module = build_rwams_bin(&wasm_bin);
     let mut program = convert_module_to_executable(rwasm_module);
     println!("{:?}",program);

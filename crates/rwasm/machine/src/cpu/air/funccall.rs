@@ -108,7 +108,7 @@ impl CpuChip {
         builder.when(local.selectors.is_return)
         .when(local.is_real_return).assert_eq(local.next_depth,local.depth-AB::Expr::one());
         builder.when(AB::Expr::one()-local.selectors.is_callinternal-local.selectors.is_return).assert_eq(local.depth, local.next_depth);
-        builder.when(next.is_real).assert_eq(local.next_depth, next.depth);
+        builder.when(local.is_real).when(next.is_real).assert_eq(local.next_depth, next.depth);
     }
 
    

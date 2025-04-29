@@ -7,7 +7,7 @@ mod tests {
 
     use hashbrown::HashMap;
     use rwasm::engine::Instr;
-    use sp1_rwasm_executor::disassembler::binary::{convert_module_to_executable, read_wat, HELLO_PATH, SIMPLE_PATH};
+    use sp1_rwasm_executor::disassembler::binary::{convert_module_to_executable, read_wat, FIB_REC_PATH, SIMPLE_PATH};
     use sp1_rwasm_executor::{Opcode, Program, SP_START,disassembler::binary::build_rwams_bin};
     use sp1_rwasm_machine::utils::setup_logger;
 
@@ -23,7 +23,7 @@ mod tests {
     use rwasm::engine::bytecode::{BranchOffset, Instruction,DropKeep};
     #[test]
     fn prove_fib(){
-        let wasm_bin = read_wat(Path::new(HELLO_PATH));
+        let wasm_bin = read_wat(Path::new(FIB_REC_PATH));
         let rwasm_module = build_rwams_bin(&wasm_bin);
         let acc_func_section = vec![6,6+19,6+19+3];
         for (ins_idx,item) in rwasm_module.code_section.instr.iter().enumerate(){
