@@ -114,7 +114,7 @@ impl<F: PrimeField> MachineAir<F> for ProgramChip {
         input.cpu_events.iter().for_each(|event| {
             let pc = event.pc;
             instruction_counts.entry(pc).and_modify(|count| *count += 1).or_insert(1);
-            println!("program event, pc:{},ins:{:?}",pc,event.instruction);
+            // println!("program event, pc:{},ins:{:?}",pc,event.instruction);
             
         });
         

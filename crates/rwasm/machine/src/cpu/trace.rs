@@ -130,7 +130,7 @@ impl CpuChip {
         cols.res=event.res.into();
         cols.depth=F::from_canonical_u32(event.depth.into());
         cols.next_depth=F::from_canonical_u32(event.next_depth.into());
-        println!("evnet ins:{}",event.instruction);
+
         // Populate memory accesses for a, b, and c.
         if let Some(record) = event.arg1_record {
             println!("ins+:{},arg_1 record+:{:?}",event.instruction,record);
@@ -156,21 +156,20 @@ impl CpuChip {
                     | Instruction::I32Load8S(_)
                     | Instruction::I32Load8U(_)){
                         if let Some(record) = event.arg2_record {
-                            println!("arg_2 record:{:?}",record);
+                            
                             memory_columns.memory_access.populate(MemoryRecordEnum::Read(record), blu_events)
                         }
                         if let Some(record) = event.res_record {
-                            println!("arg_res record:{:?}",record);
+                           
                             cols.op_res_access.populate(record, blu_events);
                         }
                     } else{
                         if let Some(record) = event.arg2_record {
-                            println!("populate store");
-                            println!("arg_2 record:{:?}",record);
+                            
                             cols.op_arg2_access.populate(record, blu_events);
                         }
                         if let Some(record) = event.res_record {
-                            println!("arg_res record:{:?}",record);
+                           
                             memory_columns.memory_access.populate(MemoryRecordEnum::Write(record), blu_events)
                         }
                     }
@@ -274,12 +273,11 @@ impl CpuChip {
         }
       
         let offset = event.instruction.aux_value().unwrap().into();
-        println!("ins:{:?}",event.instruction);
-        println!("memoryoffset:{}",offset);
+       
         // Populate addr_word and addr_aligned columns.
         let memory_columns = cols.opcode_specific_columns.memory_mut();
         let memory_addr = event.arg1.wrapping_add(offset);
-        println!("memor_addr:{}",memory_addr);
+       
         let aligned_addr = memory_addr - memory_addr % WORD_SIZE as u32;
         memory_columns.addr_word = memory_addr.into();
         memory_columns.addr_word_range_checker.populate(memory_addr);
@@ -391,7 +389,7 @@ impl CpuChip {
                 Instruction::BrIfNez(offset)=>offset.to_i32(),
                 _=>0,
            };
-            println!("ins:{},offset:{}",event.instruction,offset);
+           
             branch_columns.a_gt_b_nonce = F::from_canonical_u32(
                 nonce_lookup.get(&event.branch_gt_lookup_id).copied().unwrap_or_default(),
             );
@@ -406,9 +404,9 @@ impl CpuChip {
                 Instruction::BrIfEqz(_) => a_eq_zero,
                 _ => unreachable!(),
             };
-            println!("branching?:{},agtzero?:{}",branching,a_gt_zero);
+          
             let next_pc = event.pc.wrapping_add(offset as u32);
-            println!("branching pc :{},nextpc :{}",event.pc,next_pc);
+            
             branch_columns.pc = Word::from(event.pc);
             branch_columns.next_pc = Word::from(next_pc);
             branch_columns.pc_range_checker.populate(event.pc);

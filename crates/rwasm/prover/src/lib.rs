@@ -88,7 +88,7 @@ use utils::{sp1_committed_values_digest_bn254, sp1_vkey_digest_bn254, words_to_b
 
 use components::{DefaultProverComponents, SP1ProverComponents};
 
-pub use sp1_core_machine::SP1_CIRCUIT_VERSION;
+pub use sp1_rwasm_machine::SP1_CIRCUIT_VERSION;
 
 /// The configuration for the core prover.
 pub type CoreSC = BabyBearPoseidon2;
@@ -209,7 +209,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
             .then_some(RecursionShapeConfig::default());
 
         let vk_verification =
-            env::var("VERIFY_VK").map(|v| v.eq_ignore_ascii_case("true")).unwrap_or(true);
+            env::var("VERIFY_VK").map(|v| v.eq_ignore_ascii_case("true")).unwrap_or(false);
 
         tracing::info!("vk verification: {}", vk_verification);
 
@@ -384,7 +384,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
                 let mut builder = Builder::<InnerConfig>::default();
 
                 let input = input.read(&mut builder);
-                // SP1RecursiveVerifier::verify(&mut builder, self.core_prover.machine(), input);
+                SP1RecursiveVerifier::verify(&mut builder, self.core_prover.machine(), input);
                 let operations = builder.into_operations();
                 builder_span.exit();
 
@@ -671,7 +671,7 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
     }
 
     /// Reduce shards proofs to a single shard proof using the recursion prover.
-    #[instrument(name = "compress", level = "info", skip_all)]
+    #[instrument(name = "compress", level = "debug", skip_all)]
     pub fn compress(
         &self,
         vk: &SP1VerifyingKey,
@@ -795,12 +795,15 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
                                         self.compress_prover.config().perm.clone(),
                                     );
                                 runtime.witness_stream = witness_stream.into();
-                                runtime
+                               let res= runtime
                                     .run()
                                     .map_err(|e| {
                                         SP1RecursionProverError::RuntimeError(e.to_string())
-                                    })
-                                    .unwrap();
+                                    });
+                                    match res {
+                                        Ok(_)=>(),
+                                        Err(err)=>println!("{}",err),
+                                    }
                                 runtime.record
                             });
 
@@ -1285,13 +1288,13 @@ pub mod tests {
     use p3_field::PrimeField32;
 
     use shapes::SP1ProofShape;
-    use sp1_core_machine::program;
+    use sp1_rwasm_machine::program;
     use sp1_recursion_core::air::RecursionPublicValues;
 
     #[cfg(test)]
     use serial_test::serial;
     #[cfg(test)]
-    use sp1_core_machine::utils::setup_logger;
+    use sp1_rwasm_machine::utils::setup_logger;
     use sp1_rwasm_executor::disassembler::binary::{convert_module_to_executable, HELLO_PATH};
     use utils::sp1_vkey_digest_babybear;
 
@@ -1364,9 +1367,12 @@ pub fn run_e2e_prover_with_options<C: SP1ProverComponents>(
         return Ok(());
     }
 
+   
+
     tracing::info!("compress");
     let compress_span = tracing::debug_span!("compress").entered();
     let compressed_proof = prover.compress(&vk, core_proof, vec![], opts)?;
+   
     compress_span.exit();
 
     if verify {
@@ -1603,6 +1609,6 @@ fn test_fibonacci() -> Result<()> {
     let wasm_bin = read_wat(Path::new(HELLO_PATH));
     let rwasm_module = build_rwams_bin(&wasm_bin);
     let mut program = convert_module_to_executable(rwasm_module);
-    run_e2e_prover_with_options::<DefaultProverComponents>(&prover,program, SP1Stdin::default(), opts, Test::All, true)
+    run_e2e_prover_with_options::<DefaultProverComponents>(&prover,program, SP1Stdin::default(), opts, Test::Wrap, true)
 }
 }

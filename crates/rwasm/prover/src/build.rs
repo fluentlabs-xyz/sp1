@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, path::PathBuf};
+use std::{borrow::Borrow, path::{Path, PathBuf}};
 
 use p3_baby_bear::BabyBear;
 use sp1_recursion_circuit::{
@@ -10,8 +10,8 @@ use sp1_recursion_compiler::{
     constraints::{Constraint, ConstraintCompiler},
     ir::Builder,
 };
-use sp1_rwasm_executor::SP1Context;
-use sp1_rwasm_machine::io::SP1Stdin;
+use sp1_rwasm_executor::{disassembler::binary::{build_rwams_bin, convert_module_to_executable, read_wat, HELLO_PATH}, SP1Context};
+use sp1_rwasm_machine::{io::SP1Stdin, utils::setup_logger};
 
 use sp1_recursion_core::air::RecursionPublicValues;
 pub use sp1_recursion_core::stark::sp1_dev_mode;
@@ -88,35 +88,35 @@ pub fn build_groth16_bn254_artifacts(
 ///
 /// This may take a while as it needs to first generate a dummy proof and then it needs to compile
 /// the circuit.
-// pub fn build_plonk_bn254_artifacts_with_dummy(build_dir: impl Into<PathBuf>) {
-//     let (wrap_vk, wrapped_proof) = dummy_proof();
-//     let wrap_vk_bytes = bincode::serialize(&wrap_vk).unwrap();
-//     let wrapped_proof_bytes = bincode::serialize(&wrapped_proof).unwrap();
-//     std::fs::write("wrap_vk.bin", wrap_vk_bytes).unwrap();
-//     std::fs::write("wrapped_proof.bin", wrapped_proof_bytes).unwrap();
-//     let wrap_vk_bytes = std::fs::read("wrap_vk.bin").unwrap();
-//     let wrapped_proof_bytes = std::fs::read("wrapped_proof.bin").unwrap();
-//     let wrap_vk = bincode::deserialize(&wrap_vk_bytes).unwrap();
-//     let wrapped_proof = bincode::deserialize(&wrapped_proof_bytes).unwrap();
-//     crate::build::build_plonk_bn254_artifacts(&wrap_vk, &wrapped_proof, build_dir.into());
-// }
+pub fn build_plonk_bn254_artifacts_with_dummy(build_dir: impl Into<PathBuf>) {
+    let (wrap_vk, wrapped_proof) = dummy_proof();
+    let wrap_vk_bytes = bincode::serialize(&wrap_vk).unwrap();
+    let wrapped_proof_bytes = bincode::serialize(&wrapped_proof).unwrap();
+    std::fs::write("wrap_vk.bin", wrap_vk_bytes).unwrap();
+    std::fs::write("wrapped_proof.bin", wrapped_proof_bytes).unwrap();
+    let wrap_vk_bytes = std::fs::read("wrap_vk.bin").unwrap();
+    let wrapped_proof_bytes = std::fs::read("wrapped_proof.bin").unwrap();
+    let wrap_vk = bincode::deserialize(&wrap_vk_bytes).unwrap();
+    let wrapped_proof = bincode::deserialize(&wrapped_proof_bytes).unwrap();
+    crate::build::build_plonk_bn254_artifacts(&wrap_vk, &wrapped_proof, build_dir.into());
+}
 
-// /// Builds the groth16 bn254 artifacts to the given directory.
-// ///
-// /// This may take a while as it needs to first generate a dummy proof and then it needs to compile
-// /// the circuit.
-// pub fn build_groth16_bn254_artifacts_with_dummy(build_dir: impl Into<PathBuf>) {
-//     let (wrap_vk, wrapped_proof) = dummy_proof();
-//     let wrap_vk_bytes = bincode::serialize(&wrap_vk).unwrap();
-//     let wrapped_proof_bytes = bincode::serialize(&wrapped_proof).unwrap();
-//     std::fs::write("wrap_vk.bin", wrap_vk_bytes).unwrap();
-//     std::fs::write("wrapped_proof.bin", wrapped_proof_bytes).unwrap();
-//     let wrap_vk_bytes = std::fs::read("wrap_vk.bin").unwrap();
-//     let wrapped_proof_bytes = std::fs::read("wrapped_proof.bin").unwrap();
-//     let wrap_vk = bincode::deserialize(&wrap_vk_bytes).unwrap();
-//     let wrapped_proof = bincode::deserialize(&wrapped_proof_bytes).unwrap();
-//     crate::build::build_groth16_bn254_artifacts(&wrap_vk, &wrapped_proof, build_dir.into());
-// }
+/// Builds the groth16 bn254 artifacts to the given directory.
+///
+/// This may take a while as it needs to first generate a dummy proof and then it needs to compile
+/// the circuit.
+pub fn build_groth16_bn254_artifacts_with_dummy(build_dir: impl Into<PathBuf>) {
+    let (wrap_vk, wrapped_proof) = dummy_proof();
+    let wrap_vk_bytes = bincode::serialize(&wrap_vk).unwrap();
+    let wrapped_proof_bytes = bincode::serialize(&wrapped_proof).unwrap();
+    std::fs::write("wrap_vk.bin", wrap_vk_bytes).unwrap();
+    std::fs::write("wrapped_proof.bin", wrapped_proof_bytes).unwrap();
+    let wrap_vk_bytes = std::fs::read("wrap_vk.bin").unwrap();
+    let wrapped_proof_bytes = std::fs::read("wrapped_proof.bin").unwrap();
+    let wrap_vk = bincode::deserialize(&wrap_vk_bytes).unwrap();
+    let wrapped_proof = bincode::deserialize(&wrapped_proof_bytes).unwrap();
+    crate::build::build_groth16_bn254_artifacts(&wrap_vk, &wrapped_proof, build_dir.into());
+}
 
 /// Build the verifier constraints and template witness for the circuit.
 pub fn build_constraints_and_witness(
@@ -146,35 +146,40 @@ pub fn build_constraints_and_witness(
     (constraints, witness)
 }
 
-// /// Generate a dummy proof that we can use to build the circuit. We need this to know the shape of
-// /// the proof.
-// pub fn dummy_proof() -> (StarkVerifyingKey<OuterSC>, ShardProof<OuterSC>) {
-//     let elf = include_bytes!("../elf/riscv32im-succinct-zkvm-elf");
+/// Generate a dummy proof that we can use to build the circuit. We need this to know the shape of
+/// the proof.
+pub fn dummy_proof() -> (StarkVerifyingKey<OuterSC>, ShardProof<OuterSC>) {
+    setup_logger();
+    let opts = SP1ProverOpts::default();
+    
+    let wasm_bin = read_wat(Path::new(HELLO_PATH));
+    let rwasm_module = build_rwams_bin(&wasm_bin);
+    let mut program = convert_module_to_executable(rwasm_module);
+    println!("{:?}",program);
+    tracing::info!("initializing prover");
+    let prover: SP1Prover = SP1Prover::new();
+    let opts = SP1ProverOpts::default();
+    let context = SP1Context::default();
 
-//     tracing::info!("initializing prover");
-//     let prover: SP1Prover = SP1Prover::new();
-//     let opts = SP1ProverOpts::default();
-//     let context = SP1Context::default();
+    tracing::info!("setup elf");
+    let (pk, vk) = prover.setup_program(&mut program);
 
-//     tracing::info!("setup elf");
-//     let (pk, vk) = prover.setup(elf);
+    tracing::info!("prove core");
+    let mut stdin = SP1Stdin::new();
+    stdin.write(&500u32);
+    let core_proof = prover.prove_core_program(&pk, program,&stdin, opts, context).unwrap();
 
-//     tracing::info!("prove core");
-//     let mut stdin = SP1Stdin::new();
-//     stdin.write(&500u32);
-//     let core_proof = prover.prove_core(&pk, &stdin, opts, context).unwrap();
+    tracing::info!("compress");
+    let compressed_proof = prover.compress(&vk, core_proof, vec![], opts).unwrap();
 
-//     tracing::info!("compress");
-//     let compressed_proof = prover.compress(&vk, core_proof, vec![], opts).unwrap();
+    tracing::info!("shrink");
+    let shrink_proof = prover.shrink(compressed_proof, opts).unwrap();
 
-//     tracing::info!("shrink");
-//     let shrink_proof = prover.shrink(compressed_proof, opts).unwrap();
+    tracing::info!("wrap");
+    let wrapped_proof = prover.wrap_bn254(shrink_proof, opts).unwrap();
 
-//     tracing::info!("wrap");
-//     let wrapped_proof = prover.wrap_bn254(shrink_proof, opts).unwrap();
-
-//     (wrapped_proof.vk, wrapped_proof.proof)
-// }
+    (wrapped_proof.vk, wrapped_proof.proof)
+}
 
 fn build_outer_circuit(template_input: &SP1CompressWitnessValues<OuterSC>) -> Vec<Constraint> {
     let wrap_machine = WrapAir::wrap_machine(OuterSC::default());

@@ -670,7 +670,7 @@ impl<'a> Executor<'a> {
     #[inline]
     fn fetch(&self) -> Instruction {
         let idx = ((self.state.pc - self.program.pc_base) / 4) as usize;
-        println!("pc:{},ins_idx:{}",self.state.pc,idx);
+        //println!("pc:{},ins_idx:{}",self.state.pc,idx);
         self.program.instructions[idx]
     }
 
@@ -690,18 +690,18 @@ impl<'a> Executor<'a> {
         let mut arg2_record: Option<MemoryReadRecord> = None;
         let mut res_record: Option<MemoryWriteRecord> = None;
         let mut res_is_writtten_back_to_stack: bool = false;
-        println!("ins:{:?},pc:{},sp:{},clk:{}",instruction,pc,sp,clk);
-        let mut i = 0;
-        loop{
-            let item = self.state.memory.get(self.state.sp+4*i);
-            match item{
-                Some(mr)=>{
-                    println!("pos:{},value:{}",self.state.sp+4*i,mr.value);
-                }
-                None=>break,
-            }
-            i+=1;
-        }
+       // println!("ins:{:?},pc:{},sp:{},clk:{}",instruction,pc,sp,clk);
+        // let mut i = 0;
+        // loop{
+        //     let item = self.state.memory.get(self.state.sp+4*i);
+        //     match item{
+        //         Some(mr)=>{
+        //             println!("pos:{},value:{}",self.state.sp+4*i,mr.value);
+        //         }
+        //         None=>break,
+        //     }
+        //     i+=1;
+        // }
 
 
         if self.executor_mode == ExecutorMode::Trace {
@@ -755,7 +755,7 @@ impl<'a> Executor<'a> {
                 res = arg1;
                 next_sp = sp - 4;
                 res_is_writtten_back_to_stack = true;
-                println!("locaget: sp:{},clk:{} arg1:{}",sp,clk,arg1);
+                // println!("locaget: sp:{},clk:{} arg1:{}",sp,clk,arg1);
             }
             Instruction::LocalSet(local_depth) => {
                 let depth = local_depth.to_usize() as u32;
@@ -782,7 +782,7 @@ impl<'a> Executor<'a> {
             Instruction::Br(branch_offset) => {
                 next_pc = (pc as i32 + branch_offset.to_i32()) as u32;
                 res_is_writtten_back_to_stack = false;
-                println!("pc:{}, next_pc:{}", pc, next_pc);
+                // println!("pc:{}, next_pc:{}", pc, next_pc);
             }
             Instruction::BrIfEqz(branch_offset) => {
                 arg1_record = self.fetch_unary_op_data();
@@ -792,13 +792,13 @@ impl<'a> Executor<'a> {
                 }
                 next_sp = sp + 4;
                 self.state.sp = next_sp;
-                println!(
-                    "BrIfEqz top:{}, offset:{} ,pc:{},next pc:{}",
-                    arg1,
-                    branch_offset.to_i32(),
-                    pc,
-                    next_pc
-                );
+                // println!(
+                //     "BrIfEqz top:{}, offset:{} ,pc:{},next pc:{}",
+                //     arg1,
+                //     branch_offset.to_i32(),
+                //     pc,
+                //     next_pc
+                // );
             }
             Instruction::BrIfNez(branch_offset) => {
                 arg1_record = self.fetch_unary_op_data();
@@ -808,13 +808,13 @@ impl<'a> Executor<'a> {
                 }
                 next_sp = sp + 4;
                 self.state.sp = next_sp;
-                println!(
-                    "BrIfNqz top:{}, offset:{} ,pc:{},next pc:{}",
-                    arg1,
-                    branch_offset.to_i32(),
-                    pc,
-                    next_pc
-                );
+                // println!(
+                //     "BrIfNqz top:{}, offset:{} ,pc:{},next pc:{}",
+                //     arg1,
+                //     branch_offset.to_i32(),
+                //     pc,
+                //     next_pc
+                // );
             }
             Instruction::BrAdjust(branch_offset) => todo!(),
             Instruction::BrAdjustIfNez(branch_offset) => todo!(),
@@ -837,7 +837,7 @@ impl<'a> Executor<'a> {
                 } else{
                     next_depth = depth-1;
                     arg1_record = self.fetch_function_frame(next_depth);
-                    println!("funcframe addr: {}",FUNFRAMEP_START -  next_depth*4);
+                    // println!("funcframe addr: {}",FUNFRAMEP_START -  next_depth*4);
                     arg1 = arg1_record.unwrap().value;
                     next_pc = arg1+4;
                     
@@ -866,11 +866,11 @@ impl<'a> Executor<'a> {
                         _=>{panic!("cannot keep more than one element");},
                     }
                 }
-                println!("ins:{:?}, clk:{}sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
-                instruction,clk,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("arg1_record:{:?}",arg1_record);
-                println!("arg2_record:{:?}",arg2_record);
-                println!("res_record:{:?}",res_record);
+                // println!("ins:{:?}, clk:{}sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
+                // instruction,clk,sp,next_sp,pc,next_pc,depth,next_depth);
+                // println!("arg1_record:{:?}",arg1_record);
+                // println!("arg2_record:{:?}",arg2_record);
+                // println!("res_record:{:?}",res_record);
 
 
             },
@@ -887,12 +887,10 @@ impl<'a> Executor<'a> {
 
                 next_sp =sp;
                 next_depth = depth+1;
-                println!("funccall from:{}",FUNFRAMEP_START-(depth*4));
+                
                 res_record = Some(self.write_back_res_to_memory(pc, FUNFRAMEP_START-(depth*4), next_sp));
                 res = res_record.unwrap().value;
-                println!("CallInternal: ins:{:?}, sp:{}, next_sp:{}, pc:{}, next_pc:{}, depth:{}, next_depth:{}",
-                instruction,sp,next_sp,pc,next_pc,depth,next_depth);
-                println!("CallInternal: res_record:{:?}",res_record);
+               
 
 
             },
@@ -1721,6 +1719,7 @@ impl<'a> Executor<'a> {
         let mut done = false;
         let mut current_shard = self.state.current_shard;
         let mut num_shards_executed = 0;
+        
         loop {
             if self.execute_cycle()? {
                 done = true;

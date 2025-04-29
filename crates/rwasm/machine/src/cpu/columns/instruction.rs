@@ -53,12 +53,12 @@ impl<F: PrimeField> InstructionCols<F> {
              Instruction::BrIfNez(_)=>{
                 let aux_val:i32= aux_val.into();
                 self.aux_val = (aux_val as u32).into();
-                println!("instruction: {:?},aux_val:{}",instruction,aux_val);
+                // println!("instruction: {:?},aux_val:{}",instruction,aux_val);
              },
              _=>{
                 let aux_val:u32= aux_val.into();
                 self.aux_val = aux_val.into();
-                println!("instruction: {:?},aux_val:{}",instruction,aux_val);
+                // println!("instruction: {:?},aux_val:{}",instruction,aux_val);
              }
            }
             
