@@ -145,7 +145,7 @@ mod test {
         baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, MachineProver, SP1CoreOpts,
         StarkGenericConfig,
     };
-    use test_artifacts::KECCAK256_ELF;
+   
     use tiny_keccak::Hasher;
 
     const NUM_TEST_CASES: usize = 45;

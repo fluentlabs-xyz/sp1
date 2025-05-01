@@ -286,14 +286,7 @@ mod tests {
         },
     };
 
-    use test_artifacts::CUSTOM_PRECOMPILE_ELF;
-
-    #[test]
-    fn test_custom_precompile() {
-        utils::setup_logger();
-        let program = Program::from(CUSTOM_PRECOMPILE_ELF);
-        run_test_io::<CpuProver<_, _>>(program, SP1Stdin::new()).unwrap();
-    }
+   
 
     // Add additional tests as needed
 }

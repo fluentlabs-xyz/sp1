@@ -19,7 +19,7 @@ members = [
   "crates/derive",
   "crates/eval",
   "crates/helper",
-  "crates/perf",
+ 
   "crates/prover",
   "crates/recursion/circuit",
   "crates/recursion/compiler",
@@ -32,7 +32,7 @@ members = [
   "crates/verifier",
   "crates/stark",
   "crates/zkvm/*",
-  "crates/test-artifacts",
+ 
   "crates/rwasm/executor",
   "crates/rwasm/machine"
 ]
@@ -75,8 +75,8 @@ sp1-zkvm = { path = "crates/zkvm/entrypoint", version = "4.2.0", default-feature
 rwasm-executor = { path = "crates/rwasm/executor", version = "4.2.0", default-features = false }
 rwasm-machine = { path = "crates/rwasm/machine", version = "4.2.0", default-features = false }
 
-# For testing.
-test-artifacts = { path = "crates/test-artifacts" }
+# # For testing.
+# test-artifacts = { path = "crates/test-artifacts" }
 
 # p3
 p3-air = "=0.2.2-succinct"

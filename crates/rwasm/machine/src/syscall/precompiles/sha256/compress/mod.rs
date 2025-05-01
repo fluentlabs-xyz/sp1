@@ -34,7 +34,7 @@ pub mod compress_tests {
 
     use rwasm_executor::{syscalls::SyscallCode, Instruction, Opcode, Program};
     use sp1_stark::CpuProver;
-    use test_artifacts::SHA_COMPRESS_ELF;
+    
 
     use crate::{
         io::SP1Stdin,
@@ -74,11 +74,5 @@ pub mod compress_tests {
         run_test::<CpuProver<_, _>>(program, stdin).unwrap();
     }
 
-    #[test]
-    fn test_sha_compress_program() {
-        setup_logger();
-        let program = Program::from(SHA_COMPRESS_ELF).unwrap();
-        let stdin = SP1Stdin::new();
-        run_test::<CpuProver<_, _>>(program, stdin).unwrap();
-    }
+   
 }

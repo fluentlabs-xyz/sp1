@@ -23,7 +23,7 @@ impl KeccakPermuteChip {
 pub mod permute_tests {
     use rwasm_executor::{syscalls::SyscallCode, Executor, Instruction, Opcode, Program};
     use sp1_stark::{CpuProver, SP1CoreOpts};
-    use test_artifacts::KECCAK_PERMUTE_ELF;
+   
 
     use crate::{
         io::SP1Stdin,

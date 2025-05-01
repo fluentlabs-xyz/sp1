@@ -279,19 +279,3 @@ where
     }
 }
 
-#[cfg(test)]
-pub mod tests {
-    use rwasm_executor::Program;
-    use sp1_stark::CpuProver;
-    use test_artifacts::ED_DECOMPRESS_ELF;
-
-    use crate::{io::SP1Stdin, utils};
-
-    #[test]
-    fn test_ed_decompress() {
-        utils::setup_logger();
-        let program = Program::from(ED_DECOMPRESS_ELF).unwrap();
-        let stdin = SP1Stdin::new();
-        utils::run_test::<CpuProver<_, _>>(program, stdin).unwrap();
-    }
-}

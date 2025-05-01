@@ -5538,7 +5538,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tempfile",
- "test-artifacts",
  "thiserror 1.0.69",
  "tiny-keccak",
  "tracing",
@@ -6291,26 +6290,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-perf"
-version = "4.2.0"
-dependencies = [
- "bincode",
- "clap",
- "p3-baby-bear",
- "rand 0.8.5",
- "serde_json",
- "sp1-core-executor",
- "sp1-core-machine",
- "sp1-cuda",
- "sp1-prover",
- "sp1-sdk",
- "sp1-stark",
- "test-artifacts",
- "time 0.3.41",
- "tracing",
-]
-
-[[package]]
 name = "sp1-primitives"
 version = "4.2.0"
 dependencies = [
@@ -6363,7 +6342,6 @@ dependencies = [
  "sp1-recursion-core",
  "sp1-recursion-gnark-ffi",
  "sp1-stark",
- "test-artifacts",
  "thiserror 1.0.69",
  "tracing",
  "tracing-appender",
@@ -6556,7 +6534,6 @@ dependencies = [
  "strum",
  "strum_macros",
  "tempfile",
- "test-artifacts",
  "thiserror 1.0.69",
  "tokio",
  "tokio-test",
@@ -6618,7 +6595,6 @@ dependencies = [
  "sha2 0.10.8",
  "sp1-sdk",
  "substrate-bn-succinct",
- "test-artifacts",
  "thiserror 2.0.12",
 ]
 

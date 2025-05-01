@@ -54,8 +54,7 @@ downloader = { version = "0.2", default-features = false, features = [
 sha2 = { version = "0.10" }
 hex = "0.4"
 
-[dev-dependencies]
-test-artifacts = { path = "../test-artifacts" }
+
 
 [[bin]]
 name = "build_plonk_bn254"

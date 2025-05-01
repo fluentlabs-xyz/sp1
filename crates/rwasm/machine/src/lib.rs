@@ -46,10 +46,7 @@ pub mod programs {
     pub mod tests {
         use rwasm_executor::{Instruction, Opcode, Program};
 
-        pub use test_artifacts::{
-            FIBONACCI_ELF, PANIC_ELF, SECP256R1_ADD_ELF, SECP256R1_DOUBLE_ELF, SSZ_WITHDRAWALS_ELF,
-            U256XU2048_MUL_ELF,
-        };
+       
 
         #[must_use]
         pub fn simple_program() -> Program {

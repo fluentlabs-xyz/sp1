@@ -19,8 +19,7 @@ mod tests {
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, StarkGenericConfig,
     };
-    use test_artifacts::U256XU2048_MUL_ELF;
-
+   
     use crate::{
         io::SP1Stdin,
         utils::{
