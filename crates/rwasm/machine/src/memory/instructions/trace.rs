@@ -5,9 +5,9 @@ use itertools::Itertools;
 use p3_field::PrimeField32;
 use p3_matrix::dense::RowMajorMatrix;
 use rayon::iter::{ParallelBridge, ParallelIterator};
+use rwasm::{rwasm::InstructionExtra};
 use rwasm_executor::{
-    events::{ByteLookupEvent, ByteRecord, MemInstrEvent},
-    ByteOpcode, ExecutionRecord, Opcode, Program,
+    events::{ByteLookupEvent, ByteRecord, MemInstrEvent}, ByteOpcode, ExecutionRecord, Instruction, Opcode, Program
 };
 use sp1_primitives::consts::WORD_SIZE;
 use sp1_stark::air::MachineAir;
@@ -90,16 +90,17 @@ impl MemoryInstructionsChip {
         assert!(cols.shard != F::zero());
         cols.clk = F::from_canonical_u32(event.clk);
         cols.pc = F::from_canonical_u32(event.pc);
-        cols.op_a_value = event.a.into();
-        cols.op_b_value = event.b.into();
-        cols.op_c_value = event.c.into();
+        cols.op_a_value = event.res.into();
+        cols.op_b_value = event.arg1.into();
+        let offset:u32 = event.instruction.aux_value().unwrap().into();
+        cols.op_c_value =offset.into();
      
 
         // Populate memory accesses for reading from memory.
         cols.memory_access.populate(event.mem_access, blu);
 
         // Populate addr_word and addr_aligned columns.
-        let memory_addr = event.b.wrapping_add(event.c);
+        let memory_addr = event.arg1.wrapping_add(offset);
         let aligned_addr = memory_addr - memory_addr % WORD_SIZE as u32;
         cols.addr_word = memory_addr.into();
         cols.addr_word_range_checker.populate(cols.addr_word, blu);
@@ -125,14 +126,15 @@ impl MemoryInstructionsChip {
 
         // If it is a load instruction, set the unsigned_mem_val column.
         let mem_value = event.mem_access.value();
-        if matches!(event.opcode, Opcode::LB | Opcode::LBU | Opcode::LH | Opcode::LHU | Opcode::LW)
+        if matches!(event.instruction, Instruction::I32Load(_) | Instruction::I32Load16U(_)| 
+        Instruction::I32Load16S(_)| Instruction::I32Load8U(_) | Instruction::I32Load8S(_))
         {
-            match event.opcode {
-                Opcode::LB | Opcode::LBU => {
+            match event.instruction {
+                Instruction::I32Load8U(_)| Instruction::I32Load8S(_) => {
                     cols.unsigned_mem_val =
                         (mem_value.to_le_bytes()[addr_ls_two_bits as usize] as u32).into();
                 }
-                Opcode::LH | Opcode::LHU => {
+                Instruction::I32Load16S(_) | Instruction::I32Load16U(_) => {
                     let value = match (addr_ls_two_bits >> 1) % 2 {
                         0 => mem_value & 0x0000FFFF,
                         1 => (mem_value & 0xFFFF0000) >> 16,
@@ -140,15 +142,15 @@ impl MemoryInstructionsChip {
                     };
                     cols.unsigned_mem_val = value.into();
                 }
-                Opcode::LW => {
+                Instruction::I32Load(_)=> {
                     cols.unsigned_mem_val = mem_value.into();
                 }
                 _ => unreachable!(),
             }
 
             // For the signed load instructions, we need to check if the loaded value is negative.
-            if matches!(event.opcode, Opcode::LB | Opcode::LH) {
-                let most_sig_mem_value_byte = if matches!(event.opcode, Opcode::LB) {
+            if matches!(event.instruction, Instruction::I32Load8S(_) | Instruction::I32Load16S(_)) {
+                let most_sig_mem_value_byte = if matches!(event.instruction, Instruction::I32Load8S(_)) {
                     cols.unsigned_mem_val.to_u32().to_le_bytes()[0]
                 } else {
                     cols.unsigned_mem_val.to_u32().to_le_bytes()[1]
@@ -172,14 +174,14 @@ impl MemoryInstructionsChip {
          
         }
 
-        cols.is_lb = F::from_bool(matches!(event.opcode, Opcode::LB));
-        cols.is_lbu = F::from_bool(matches!(event.opcode, Opcode::LBU));
-        cols.is_lh = F::from_bool(matches!(event.opcode, Opcode::LH));
-        cols.is_lhu = F::from_bool(matches!(event.opcode, Opcode::LHU));
-        cols.is_lw = F::from_bool(matches!(event.opcode, Opcode::LW));
-        cols.is_sb = F::from_bool(matches!(event.opcode, Opcode::SB));
-        cols.is_sh = F::from_bool(matches!(event.opcode, Opcode::SH));
-        cols.is_sw = F::from_bool(matches!(event.opcode, Opcode::SW));
+        cols.is_i32load8s = F::from_bool(matches!(event.instruction, Instruction::I32Load8S(_)));
+        cols.is_i32load8u = F::from_bool(matches!(event.instruction, Instruction::I32Load8U(_)));
+        cols.is_i32load16s = F::from_bool(matches!(event.instruction, Instruction::I32Load16S(_)));
+        cols.is_i32load16u = F::from_bool(matches!(event.instruction, Instruction::I32Load16U(_)));
+        cols.is_i32load = F::from_bool(matches!(event.instruction, Instruction::I32Load(_)));
+        cols.is_i32store8 = F::from_bool(matches!(event.instruction, Instruction::I32Store8(_)));
+        cols.is_i32store16 = F::from_bool(matches!(event.instruction, Instruction::I32Store16(_)));
+        cols.is_i32store = F::from_bool(matches!(event.instruction, Instruction::I32Store(_)));
 
         // Add event to byte lookup for byte range checking each byte in the memory addr
         let addr_bytes = memory_addr.to_le_bytes();

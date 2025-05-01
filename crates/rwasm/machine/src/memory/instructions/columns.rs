@@ -27,25 +27,16 @@ pub struct MemoryInstructionsColumns<T> {
     pub op_b_value: Word<T>,
     /// The value of the third operand.
     pub op_c_value: Word<T>,
-    /// Whether the first operand is register zero.
-    pub op_a_0: T,
+    
 
-    /// Whether this is a load byte instruction.
-    pub is_lb: T,
-    /// Whether this is a load byte unsigned instruction.
-    pub is_lbu: T,
-    /// Whether this is a load half instruction.
-    pub is_lh: T,
-    /// Whether this is a load half unsigned instruction.
-    pub is_lhu: T,
-    /// Whether this is a load word instruction.
-    pub is_lw: T,
-    /// Whether this is a store byte instruction.
-    pub is_sb: T,
-    /// Whether this is a store half instruction.
-    pub is_sh: T,
-    /// Whether this is a store word instruction.
-    pub is_sw: T,
+    pub is_i32load: T,
+    pub is_i32load16s: T,
+    pub is_i32load16u: T,
+    pub is_i32load8u:T,
+    pub is_i32load8s:T,
+    pub is_i32store:T,
+    pub is_i32store16:T,
+    pub is_i32store8:T,
 
     /// The relationships among addr_word, addr_aligned, and addr_offset is as follows:
     /// addr_aligned = addr_word - addr_offset
@@ -81,12 +72,7 @@ pub struct MemoryInstructionsColumns<T> {
     /// For LB this is equal to unsigned_mem_val\[0\] and for LH this is equal to unsigned_mem_val\[1\].
     pub most_sig_byte: T,
 
-    /// Flag for load memory instructions that contains bool value of
-    /// (memory value is neg) && (op_a != registor 0).
-    pub mem_value_is_neg_not_x0: T,
-    /// Flag for load memory instructions that contains bool value of
-    /// (memory value is pos) && (op_a != registor 0).
-    pub mem_value_is_pos_not_x0: T,
+   
 
     /// This is used to check if the most significant three bytes of the memory address are all zero.
     pub most_sig_bytes_zero: IsZeroOperation<T>,

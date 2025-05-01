@@ -11,7 +11,7 @@ use crate::{
     operations::{BabyBearWordRangeChecker, IsZeroOperation},
 };
 use rwasm_executor::{
-     ByteOpcode, Opcode, DEFAULT_PC_INC, UNUSED_PC,
+     rwasm_ins_to_code, ByteOpcode, Instruction, DEFAULT_PC_INC, UNUSED_PC
 };
 
 use super::{columns::MemoryInstructionsColumns, MemoryInstructionsChip};
@@ -31,25 +31,25 @@ where
         // Each "real" row has exactly one selector turned on, as `is_real`, the sum of the eight selectors, is boolean.
         // Therefore, the `opcode` matches the corresponding opcode.
 
-        let is_real = local.is_lb
-            + local.is_lbu
-            + local.is_lh
-            + local.is_lhu
-            + local.is_lw
-            + local.is_sb
-            + local.is_sh
-            + local.is_sw;
+        let is_real = local.is_i32load
+            + local.is_i32load16s
+            + local.is_i32load16u
+            + local.is_i32load8s
+            + local.is_i32load8u
+            + local.is_i32store8
+            + local.is_i32store16
+            + local.is_i32store;
 
-        builder.assert_bool(local.is_lb);
-        builder.assert_bool(local.is_lbu);
-        builder.assert_bool(local.is_lh);
-        builder.assert_bool(local.is_lhu);
-        builder.assert_bool(local.is_lw);
-        builder.assert_bool(local.is_sb);
-        builder.assert_bool(local.is_sh);
-        builder.assert_bool(local.is_sw);
+        builder.assert_bool(local.is_i32load8s);
+        builder.assert_bool(local.is_i32load8u);
+        builder.assert_bool(local.is_i32load16s);
+        builder.assert_bool(local.is_i32load16u);
+        builder.assert_bool(local.is_i32load);
+        builder.assert_bool(local.is_i32store8);
+        builder.assert_bool(local.is_i32store16);
+        builder.assert_bool(local.is_i32store);
         builder.assert_bool(is_real.clone());
-        builder.assert_bool(local.op_a_0);
+        
 
         self.eval_memory_address_and_access::<AB>(builder, local, is_real.clone());
         self.eval_memory_load::<AB>(builder, local);
@@ -90,14 +90,14 @@ impl MemoryInstructionsChip {
         &self,
         local: &MemoryInstructionsColumns<AB::Var>,
     ) -> AB::Expr {
-        local.is_lb * Opcode::LB.as_field::<AB::F>()
-            + local.is_lbu * Opcode::LBU.as_field::<AB::F>()
-            + local.is_lh * Opcode::LH.as_field::<AB::F>()
-            + local.is_lhu * Opcode::LHU.as_field::<AB::F>()
-            + local.is_lw * Opcode::LW.as_field::<AB::F>()
-            + local.is_sb * Opcode::SB.as_field::<AB::F>()
-            + local.is_sh * Opcode::SH.as_field::<AB::F>()
-            + local.is_sw * Opcode::SW.as_field::<AB::F>()
+        local.is_i32load8s * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Load8S(0.into())))
+            +  local.is_i32load8u * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Load8U(0.into())))
+            + local.is_i32load16s * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Load16S(0.into())))
+            + local.is_i32load16u * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Load16U(0.into())))
+            + local.is_i32load * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Load(0.into())))
+            + local.is_i32store8 * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Store8(0.into())))
+            + local.is_i32store16 *AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Store16(0.into())))
+            + local.is_i32store * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Store(0.into())))
     }
 
     /// Constrains the addr_aligned, addr_offset, and addr_word memory columns.
@@ -120,7 +120,7 @@ impl MemoryInstructionsChip {
             AB::Expr::from_canonical_u32(UNUSED_PC),
             AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
             AB::Expr::zero(),
-            AB::Expr::from_canonical_u32(Opcode::ADD as u32),
+            AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Add)),
             local.addr_word,
             local.op_b_value,
             local.op_c_value,
@@ -199,7 +199,7 @@ impl MemoryInstructionsChip {
 
         // On memory load instructions, make sure that the memory value is not changed.
         builder
-            .when(local.is_lb + local.is_lbu + local.is_lh + local.is_lhu + local.is_lw)
+            .when(local.is_i32load8s + local.is_i32load8u+ local.is_i32load16u + local.is_i32load16s + local.is_i32load)
             .assert_word_eq(*local.memory_access.value(), *local.memory_access.prev_value());
     }
 
@@ -212,14 +212,7 @@ impl MemoryInstructionsChip {
         // Verify the unsigned_mem_value column.
         self.eval_unsigned_mem_value(builder, local);
 
-        // Assert that correct value of `mem_value_is_neg_not_x0`.
-        // SAFETY: If the opcode is not `lb` or `lh`, then `is_lb + is_lh = 0`, so `mem_value_is_neg_not_x0 = 0`.
-        // In the other case, `is_lb + is_lh = 1` (at most one selector is on), so `most_sig_byte` and `most_sig_bit` are correct.
-        // Since `op_a_0` is known to be correct, we can conclude that `mem_value_is_neg_not_x0` is correct for all cases, including padding rows.
-        builder.assert_eq(
-            local.mem_value_is_neg_not_x0,
-            (local.is_lb + local.is_lh) * local.most_sig_bit * (AB::Expr::one() - local.op_a_0),
-        );
+      
 
         // SAFETY: `is_lb + is_lh` is already constrained to be boolean.
         // This is because at most one opcode selector can be turned on.
@@ -228,57 +221,18 @@ impl MemoryInstructionsChip {
             local.most_sig_bit,
             local.most_sig_byte,
             AB::Expr::zero(),
-            local.is_lb + local.is_lh,
+            local.is_i32load8s + local.is_i32load16s,
         );
         builder.assert_eq(
             local.most_sig_byte,
-            local.is_lb * local.unsigned_mem_val[0] + local.is_lh * local.unsigned_mem_val[1],
+            local.is_i32load8s * local.unsigned_mem_val[0] + local.is_i32load16s * local.unsigned_mem_val[1],
         );
 
-        // When the memory value is negative and not writing to x0, use the SUB opcode to compute
-        // the signed value of the memory value and verify that the op_a value is correct.
-        let signed_value = Word([
-            AB::Expr::zero(),
-            AB::Expr::one() * local.is_lb,
-            AB::Expr::one() * local.is_lh,
-            AB::Expr::zero(),
-        ]);
+      
+     
 
-        // SAFETY: As we mentioned before, `mem_value_is_neg_not_x0` is correct in all cases and boolean in all cases.
-        builder.send_instruction(
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::from_canonical_u32(UNUSED_PC),
-            AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
-            AB::Expr::zero(),
-            Opcode::SUB.as_field::<AB::F>(),
-            local.op_a_value,
-            local.unsigned_mem_val,
-            signed_value,
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            local.mem_value_is_neg_not_x0,
-        );
-
-        // Assert that correct value of `mem_value_is_pos_not_x0`.
-        // SAFETY: If it's a store instruction or a padding row, `mem_value_is_pos = 0`.
-        // If it's an unsigned instruction (LBU, LHU, LW), then `mem_value_is_pos = 1`.
-        // If it's signed instruction (LB, LH), then `most_sig_bit` will be constrained correctly, and same for `mem_value_is_pos`.
-        let mem_value_is_pos = (local.is_lb + local.is_lh) * (AB::Expr::one() - local.most_sig_bit)
-            + local.is_lbu
-            + local.is_lhu
-            + local.is_lw;
-        builder.assert_eq(
-            local.mem_value_is_pos_not_x0,
-            mem_value_is_pos * (AB::Expr::one() - local.op_a_0),
-        );
-
-        // When the memory value is not positive and not writing to x0, assert that op_a value is
-        // equal to the unsigned memory value.
-        builder
-            .when(local.mem_value_is_pos_not_x0)
-            .assert_word_eq(local.unsigned_mem_val, local.op_a_value);
+       
+        
 
         // These two cases combine for all cases where it's a load instruction and `op_a_0 == 0`.
         // Since the store instructions have `op_a_immutable = 1`, this completely constrains the `op_a`'s value.
@@ -314,14 +268,14 @@ impl MemoryInstructionsChip {
                 + (one.clone() - local.ls_bits_is_three) * prev_mem_val[3],
         ]);
         builder
-            .when(local.is_sb)
+            .when(local.is_i32store8)
             .assert_word_eq(mem_val.map(|x| x.into()), sb_expected_stored_value);
 
         // When the instruction is SH, make sure both offset one and three are off.
-        builder.when(local.is_sh).assert_zero(local.ls_bits_is_one + local.ls_bits_is_three);
+        builder.when(local.is_i32store16).assert_zero(local.ls_bits_is_one + local.ls_bits_is_three);
 
         // When the instruction is SW, ensure that the offset is 0.
-        builder.when(local.is_sw).assert_one(offset_is_zero.clone());
+        builder.when(local.is_i32store).assert_one(offset_is_zero.clone());
 
         // Compute the expected stored value for a SH instruction.
         let a_is_lower_half = offset_is_zero;
@@ -334,12 +288,12 @@ impl MemoryInstructionsChip {
             a_val[1] * a_is_upper_half + (one.clone() - a_is_upper_half) * prev_mem_val[3],
         ]);
         builder
-            .when(local.is_sh)
+            .when(local.is_i32store16)
             .assert_word_eq(mem_val.map(|x| x.into()), sh_expected_stored_value);
 
         // When the instruction is SW, just use the word without masking.
         builder
-            .when(local.is_sw)
+            .when(local.is_i32store)
             .assert_word_eq(mem_val.map(|x| x.into()), a_val.map(|x| x.into()));
     }
 
@@ -367,16 +321,16 @@ impl MemoryInstructionsChip {
 
         // When the instruction is LB or LBU, just use the lower byte.
         builder
-            .when(local.is_lb + local.is_lbu)
+            .when(local.is_i32load8s + local.is_i32load8u)
             .assert_word_eq(byte_value, local.unsigned_mem_val.map(|x| x.into()));
 
         // When the instruction is LH or LHU, ensure that offset is either zero or two.
         builder
-            .when(local.is_lh + local.is_lhu)
+            .when(local.is_i32load16s+ local.is_i32load16u)
             .assert_zero(local.ls_bits_is_one + local.ls_bits_is_three);
 
         // When the instruction is LW, ensure that the offset is zero.
-        builder.when(local.is_lw).assert_one(offset_is_zero.clone());
+        builder.when(local.is_i32load).assert_one(offset_is_zero.clone());
 
         let use_lower_half = offset_is_zero;
         let use_upper_half = local.ls_bits_is_two;
@@ -387,11 +341,11 @@ impl MemoryInstructionsChip {
             AB::Expr::zero(),
         ]);
         builder
-            .when(local.is_lh + local.is_lhu)
+            .when(local.is_i32load16s+ local.is_i32load16u)
             .assert_word_eq(half_value, local.unsigned_mem_val.map(|x| x.into()));
 
         // When the instruction is LW, just use the word.
-        builder.when(local.is_lw).assert_word_eq(mem_val, local.unsigned_mem_val);
+        builder.when(local.is_i32load).assert_word_eq(mem_val, local.unsigned_mem_val);
     }
 
     /// Evaluates the offset value flags.

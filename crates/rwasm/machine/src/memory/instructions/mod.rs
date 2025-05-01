@@ -210,7 +210,7 @@ mod tests {
                         let first_row: &mut MemoryInstructionsColumns<BabyBear> =
                             first_row.borrow_mut();
                         assert!(first_row.is_sw == BabyBear::one());
-                        first_row.is_lw = BabyBear::one();
+                        first_row.is_i32load = BabyBear::one();
                     }
                 }
                 traces
