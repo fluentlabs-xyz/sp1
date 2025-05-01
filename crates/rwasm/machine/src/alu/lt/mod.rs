@@ -470,7 +470,7 @@ mod tests {
     use crate::{
         alu::LtCols,
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::{run_malicious_test, uni_stark_prove as prove, uni_stark_verify as verify},
     };
     use p3_baby_bear::BabyBear;
@@ -546,17 +546,17 @@ mod tests {
         const LARGE: u32 = 0b11111111111111111111111111111101;
         shard.lt_events = vec![
             // 0 == 3 < 2
-            AluEvent::new(0, Opcode::SLTU, 0, 3, 2, false),
+            AluEvent::new(0, Opcode::SLTU, 0, 3, 2),
             // 1 == 2 < 3
-            AluEvent::new(0, Opcode::SLTU, 1, 2, 3, false),
+            AluEvent::new(0, Opcode::SLTU, 1, 2, 3),
             // 0 == LARGE < 5
-            AluEvent::new(0, Opcode::SLTU, 0, LARGE, 5, false),
+            AluEvent::new(0, Opcode::SLTU, 0, LARGE, 5),
             // 1 == 5 < LARGE
-            AluEvent::new(0, Opcode::SLTU, 1, 5, LARGE, false),
+            AluEvent::new(0, Opcode::SLTU, 1, 5, LARGE),
             // 0 == 0 < 0
-            AluEvent::new(0, Opcode::SLTU, 0, 0, 0, false),
+            AluEvent::new(0, Opcode::SLTU, 0, 0, 0,),
             // 0 == LARGE < LARGE
-            AluEvent::new(0, Opcode::SLTU, 0, LARGE, LARGE, false),
+            AluEvent::new(0, Opcode::SLTU, 0, LARGE, LARGE),
         ];
 
         prove_babybear_template(&mut shard);
@@ -587,7 +587,7 @@ mod tests {
                 let program = Program::new(instructions, 0, 0);
                 let stdin = SP1Stdin::new();
 
-                type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+                type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
                 let malicious_trace_pv_generator = move |prover: &P,
                                                          record: &mut ExecutionRecord|

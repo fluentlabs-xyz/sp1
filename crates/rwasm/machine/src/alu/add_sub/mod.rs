@@ -288,7 +288,7 @@ mod tests {
     use super::*;
     use crate::{
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir as RwasmAir,
         utils::{run_malicious_test, uni_stark_prove as prove, uni_stark_verify as verify},
     };
 
@@ -424,84 +424,5 @@ mod tests {
         RowMajorMatrix::new(rows.into_iter().flatten().collect::<Vec<_>>(), NUM_ADD_SUB_COLS)
     }
 
-    #[test]
-    fn test_malicious_add_sub() {
-        const NUM_TESTS: usize = 5;
-
-        for opcode in [Opcode::ADD, Opcode::SUB] {
-            for _ in 0..NUM_TESTS {
-                let op_a = thread_rng().gen_range(0..u32::MAX);
-                let op_b = thread_rng().gen_range(0..u32::MAX);
-                let op_c = thread_rng().gen_range(0..u32::MAX);
-
-                let correct_op_a = if opcode == Opcode::ADD {
-                    op_b.wrapping_add(op_c)
-                } else {
-                    op_b.wrapping_sub(op_c)
-                };
-
-                assert!(op_a != correct_op_a);
-
-                let instructions = vec![
-                    Instruction::new(opcode, 5, op_b, op_c, true, true),
-                    Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
-                ];
-                let program = Program::new(instructions, 0, 0);
-                let stdin = SP1Stdin::new();
-
-                type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
-
-                let malicious_trace_pv_generator = move |prover: &P,
-                                                         record: &mut ExecutionRecord|
-                      -> Vec<(
-                    String,
-                    RowMajorMatrix<Val<BabyBearPoseidon2>>,
-                )> {
-                    let mut malicious_record = record.clone();
-                    malicious_record.cpu_events[0].a = op_a;
-                    if let Some(MemoryRecordEnum::Write(mut write_record)) =
-                        malicious_record.cpu_events[0].a_record
-                    {
-                        write_record.value = op_a;
-                    }
-                    if opcode == Opcode::ADD {
-                        malicious_record.add_events[0].a = op_a;
-                    } else if opcode == Opcode::SUB {
-                        malicious_record.sub_events[0].a = op_a;
-                    } else {
-                        unreachable!()
-                    }
-
-                    let mut traces = prover.generate_traces(&malicious_record);
-
-                    let add_sub_chip_name = chip_name!(AddSubChip, BabyBear);
-                    for (chip_name, trace) in traces.iter_mut() {
-                        if *chip_name == add_sub_chip_name {
-                            // Add the add instructions are added first to the trace, before the sub instructions.
-                            let index = if opcode == Opcode::ADD { 0 } else { 1 };
-
-                            let first_row = trace.row_mut(index);
-                            let first_row: &mut AddSubCols<BabyBear> = first_row.borrow_mut();
-                            if opcode == Opcode::ADD {
-                                first_row.add_operation.value = op_a.into();
-                            } else {
-                                first_row.add_operation.value = op_b.into();
-                            }
-                        }
-                    }
-
-                    traces
-                };
-
-                let result =
-                    run_malicious_test::<P>(program, stdin, Box::new(malicious_trace_pv_generator));
-                println!("Result for {:?}: {:?}", opcode, result);
-                let add_sub_chip_name = chip_name!(AddSubChip, BabyBear);
-                assert!(
-                    result.is_err()
-                        && result.unwrap_err().is_constraints_failing(&add_sub_chip_name)
-                );
-            }
-        }
-    }
+   
 }

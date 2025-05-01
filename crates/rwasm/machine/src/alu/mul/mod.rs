@@ -473,7 +473,7 @@ mod tests {
 
     use crate::{
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::{run_malicious_test, uni_stark_prove as prove, uni_stark_verify as verify},
     };
     use p3_baby_bear::BabyBear;
@@ -631,7 +631,7 @@ mod tests {
                 let program = Program::new(instructions, 0, 0);
                 let stdin = SP1Stdin::new();
 
-                type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+                type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
                 let malicious_trace_pv_generator = move |prover: &P,
                                                          record: &mut ExecutionRecord|

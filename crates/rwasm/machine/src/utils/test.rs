@@ -13,7 +13,7 @@ use sp1_stark::{
     VerifierConstraintFolder,
 };
 
-use crate::{io::SP1Stdin, riscv::RiscvAir, shape::CoreShapeConfig};
+use crate::{io::SP1Stdin, rwasm::RwasmAir, shape::CoreShapeConfig};
 
 use super::prove_core;
 
@@ -22,7 +22,7 @@ pub(crate) type MaliciousTracePVGeneratorType<Val, P> =
     Box<dyn Fn(&P, &mut ExecutionRecord) -> Vec<(String, RowMajorMatrix<Val>)> + Send + Sync>;
 
 /// The canonical entry point for testing a [`Program`] and [`SP1Stdin`] with a [`MachineProver`].
-pub fn run_test<P: MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>(
+pub fn run_test<P: MachineProver<BabyBearPoseidon2, RwasmAir<BabyBear>>>(
     mut program: Program,
     inputs: SP1Stdin,
 ) -> Result<SP1PublicValues, MachineVerificationError<BabyBearPoseidon2>> {
@@ -47,7 +47,7 @@ pub fn run_test<P: MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>(
     Ok(public_values)
 }
 
-pub fn run_malicious_test<P: MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>(
+pub fn run_malicious_test<P: MachineProver<BabyBearPoseidon2, RwasmAir<BabyBear>>>(
     mut program: Program,
     inputs: SP1Stdin,
     malicious_trace_pv_generator: MaliciousTracePVGeneratorType<BabyBear, P>,
@@ -83,14 +83,14 @@ pub fn run_malicious_test<P: MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>
 }
 
 #[allow(unused_variables)]
-pub fn run_test_core<P: MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>(
+pub fn run_test_core<P: MachineProver<BabyBearPoseidon2, RwasmAir<BabyBear>>>(
     runtime: Executor,
     inputs: SP1Stdin,
     shape_config: Option<&CoreShapeConfig<BabyBear>>,
     malicious_trace_pv_generator: Option<MaliciousTracePVGeneratorType<BabyBear, P>>,
 ) -> Result<MachineProof<BabyBearPoseidon2>, MachineVerificationError<BabyBearPoseidon2>> {
     let config = BabyBearPoseidon2::new();
-    let machine = RiscvAir::machine(config);
+    let machine = RwasmAir::machine(config);
     let prover = P::new(machine);
 
     let (pk, vk) = prover.setup(runtime.program.as_ref());
@@ -108,7 +108,7 @@ pub fn run_test_core<P: MachineProver<BabyBearPoseidon2, RiscvAir<BabyBear>>>(
     .unwrap();
 
     let config = BabyBearPoseidon2::new();
-    let machine = RiscvAir::machine(config);
+    let machine = RwasmAir::machine(config);
     let (pk, vk) = machine.setup(runtime.program.as_ref());
     let mut challenger = machine.config().challenger();
     if let Err(e) = machine.verify(&vk, &proof, &mut challenger) {

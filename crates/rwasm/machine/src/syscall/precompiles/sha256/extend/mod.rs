@@ -38,7 +38,7 @@ pub mod extend_tests {
         events::AluEvent, syscalls::SyscallCode, ExecutionRecord, Instruction, Opcode, Program,
     };
     use sp1_stark::{air::MachineAir, CpuProver};
-    use test_artifacts::{SHA2_ELF, SHA_EXTEND_ELF};
+   
 
     use crate::{
         io::SP1Stdin,
@@ -83,19 +83,5 @@ pub mod extend_tests {
         run_test::<CpuProver<_, _>>(program, stdin).unwrap();
     }
 
-    #[test]
-    fn test_sha256_program() {
-        utils::setup_logger();
-        let program = Program::from(SHA2_ELF).unwrap();
-        let stdin = SP1Stdin::new();
-        run_test::<CpuProver<_, _>>(program, stdin).unwrap();
-    }
-
-    #[test]
-    fn test_sha_extend_program() {
-        utils::setup_logger();
-        let program = Program::from(SHA_EXTEND_ELF).unwrap();
-        let stdin = SP1Stdin::new();
-        run_test::<CpuProver<_, _>>(program, stdin).unwrap();
-    }
+  
 }

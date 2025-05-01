@@ -14,7 +14,7 @@ use web_time::Instant;
 
 use crate::shape::CoreShapeConfig;
 use crate::utils::test::MaliciousTracePVGeneratorType;
-use crate::{riscv::RiscvAir, shape::Shapeable};
+use crate::{rwasm::RwasmAir, shape::Shapeable};
 use p3_maybe_rayon::prelude::*;
 use sp1_stark::MachineProvingKey;
 use sp1_stark::StarkVerifyingKey;
@@ -30,7 +30,7 @@ use crate::{
 use rwasm_executor::{
     estimator::RecordEstimator,
     events::{format_table_line, sorted_table_lines},
-    ExecutionState, RiscvAirId,
+    ExecutionState, RwasmAirId,
 };
 
 use rwasm_executor::{
@@ -43,7 +43,7 @@ use sp1_stark::{
 };
 
 #[allow(clippy::too_many_arguments)]
-pub fn prove_core<SC: StarkGenericConfig, P: MachineProver<SC, RiscvAir<SC::Val>>>(
+pub fn prove_core<SC: StarkGenericConfig, P: MachineProver<SC, RwasmAir<SC::Val>>>(
     prover: &P,
     pk: &P::DeviceProvingKey,
     _: &StarkVerifyingKey<SC>,
@@ -85,7 +85,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn prove_core_stream<SC: StarkGenericConfig, P: MachineProver<SC, RiscvAir<SC::Val>>>(
+pub fn prove_core_stream<SC: StarkGenericConfig, P: MachineProver<SC, RwasmAir<SC::Val>>>(
     prover: &P,
     pk: &P::DeviceProvingKey,
     program: Program,
@@ -376,7 +376,7 @@ where
                                 let chips = prover.shard_chips(record).collect::<Vec<_>>();
                                 if let Some(shape) = record.shape.as_ref() {
                                     for chip in chips.iter() {
-                                        let id = RiscvAirId::from_str(&chip.name()).unwrap();
+                                        let id = RwasmAirId::from_str(&chip.name()).unwrap();
                                         let height = shape.log2_height(&id).unwrap();
                                         heights.push((chip.name().clone(), height));
                                     }

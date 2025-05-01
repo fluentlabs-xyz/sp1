@@ -32,7 +32,7 @@ mod tests {
     use crate::{
         io::SP1Stdin,
         memory::{columns::MemoryInstructionsColumns, MemoryInstructionsChip},
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::run_malicious_test,
     };
 
@@ -76,7 +76,7 @@ mod tests {
             let program = Program::new(instructions, 0, 0);
             let stdin = SP1Stdin::new();
 
-            type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+            type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
             let malicious_trace_pv_generator =
                 move |prover: &P,
@@ -152,7 +152,7 @@ mod tests {
             let program = Program::new(instructions, 0, 0);
             let stdin = SP1Stdin::new();
 
-            type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+            type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
             let malicious_trace_pv_generator =
                 move |prover: &P,
@@ -195,7 +195,7 @@ mod tests {
         let program = Program::new(instructions, 0, 0);
         let stdin = SP1Stdin::new();
 
-        type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+        type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
         let malicious_trace_pv_generator =
             |prover: &P,

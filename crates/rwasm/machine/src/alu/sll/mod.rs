@@ -41,8 +41,9 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelIterator, ParallelSlice};
-use rwasm_executor::{Instruction,
-    events::{AluEvent, ByteLookupEvent, ByteRecord}, rwasm_ins_to_code, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC
+use rwasm_executor::{
+    events::{AluEvent, ByteLookupEvent, ByteRecord},
+    rwasm_ins_to_code, ExecutionRecord, Instruction, Opcode, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
@@ -205,7 +206,7 @@ impl ShiftLeft {
         cols.a = Word(a.map(F::from_canonical_u8));
         cols.b = Word(b.map(F::from_canonical_u8));
         cols.c = Word(c.map(F::from_canonical_u8));
-      
+
         cols.is_real = F::one();
         for i in 0..BYTE_SIZE {
             cols.c_least_sig_byte[i] = F::from_canonical_u32((event.c >> i) & 1);
@@ -423,7 +424,7 @@ mod tests {
     use crate::{
         alu::ShiftLeftCols,
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::{run_malicious_test, uni_stark_prove as prove, uni_stark_verify as verify},
     };
     use p3_baby_bear::BabyBear;
@@ -518,7 +519,7 @@ mod tests {
             let program = Program::new(instructions, 0, 0);
             let stdin = SP1Stdin::new();
 
-            type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+            type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
             let malicious_trace_pv_generator =
                 move |prover: &P,

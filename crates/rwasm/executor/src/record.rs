@@ -13,13 +13,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     events::{
-        AUIPCEvent, AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, CpuEvent,
-        GlobalInteractionEvent, JumpEvent, MemInstrEvent, MemoryInitializeFinalizeEvent,
-        MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent,
+        AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, ConstEvent, CpuEvent, GlobalInteractionEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent
     },
     program::Program,
     syscalls::SyscallCode,
-    RiscvAirId,
+    RwasmAirId,
 };
 
 /// A record of the execution of a program.
@@ -49,12 +47,12 @@ pub struct ExecutionRecord {
     pub lt_events: Vec<AluEvent>,
     /// A trace of the memory instructions.
     pub memory_instr_events: Vec<MemInstrEvent>,
-    /// A trace of the AUIPC events.
-    pub auipc_events: Vec<AUIPCEvent>,
+   
     /// A trace of the branch events.
     pub branch_events: Vec<BranchEvent>,
-    /// A trace of the jump events.
-    pub jump_events: Vec<JumpEvent>,
+    /// A trace of the constant events.
+    pub const_events: Vec<ConstEvent>,
+   
     /// A trace of the byte lookups that are needed.
     pub byte_lookups: HashMap<ByteLookupEvent, usize>,
     // /// A trace of the precompile events.
@@ -74,9 +72,9 @@ pub struct ExecutionRecord {
     /// The next nonce to use for a new lookup.
     pub next_nonce: u64,
     /// The shape of the proof.
-    pub shape: Option<Shape<RiscvAirId>>,
+    pub shape: Option<Shape<RwasmAirId>>,
     /// The predicted counts of the proof.
-    pub counts: Option<EnumMap<RiscvAirId, u64>>,
+    pub counts: Option<EnumMap<RwasmAirId, u64>>,
 }
 
 impl ExecutionRecord {
@@ -211,7 +209,7 @@ impl ExecutionRecord {
     pub fn fixed_log2_rows<F: PrimeField, A: MachineAir<F>>(&self, air: &A) -> Option<usize> {
         self.shape.as_ref().map(|shape| {
             shape
-                .log2_height(&RiscvAirId::from_str(&air.name()).unwrap())
+                .log2_height(&RwasmAirId::from_str(&air.name()).unwrap())
                 .unwrap_or_else(|| panic!("Chip {} not found in specified shape", air.name()))
         })
     }
@@ -280,8 +278,9 @@ impl MachineRecord for ExecutionRecord {
         stats.insert("lt_events".to_string(), self.lt_events.len());
         stats.insert("memory_instructions_events".to_string(), self.memory_instr_events.len());
         stats.insert("branch_events".to_string(), self.branch_events.len());
-        stats.insert("jump_events".to_string(), self.jump_events.len());
-        stats.insert("auipc_events".to_string(), self.auipc_events.len());
+        stats.insert("branch_events".to_string(), self.branch_events.len());
+        stats.insert("const_events".to_string(), self.const_events.len());
+       
 
         for (syscall_code, events) in self.precompile_events.iter() {
             stats.insert(format!("syscall {syscall_code:?}"), events.len());
@@ -316,8 +315,7 @@ impl MachineRecord for ExecutionRecord {
         self.lt_events.append(&mut other.lt_events);
         self.memory_instr_events.append(&mut other.memory_instr_events);
         self.branch_events.append(&mut other.branch_events);
-        self.jump_events.append(&mut other.jump_events);
-        self.auipc_events.append(&mut other.auipc_events);
+       
         self.syscall_events.append(&mut other.syscall_events);
 
         self.precompile_events.append(&mut other.precompile_events);

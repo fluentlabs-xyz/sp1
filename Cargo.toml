@@ -34,7 +34,8 @@ members = [
   "crates/zkvm/*",
  
   "crates/rwasm/executor",
-  "crates/rwasm/machine"
+  "crates/rwasm/machine",
+  "crates/rwasm/machinetest"
 ]
 exclude = ["examples/target"]
 resolver = "2"
@@ -74,6 +75,7 @@ sp1-lib = { path = "crates/zkvm/lib", version = "4.2.0", default-features = fals
 sp1-zkvm = { path = "crates/zkvm/entrypoint", version = "4.2.0", default-features = false }
 rwasm-executor = { path = "crates/rwasm/executor", version = "4.2.0", default-features = false }
 rwasm-machine = { path = "crates/rwasm/machine", version = "4.2.0", default-features = false }
+rwasm-machine-test = { path = "crates/rwasm/machinetest", version = "4.2.0", default-features = false }
 
 # # For testing.
 # test-artifacts = { path = "crates/test-artifacts" }

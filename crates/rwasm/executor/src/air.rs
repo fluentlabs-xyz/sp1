@@ -31,7 +31,7 @@ use subenum::subenum;
     Ord,
     Enum,
 )]
-pub enum RiscvAirId {
+pub enum RwasmAirId {
     /// The CPU chip.
     #[subenum(CoreAirId)]
     Cpu = 0,
@@ -140,27 +140,27 @@ pub enum RiscvAirId {
     Byte = 44,
 }
 
-impl RiscvAirId {
+impl RwasmAirId {
     /// Returns the AIRs that are not part of precompile shards and not the program or byte AIR.
     #[must_use]
-    pub fn core() -> Vec<RiscvAirId> {
+    pub fn core() -> Vec<RwasmAirId> {
         vec![
-            RiscvAirId::Cpu,
-            RiscvAirId::AddSub,
-            RiscvAirId::Mul,
-            RiscvAirId::Bitwise,
-            RiscvAirId::ShiftLeft,
-            RiscvAirId::ShiftRight,
-            RiscvAirId::DivRem,
-            RiscvAirId::Lt,
-            RiscvAirId::Auipc,
-            RiscvAirId::MemoryLocal,
-            RiscvAirId::MemoryInstrs,
-            RiscvAirId::Branch,
-            RiscvAirId::Jump,
-            RiscvAirId::SyscallCore,
-            RiscvAirId::SyscallInstrs,
-            RiscvAirId::Global,
+            RwasmAirId::Cpu,
+            RwasmAirId::AddSub,
+            RwasmAirId::Mul,
+            RwasmAirId::Bitwise,
+            RwasmAirId::ShiftLeft,
+            RwasmAirId::ShiftRight,
+            RwasmAirId::DivRem,
+            RwasmAirId::Lt,
+            RwasmAirId::Auipc,
+            RwasmAirId::MemoryLocal,
+            RwasmAirId::MemoryInstrs,
+            RwasmAirId::Branch,
+            RwasmAirId::Jump,
+            RwasmAirId::SyscallCore,
+            RwasmAirId::SyscallInstrs,
+            RwasmAirId::Global,
         ]
     }
 
@@ -176,7 +176,7 @@ impl RiscvAirId {
     pub fn is_memory(self) -> bool {
         matches!(
             self,
-            RiscvAirId::MemoryGlobalInit | RiscvAirId::MemoryGlobalFinalize | RiscvAirId::Global
+            RwasmAirId::MemoryGlobalInit | RwasmAirId::MemoryGlobalFinalize | RwasmAirId::Global
         )
     }
 
@@ -185,30 +185,30 @@ impl RiscvAirId {
     pub fn is_precompile(self) -> bool {
         matches!(
             self,
-            RiscvAirId::ShaExtend
-                | RiscvAirId::ShaCompress
-                | RiscvAirId::EdAddAssign
-                | RiscvAirId::EdDecompress
-                | RiscvAirId::Secp256k1Decompress
-                | RiscvAirId::Secp256k1AddAssign
-                | RiscvAirId::Secp256k1DoubleAssign
-                | RiscvAirId::Secp256r1Decompress
-                | RiscvAirId::Secp256r1AddAssign
-                | RiscvAirId::Secp256r1DoubleAssign
-                | RiscvAirId::KeccakPermute
-                | RiscvAirId::Bn254AddAssign
-                | RiscvAirId::Bn254DoubleAssign
-                | RiscvAirId::Bls12381AddAssign
-                | RiscvAirId::Bls12381DoubleAssign
-                | RiscvAirId::Uint256MulMod
-                | RiscvAirId::U256XU2048Mul
-                | RiscvAirId::Bls12381FpOpAssign
-                | RiscvAirId::Bls12381Fp2AddSubAssign
-                | RiscvAirId::Bls12381Fp2MulAssign
-                | RiscvAirId::Bn254FpOpAssign
-                | RiscvAirId::Bn254Fp2AddSubAssign
-                | RiscvAirId::Bn254Fp2MulAssign
-                | RiscvAirId::Bls12381Decompress
+            RwasmAirId::ShaExtend
+                | RwasmAirId::ShaCompress
+                | RwasmAirId::EdAddAssign
+                | RwasmAirId::EdDecompress
+                | RwasmAirId::Secp256k1Decompress
+                | RwasmAirId::Secp256k1AddAssign
+                | RwasmAirId::Secp256k1DoubleAssign
+                | RwasmAirId::Secp256r1Decompress
+                | RwasmAirId::Secp256r1AddAssign
+                | RwasmAirId::Secp256r1DoubleAssign
+                | RwasmAirId::KeccakPermute
+                | RwasmAirId::Bn254AddAssign
+                | RwasmAirId::Bn254DoubleAssign
+                | RwasmAirId::Bls12381AddAssign
+                | RwasmAirId::Bls12381DoubleAssign
+                | RwasmAirId::Uint256MulMod
+                | RwasmAirId::U256XU2048Mul
+                | RwasmAirId::Bls12381FpOpAssign
+                | RwasmAirId::Bls12381Fp2AddSubAssign
+                | RwasmAirId::Bls12381Fp2MulAssign
+                | RwasmAirId::Bn254FpOpAssign
+                | RwasmAirId::Bn254Fp2AddSubAssign
+                | RwasmAirId::Bn254Fp2MulAssign
+                | RwasmAirId::Bls12381Decompress
         )
     }
 
@@ -230,7 +230,7 @@ impl RiscvAirId {
     }
 }
 
-impl FromStr for RiscvAirId {
+impl FromStr for RwasmAirId {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -242,7 +242,7 @@ impl FromStr for RiscvAirId {
     }
 }
 
-impl Display for RiscvAirId {
+impl Display for RwasmAirId {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.as_str())
     }
@@ -254,15 +254,15 @@ pub struct MaximalShapes {
     inner: Vec<EnumMap<CoreAirId, u32>>,
 }
 
-impl FromIterator<Shape<RiscvAirId>> for MaximalShapes {
-    fn from_iter<T: IntoIterator<Item = Shape<RiscvAirId>>>(iter: T) -> Self {
+impl FromIterator<Shape<RwasmAirId>> for MaximalShapes {
+    fn from_iter<T: IntoIterator<Item = Shape<RwasmAirId>>>(iter: T) -> Self {
         let mut maximal_shapes = Vec::new();
         for shape in iter {
             let mut maximal_shape = EnumMap::<CoreAirId, u32>::default();
             for (air, height) in shape {
                 if let Ok(core_air) = CoreAirId::try_from(air) {
                     maximal_shape[core_air] = height as u32;
-                } else if air != RiscvAirId::Program && air != RiscvAirId::Byte {
+                } else if air != RwasmAirId::Program && air != RwasmAirId::Byte {
                     tracing::warn!("Invalid core air: {air}");
                 }
             }

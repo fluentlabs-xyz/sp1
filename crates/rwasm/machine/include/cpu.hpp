@@ -78,10 +78,10 @@
 // //         case Opcode::MULH:
 // //         case Opcode::MULHU:
 // //         case Opcode::MULHSU:
-// //         case Opcode::DIV:
-// //         case Opcode::DIVU:
-// //         case Opcode::REM:
-// //         case Opcode::REMU:
+// //         case Instruction::I32DivS:
+// //         case Instruction::I32DivSU:
+// //         case Instruction::I32RemS:
+// //         case Instruction::I32RemU:
 // //             self.is_alu = F::one().val;
 // //             break;
 // //         // Corresponds to `instruction.is_ecall_instruction()` in Rust.

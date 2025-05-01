@@ -26,12 +26,12 @@ mod tests {
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
         MachineProver, Val,
     };
-    use sp1_zkvm::syscalls::{COMMIT, COMMIT_DEFERRED_PROOFS, HALT, SHA_EXTEND};
+   
 
     use crate::{
         cpu::{columns::CpuCols, CpuChip},
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         syscall::instructions::{columns::SyscallInstrColumns, SyscallInstrsChip},
         utils::run_malicious_test,
     };
@@ -67,7 +67,7 @@ mod tests {
             let program = Program::new(test_case.program, 0, 0);
             let stdin = SP1Stdin::new();
 
-            type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+            type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
             let malicious_trace_pv_generator =
                 move |prover: &P,
@@ -105,7 +105,7 @@ mod tests {
         let program = Program::new(instructions, 0, 0);
         let stdin = SP1Stdin::new();
 
-        type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+        type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
         let malicious_trace_pv_generator =
             |prover: &P,
@@ -158,7 +158,7 @@ mod tests {
         let program = Program::new(instructions, 0, 0);
         let stdin = SP1Stdin::new();
 
-        type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+        type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
         let malicious_trace_pv_generator =
             |prover: &P,
@@ -185,7 +185,7 @@ mod tests {
         let program = Program::new(instructions, 0, 0);
         let stdin = SP1Stdin::new();
 
-        type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+        type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
         let malicious_trace_pv_generator =
             |prover: &P,

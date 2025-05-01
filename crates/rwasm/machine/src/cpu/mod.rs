@@ -1,4 +1,4 @@
-use rwasm_executor::RiscvAirId;
+use rwasm_executor::RwasmAirId;
 
 pub mod air;
 pub mod columns;
@@ -12,7 +12,7 @@ pub const MAX_CPU_LOG_DEGREE: usize = 22;
 pub struct CpuChip;
 
 impl CpuChip {
-    pub fn id(&self) -> RiscvAirId {
-        RiscvAirId::Cpu
+    pub fn id(&self) -> RwasmAirId {
+        RwasmAirId::Cpu
     }
 }

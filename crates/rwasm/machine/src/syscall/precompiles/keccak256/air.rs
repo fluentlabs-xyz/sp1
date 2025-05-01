@@ -134,7 +134,7 @@ where
 mod test {
     use crate::{
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::{prove_core, setup_logger},
     };
     use sp1_primitives::io::SP1PublicValues;
@@ -150,62 +150,4 @@ mod test {
 
     const NUM_TEST_CASES: usize = 45;
 
-    #[test]
-    #[ignore]
-    fn test_keccak_random() {
-        setup_logger();
-        let mut rng = rand::rngs::StdRng::seed_from_u64(0);
-        let mut inputs = Vec::<Vec<u8>>::new();
-        let mut outputs = Vec::<[u8; 32]>::new();
-        for len in 0..NUM_TEST_CASES {
-            let bytes = (0..len * 71).map(|_| rng.gen::<u8>()).collect::<Vec<_>>();
-            inputs.push(bytes.clone());
-
-            let mut keccak = tiny_keccak::Keccak::v256();
-            keccak.update(&bytes);
-            let mut hash = [0u8; 32];
-            keccak.finalize(&mut hash);
-            outputs.push(hash);
-        }
-
-        let mut stdin = SP1Stdin::new();
-        stdin.write(&NUM_TEST_CASES);
-        for input in inputs.iter() {
-            stdin.write(&input);
-        }
-
-        let config = BabyBearPoseidon2::new();
-
-        let program = Program::from(KECCAK256_ELF).unwrap();
-        let opts = SP1CoreOpts::default();
-        let machine = RiscvAir::machine(config);
-        let prover = CpuProver::new(machine);
-        let (pk, vk) = prover.setup(&program);
-        let (proof, public_values, _) = prove_core::<_, _>(
-            &prover,
-            &pk,
-            &vk,
-            program,
-            &stdin,
-            opts,
-            SP1Context::default(),
-            None,
-            None,
-        )
-        .unwrap();
-        let mut public_values = SP1PublicValues::from(&public_values);
-
-        let config = BabyBearPoseidon2::new();
-        let mut challenger = config.challenger();
-        let machine = RiscvAir::machine(config);
-        let (_, vk) = machine.setup(&Program::from(KECCAK256_ELF).unwrap());
-        let _ =
-            tracing::info_span!("verify").in_scope(|| machine.verify(&vk, &proof, &mut challenger));
-
-        for i in 0..NUM_TEST_CASES {
-            let expected = outputs.get(i).unwrap();
-            let actual = public_values.read::<[u8; 32]>();
-            assert_eq!(expected, &actual);
-        }
-    }
 }

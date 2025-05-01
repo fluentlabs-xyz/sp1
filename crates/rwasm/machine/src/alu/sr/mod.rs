@@ -43,6 +43,12 @@
 
 mod utils;
 
+use crate::{
+    air::SP1CoreAirBuilder,
+    alu::sr::utils::{nb_bits_to_shift, nb_bytes_to_shift},
+    bytes::utils::shr_carry,
+    utils::{next_power_of_two, zeroed_f_vec},
+};
 use core::{
     borrow::{Borrow, BorrowMut},
     mem::size_of,
@@ -53,20 +59,14 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
-use rwasm_executor::{Instruction,
+use rwasm_executor::rwasm_ins_to_code;
+use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
-    ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
+    ByteOpcode, ExecutionRecord, Instruction, Opcode, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
 use sp1_stark::{air::MachineAir, Word};
-use rwasm_executor::rwasm_ins_to_code;
-use crate::{
-    air::SP1CoreAirBuilder,
-    alu::sr::utils::{nb_bits_to_shift, nb_bytes_to_shift},
-    bytes::utils::shr_carry,
-    utils::{next_power_of_two, zeroed_f_vec},
-};
 
 /// The number of main trace columns for `ShiftRightChip`.
 pub const NUM_SHIFT_RIGHT_COLS: usize = size_of::<ShiftRightCols<u8>>();
@@ -224,7 +224,6 @@ impl ShiftRightChip {
             cols.a = Word::from(event.a);
             cols.b = Word::from(event.b);
             cols.c = Word::from(event.c);
-          
 
             cols.b_msb = F::from_canonical_u32((event.b >> 31) & 1);
 
@@ -258,7 +257,7 @@ impl ShiftRightChip {
                 cols.shift_by_n_bytes[i] = F::from_bool(num_bytes_to_shift == i);
             }
             let sign_extended_b = {
-                if event.code ==rwasm_ins_to_code(Instruction::I32ShrS) {
+                if event.code == rwasm_ins_to_code(Instruction::I32ShrS) {
                     // Sign extension is necessary only for arithmetic right shift.
                     ((event.b as i32) as i64).to_le_bytes()
                 } else {
@@ -547,7 +546,7 @@ mod tests {
     use crate::{
         alu::ShiftRightCols,
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::{run_malicious_test, uni_stark_prove as prove, uni_stark_verify as verify},
     };
     use p3_baby_bear::BabyBear;
@@ -660,7 +659,7 @@ mod tests {
                 let program = Program::new(instructions, 0, 0);
                 let stdin = SP1Stdin::new();
 
-                type P = CpuProver<BabyBearPoseidon2, RiscvAir<BabyBear>>;
+                type P = CpuProver<BabyBearPoseidon2, RwasmAir<BabyBear>>;
 
                 let malicious_trace_pv_generator = move |prover: &P,
                                                          record: &mut ExecutionRecord|

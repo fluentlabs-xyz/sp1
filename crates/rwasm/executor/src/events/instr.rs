@@ -105,52 +105,28 @@ impl BranchEvent {
     }
 }
 
-/// Jump Instruction Event.
+/// Const Instruction Event.
 ///
-/// This object encapsulated the information needed to prove a RISC-V jump operation.
+/// This object encapsulated the information needed to prove a RISC-V branch operation.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[repr(C)]
-pub struct JumpEvent {
+pub struct ConstEvent {
     /// The program counter.
     pub pc: u32,
-    /// The next program counter.
-    pub next_pc: u32,
-    /// The opcode.
+    /// The instruction
     pub instruction: Instruction,
-    /// The first operand value.
-    pub a: u32,
-    /// The second operand value.
-    pub b: u32,
-    /// The third operand value.
-    pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
+    /// The value
+    pub value: u32,
 }
 
-/// AUIPC Instruction Event.
-///
-/// This object encapsulated the information needed to prove a RISC-V AUIPC operation.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[repr(C)]
-pub struct AUIPCEvent {
-    /// The program counter.
-    pub pc: u32,
-    /// The instruction.
-    pub instruction: Instruction,
-    /// The first operand value.
-    pub a: u32,
-    /// The second operand value.
-    pub b: u32,
-    /// The third operand value.
-    pub c: u32,
-    /// Whether the first operand is register 0.
-    pub op_a_0: bool,
-}
-
-impl AUIPCEvent {
-    /// Create a new [`AUIPCEvent`].
+impl ConstEvent {
+    /// Create a new [`BranchEvent`].
     #[must_use]
-    pub fn new(pc: u32, instruction: Instruction, a: u32, b: u32, c: u32, op_a_0: bool) -> Self {
-        Self { pc, instruction, a, b, c, op_a_0 }
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(pc: u32,  instruction: Instruction,value:u32) -> Self {
+        Self { pc,  instruction,value }
     }
 }
+
+
+

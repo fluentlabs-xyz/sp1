@@ -3,7 +3,7 @@
 use std::{fs::File, io::Read, str::FromStr};
 
 use crate::{
-    RiscvAirId,
+    RwasmAirId,
    
 };
 use rwasm::engine::bytecode::Instruction;
@@ -39,7 +39,7 @@ pub struct Program {
      /// The funcindices for calling
      pub index_offset: Vec<u32>,
     /// The shape for the preprocessed tables.
-    pub preprocessed_shape: Option<Shape<RiscvAirId>>,
+    pub preprocessed_shape: Option<Shape<RwasmAirId>>,
 }
 
 impl Program {
@@ -117,7 +117,7 @@ impl Program {
 
     /// Custom logic for padding the trace to a power of two according to the proof shape.
     pub fn fixed_log2_rows<F: Field, A: MachineAir<F>>(&self, air: &A) -> Option<usize> {
-        let id = RiscvAirId::from_str(&air.name()).unwrap();
+        let id = RwasmAirId::from_str(&air.name()).unwrap();
         self.preprocessed_shape.as_ref().map(|shape| {
             shape
                 .log2_height(&id)

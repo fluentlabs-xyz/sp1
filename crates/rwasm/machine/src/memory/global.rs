@@ -426,7 +426,7 @@ mod tests {
     use super::*;
     use crate::programs::tests::*;
     use crate::{
-        riscv::RiscvAir, syscall::precompiles::sha256::extend_tests::sha_extend_program,
+        rwasm::RwasmAir, syscall::precompiles::sha256::extend_tests::sha_extend_program,
         utils::setup_logger,
     };
     use p3_baby_bear::BabyBear;
@@ -467,8 +467,8 @@ mod tests {
         let program_clone = program.clone();
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        let machine: StarkMachine<BabyBearPoseidon2, RiscvAir<BabyBear>> =
-            RiscvAir::machine(BabyBearPoseidon2::new());
+        let machine: StarkMachine<BabyBearPoseidon2, RwasmAir<BabyBear>> =
+            RwasmAir::machine(BabyBearPoseidon2::new());
         let (pkey, _) = machine.setup(&program_clone);
         let opts = SP1CoreOpts::default();
         machine.generate_dependencies(
@@ -479,7 +479,7 @@ mod tests {
 
         let shards = runtime.records;
         for shard in shards.clone() {
-            debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
+            debug_interactions_with_all_chips::<BabyBearPoseidon2, RwasmAir<BabyBear>>(
                 &machine,
                 &pkey,
                 &[*shard],
@@ -487,7 +487,7 @@ mod tests {
                 InteractionScope::Local,
             );
         }
-        debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
+        debug_interactions_with_all_chips::<BabyBearPoseidon2, RwasmAir<BabyBear>>(
             &machine,
             &pkey,
             &shards.into_iter().map(|r| *r).collect::<Vec<_>>(),
@@ -503,7 +503,7 @@ mod tests {
         let program_clone = program.clone();
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        let machine = RiscvAir::machine(BabyBearPoseidon2::new());
+        let machine = RwasmAir::machine(BabyBearPoseidon2::new());
         let (pkey, _) = machine.setup(&program_clone);
         let opts = SP1CoreOpts::default();
         machine.generate_dependencies(
@@ -513,7 +513,7 @@ mod tests {
         );
 
         let shards = runtime.records;
-        debug_interactions_with_all_chips::<BabyBearPoseidon2, RiscvAir<BabyBear>>(
+        debug_interactions_with_all_chips::<BabyBearPoseidon2, RwasmAir<BabyBear>>(
             &machine,
             &pkey,
             &shards.into_iter().map(|r| *r).collect::<Vec<_>>(),
