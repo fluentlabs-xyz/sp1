@@ -5629,6 +5629,7 @@ dependencies = [
  "p3-symmetric",
  "p3-util",
  "rayon",
+ "rwasm",
  "rwasm-executor",
  "rwasm-machine",
  "serde",
