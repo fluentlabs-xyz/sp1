@@ -895,7 +895,7 @@ mod tests {
     use p3_symmetric::{CryptographicHasher, Permutation};
     use rand::{rngs::StdRng, Rng, SeedableRng};
 
-    use sp1_core_machine::utils::{run_test_machine, setup_logger};
+    use rwasm_machine::utils::{run_test_machine, setup_logger};
     use sp1_recursion_core::{machine::RecursionAir, Runtime};
     use sp1_stark::{
         baby_bear_poseidon2::BabyBearPoseidon2, inner_perm, BabyBearPoseidon2Inner, InnerHash,

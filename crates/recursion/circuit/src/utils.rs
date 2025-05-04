@@ -92,7 +92,7 @@ pub fn words_to_bytes<T: Copy>(words: &[Word<T>]) -> Vec<T> {
 pub(crate) mod tests {
     use std::sync::Arc;
 
-    use sp1_core_machine::utils::{run_test_machine_with_prover, setup_logger};
+    use rwasm_machine::utils::{run_test_machine_with_prover, setup_logger};
     use sp1_recursion_compiler::circuit::{AsmCompiler, AsmConfig};
 
     use sp1_recursion_compiler::ir::DslIrBlock;

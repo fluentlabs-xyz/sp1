@@ -3,7 +3,7 @@
 use core::borrow::Borrow;
 use itertools::Itertools;
 use p3_baby_bear::BabyBear;
-use sp1_core_machine::utils::{next_power_of_two, pad_rows_fixed};
+use rwasm_machine::utils::{next_power_of_two, pad_rows_fixed};
 use sp1_stark::air::{BinomialExtension, MachineAir};
 use std::borrow::BorrowMut;
 use tracing::instrument;
@@ -365,7 +365,7 @@ mod tests {
     use p3_field::AbstractField;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{rngs::StdRng, Rng, SeedableRng};
-    use sp1_core_machine::utils::setup_logger;
+    use rwasm_machine::utils::setup_logger;
     use sp1_stark::{air::MachineAir, StarkGenericConfig};
     use std::mem::size_of;
 

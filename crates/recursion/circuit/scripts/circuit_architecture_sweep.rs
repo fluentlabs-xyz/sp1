@@ -2,7 +2,7 @@
 
 use p3_baby_bear::BabyBear;
 
-use sp1_core::{stark::StarkMachine, utils::log2_strict_usize};
+use rwasm::{stark::StarkMachine, utils::log2_strict_usize};
 use sp1_recursion_circuit::build_wrap_v2::{machine_with_all_chips, test_machine};
 use sp1_recursion_core::machine::RecursionAir;
 use sp1_recursion_core::stark::config::BabyBearPoseidon2Outer;

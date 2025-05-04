@@ -100,9 +100,9 @@ mod sys {
             .with_parse_include(&[
                 "sp1-stark",
                 "sp1-primitives",
-                "sp1-core-machine",
+              //  "rwasm-machine",
                 "p3-baby-bear",
-                "sp1-core-executor",
+                //"rwasm-executor",
             ])
             .with_parse_extra_bindings(&["sp1-stark", "sp1-primitives", "p3-baby-bear"])
             .rename_item("BabyBear", "BabyBearP3")
@@ -173,12 +173,13 @@ mod sys {
             rel_symlink_file(dst, target_include_dir_fixed.join(relpath));
         }
 
-        println!("cargo::rustc-link-lib=static=sp1-core-machine-sys");
-        let include_dir = env::var("DEP_SP1_CORE_MACHINE_SYS_INCLUDE").unwrap();
+       // println!("cargo::rustc-link-lib=static=sp1-core-machine-sys"); TODO: make rwasm-machine compilable and fix
+       // let include_dir = env::var("DEP_SP1_CORE_MACHINE_SYS_INCLUDE").unwrap();
 
         // Use the `cc` crate to build the library and statically link it to the crate.
         let mut cc_builder = cc::Build::new();
-        cc_builder.files(&compilation_units).include(target_include_dir).include(include_dir);
+        cc_builder.files(&compilation_units).include(target_include_dir);
+        //.include(include_dir); TODO: fix core machien sys so we can build with cpp
         cc_builder.cpp(true).std("c++17");
         cc_builder.compile(LIB_NAME)
     }

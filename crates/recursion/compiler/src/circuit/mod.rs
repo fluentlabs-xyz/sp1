@@ -13,7 +13,7 @@ mod tests {
     use p3_baby_bear::DiffusionMatrixBabyBear;
     use p3_field::AbstractField;
 
-    use sp1_core_machine::utils::run_test_machine;
+    use rwasm_machine::utils::run_test_machine;
     use sp1_recursion_core::{machine::RecursionAir, Runtime, RuntimeError};
     use sp1_stark::{BabyBearPoseidon2Inner, StarkGenericConfig};
 

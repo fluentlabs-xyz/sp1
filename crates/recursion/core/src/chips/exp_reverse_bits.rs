@@ -9,7 +9,7 @@ use p3_air::{Air, AirBuilder, BaseAir, PairBuilder};
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use sp1_core_machine::utils::pad_rows_fixed;
+use rwasm_machine::utils::pad_rows_fixed;
 use sp1_derive::AlignedBorrow;
 use sp1_stark::air::{BaseAirBuilder, ExtensionAirBuilder, MachineAir, SP1AirBuilder};
 use std::borrow::BorrowMut;
@@ -336,7 +336,7 @@ mod tests {
     use p3_matrix::dense::RowMajorMatrix;
     use p3_util::reverse_bits_len;
     use rand::{rngs::StdRng, Rng, SeedableRng};
-    use sp1_core_machine::utils::setup_logger;
+    use rwasm_machine::utils::setup_logger;
     use sp1_stark::{air::MachineAir, StarkGenericConfig};
     use std::iter::once;
 

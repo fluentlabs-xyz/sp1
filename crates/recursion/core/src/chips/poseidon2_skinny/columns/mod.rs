@@ -1,6 +1,6 @@
 use std::mem::{size_of, transmute};
 
-use sp1_core_machine::utils::indices_arr;
+use rwasm_machine::utils::indices_arr;
 use sp1_derive::AlignedBorrow;
 
 use crate::chips::poseidon2_skinny::{NUM_INTERNAL_ROUNDS, WIDTH};

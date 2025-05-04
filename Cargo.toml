@@ -35,7 +35,8 @@ members = [
  
   "crates/rwasm/executor",
   "crates/rwasm/machine",
-  "crates/rwasm/machinetest"
+  "crates/rwasm/machinetest",
+  "crates/rwasm/prover"
 ]
 exclude = ["examples/target"]
 resolver = "2"

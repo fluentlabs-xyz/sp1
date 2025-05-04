@@ -13,7 +13,7 @@ use crate::{
     CircuitConfig,
 };
 
-/// Reference: [sp1_core::stark::StarkVerifyingKey]
+/// Reference: [rwasm::stark::StarkVerifyingKey]
 #[derive(Clone)]
 pub struct VerifyingKeyVariable<C: CircuitConfig<F = SC::Val>, SC: BabyBearFriConfigVariable<C>> {
     pub commitment: SC::DigestVariable,

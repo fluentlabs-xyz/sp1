@@ -4,7 +4,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, Field, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::*;
-use sp1_core_machine::utils::next_power_of_two;
+use rwasm_machine::utils::next_power_of_two;
 use sp1_derive::AlignedBorrow;
 use sp1_stark::air::MachineAir;
 use std::borrow::BorrowMut;

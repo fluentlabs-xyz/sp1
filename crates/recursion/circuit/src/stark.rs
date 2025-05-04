@@ -36,7 +36,7 @@ use crate::{
 };
 use sp1_stark::septic_digest::SepticDigest;
 
-/// Reference: [sp1_core::stark::ShardProof]
+/// Reference: [rwasm::stark::ShardProof]
 #[allow(clippy::type_complexity)]
 #[derive(Clone)]
 pub struct ShardProofVariable<C: CircuitConfig<F = SC::Val>, SC: BabyBearFriConfigVariable<C>> {
@@ -514,10 +514,10 @@ pub mod tests {
         BabyBearFriConfig,
     };
 
-    use sp1_core_executor::Program;
-    use sp1_core_machine::{
+    use rwasm_executor::Program;
+    use rwasm_machine::{
         io::SP1Stdin,
-        riscv::RiscvAir,
+        rwasm::RwasmAir,
         utils::{prove_core, prove_core_stream, setup_logger},
     };
     use sp1_recursion_compiler::{
@@ -525,7 +525,7 @@ pub mod tests {
         ir::{Builder, DslIr, DslIrBlock},
     };
 
-    use sp1_core_executor::SP1Context;
+    use rwasm_executor::SP1Context;
     use sp1_recursion_core::{air::Block, machine::RecursionAir, stark::BabyBearPoseidon2Outer};
     use sp1_stark::{
         baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, InnerVal, MachineProver, SP1CoreOpts,
@@ -570,7 +570,7 @@ pub mod tests {
         )
         .unwrap();
 
-        let machine = RiscvAir::<C::F>::machine(SC::default());
+        let machine = RwasmAir::<C::F>::machine(SC::default());
         let mut challenger = machine.config().challenger();
         machine.verify(&vk, &proof, &mut challenger).unwrap();
 

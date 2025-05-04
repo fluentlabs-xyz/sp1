@@ -6,7 +6,7 @@ use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::dense::RowMajorMatrix;
 use p3_maybe_rayon::prelude::*;
-use sp1_core_machine::{operations::poseidon2::WIDTH, utils::next_power_of_two};
+use rwasm_machine::{operations::poseidon2::WIDTH, utils::next_power_of_two};
 use sp1_stark::air::MachineAir;
 use std::{borrow::BorrowMut, mem::size_of};
 use tracing::instrument;
@@ -161,7 +161,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::AbstractField;
     use p3_matrix::{dense::RowMajorMatrix, Matrix};
-    use sp1_core_machine::operations::poseidon2::{trace::populate_perm, WIDTH};
+    use rwasm_machine::operations::poseidon2::{trace::populate_perm, WIDTH};
     use sp1_stark::air::MachineAir;
 
     use super::*;

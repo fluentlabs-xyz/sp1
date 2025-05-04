@@ -5,7 +5,7 @@ use p3_challenger::DuplexChallenger;
 use p3_field::PrimeField32;
 use p3_symmetric::CryptographicPermutation;
 use serde::{Deserialize, Serialize};
-use sp1_core_machine::utils::indices_arr;
+use rwasm_machine::utils::indices_arr;
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{air::POSEIDON_NUM_WORDS, septic_digest::SepticDigest, Word, PROOF_MAX_NUM_PVS};
 use static_assertions::const_assert_eq;
@@ -33,7 +33,7 @@ pub const RECURSION_PUBLIC_VALUES_COL_MAP: RecursionPublicValues<usize> = make_c
 pub const NUM_PV_ELMS_TO_HASH: usize = RECURSION_PUBLIC_VALUES_COL_MAP.digest[0];
 
 // Recursive proof has more public values than core proof, so the max number constant defined in
-// sp1_core should be set to `RECURSIVE_PROOF_NUM_PV_ELTS`.
+// rwasm should be set to `RECURSIVE_PROOF_NUM_PV_ELTS`.
 const_assert_eq!(RECURSIVE_PROOF_NUM_PV_ELTS, PROOF_MAX_NUM_PVS);
 
 #[derive(AlignedBorrow, Serialize, Deserialize, Clone, Copy, Default, Debug)]

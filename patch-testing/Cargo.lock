@@ -2044,6 +2044,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "indexmap-nostd"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
+
+[[package]]
 name = "indicatif"
 version = "0.17.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3625,6 +3631,118 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7c45b9784283f1b2e7fb61b42047c2fd678ef0960d4f6f1eba131594cc369d4"
 
 [[package]]
+name = "rwasm"
+version = "0.30.0"
+source = "git+https://github.com/fluentlabs-xyz/rwasm?branch=sp1-compatible#606e0ab11bb32339164eb2c520022e97274b0f11"
+dependencies = [
+ "byteorder",
+ "downcast-rs",
+ "hashbrown 0.14.5",
+ "libm",
+ "num-traits",
+ "paste",
+ "serde",
+ "smallvec",
+ "spin",
+ "strum",
+ "strum_macros",
+ "wasmparser-nostd",
+]
+
+[[package]]
+name = "rwasm-executor"
+version = "4.2.0"
+dependencies = [
+ "bincode",
+ "bytemuck",
+ "clap",
+ "elf",
+ "enum-map",
+ "eyre",
+ "hashbrown 0.14.5",
+ "hex",
+ "itertools 0.13.0",
+ "nohash-hasher",
+ "num",
+ "p3-baby-bear",
+ "p3-field",
+ "p3-maybe-rayon",
+ "p3-util",
+ "rand",
+ "range-set-blaze",
+ "rrs-succinct",
+ "rwasm",
+ "serde",
+ "serde_json",
+ "sp1-curves",
+ "sp1-primitives",
+ "sp1-stark",
+ "strum",
+ "strum_macros",
+ "subenum",
+ "thiserror 1.0.69",
+ "tiny-keccak 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tracing",
+ "typenum",
+ "vec_map",
+]
+
+[[package]]
+name = "rwasm-machine"
+version = "4.2.0"
+dependencies = [
+ "bincode",
+ "cbindgen",
+ "cc",
+ "cfg-if",
+ "elliptic-curve",
+ "generic-array 1.1.0",
+ "glob",
+ "hashbrown 0.14.5",
+ "hex",
+ "itertools 0.13.0",
+ "k256 0.13.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num",
+ "num_cpus",
+ "p256 0.13.2",
+ "p3-air",
+ "p3-baby-bear",
+ "p3-challenger",
+ "p3-field",
+ "p3-keccak-air",
+ "p3-matrix",
+ "p3-maybe-rayon",
+ "p3-poseidon2",
+ "p3-symmetric",
+ "p3-uni-stark",
+ "p3-util",
+ "pathdiff",
+ "rand",
+ "rayon",
+ "rayon-scan",
+ "rwasm",
+ "rwasm-executor",
+ "serde",
+ "serde_json",
+ "size",
+ "snowbridge-amcl",
+ "sp1-curves",
+ "sp1-derive",
+ "sp1-primitives",
+ "sp1-stark",
+ "static_assertions",
+ "strum",
+ "strum_macros",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tracing",
+ "tracing-forest",
+ "tracing-subscriber",
+ "typenum",
+ "web-time",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4249,9 +4367,9 @@ dependencies = [
  "p3-util",
  "rand",
  "rayon",
+ "rwasm-executor",
+ "rwasm-machine",
  "serde",
- "sp1-core-executor",
- "sp1-core-machine",
  "sp1-derive",
  "sp1-primitives",
  "sp1-recursion-compiler",
@@ -4271,8 +4389,8 @@ dependencies = [
  "p3-bn254-fr",
  "p3-field",
  "p3-symmetric",
+ "rwasm-machine",
  "serde",
- "sp1-core-machine",
  "sp1-primitives",
  "sp1-recursion-core",
  "sp1-recursion-derive",
@@ -4310,8 +4428,8 @@ dependencies = [
  "p3-util",
  "pathdiff",
  "rand",
+ "rwasm-machine",
  "serde",
- "sp1-core-machine",
  "sp1-derive",
  "sp1-primitives",
  "sp1-stark",
@@ -5246,6 +5364,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a05d73b933a847d6cccdda8f838a22ff101ad9bf93e33684f39c1f5f0eece3d"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "wasmparser-nostd"
+version = "0.100.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5a015fe95f3504a94bb1462c717aae75253e39b9dd6c3fb1062c934535c64aa"
+dependencies = [
+ "indexmap-nostd",
 ]
 
 [[package]]

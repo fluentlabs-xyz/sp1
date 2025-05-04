@@ -10,7 +10,7 @@ use itertools::Itertools;
 use p3_baby_bear::BabyBear;
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::dense::RowMajorMatrix;
-use sp1_core_machine::utils::next_power_of_two;
+use rwasm_machine::utils::next_power_of_two;
 use sp1_stark::air::MachineAir;
 use std::{borrow::BorrowMut, mem::size_of};
 use tracing::instrument;

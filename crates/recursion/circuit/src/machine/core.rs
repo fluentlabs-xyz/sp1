@@ -12,9 +12,9 @@ use p3_field::AbstractField;
 use p3_matrix::dense::RowMajorMatrix;
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use sp1_core_machine::{
+use rwasm_machine::{
     cpu::MAX_CPU_LOG_DEGREE,
-    riscv::{RiscvAir, MAX_LOG_NUMBER_OF_SHARDS},
+    rwasm::{RwasmAir, MAX_LOG_NUMBER_OF_SHARDS},
 };
 
 use sp1_recursion_core::air::PV_DIGEST_NUM_WORDS;
@@ -120,7 +120,7 @@ where
     /// as the one witnessed here.
     pub fn verify(
         builder: &mut Builder<C>,
-        machine: &StarkMachine<SC, RiscvAir<SC::Val>>,
+        machine: &StarkMachine<SC,RwasmAir<SC::Val>>,
         input: SP1RecursionWitnessVariable<C, SC>,
     ) {
         // Read input.
@@ -593,7 +593,7 @@ impl<SC: BabyBearFriConfig> SP1RecursionWitnessValues<SC> {
 
 impl SP1RecursionWitnessValues<BabyBearPoseidon2> {
     pub fn dummy(
-        machine: &StarkMachine<BabyBearPoseidon2, RiscvAir<BabyBear>>,
+        machine: &StarkMachine<BabyBearPoseidon2, RwasmAir<BabyBear>>,
         shape: &SP1RecursionShape,
     ) -> Self {
         let (mut vks, shard_proofs): (Vec<_>, Vec<_>) =
