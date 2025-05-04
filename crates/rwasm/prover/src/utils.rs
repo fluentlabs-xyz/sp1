@@ -99,14 +99,14 @@ impl SP1CoreProofData {
     }
 }
 
-/// Get the number of cycles for a given program.
-pub fn get_cycles(elf: &[u8], stdin: &SP1Stdin) -> u64 {
-    let program = Program::from(elf).unwrap();
-    let mut runtime = Executor::new(program, SP1CoreOpts::default());
-    runtime.write_vecs(&stdin.buffer);
-    runtime.run_fast().unwrap();
-    runtime.state.global_clk
-}
+// /// Get the number of cycles for a given program.
+// pub fn get_cycles(elf: &[u8], stdin: &SP1Stdin) -> u64 {
+//     let program = Program::from(elf).unwrap();
+//     let mut runtime = Executor::new(program, SP1CoreOpts::default());
+//     runtime.write_vecs(&stdin.buffer);
+//     runtime.run_fast().unwrap();
+//     runtime.state.global_clk
+// }
 
 /// Load an ELF file from a given path.
 pub fn load_elf(path: &str) -> Result<Vec<u8>, std::io::Error> {

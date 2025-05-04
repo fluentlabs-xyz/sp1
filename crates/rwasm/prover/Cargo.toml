@@ -56,41 +56,41 @@ hex = "0.4"
 
 
 
-[[bin]]
-name = "rwasm_build_plonk_bn254"
-path = "scripts/build_plonk_bn254.rs"
+# [[bin]]
+# name = "rwasm_build_plonk_bn254"
+# path = "scripts/build_plonk_bn254.rs"
 
-[[bin]]
-name = "rwasm_build_groth16_bn254"
-path = "scripts/build_groth16_bn254.rs"
+# [[bin]]
+# name = "rwasm_build_groth16_bn254"
+# path = "scripts/build_groth16_bn254.rs"
 
-[[bin]]
-name = "rwasm_build_recursion_vks"
-path = "scripts/build_recursion_vks.rs"
+# [[bin]]
+# name = "rwasm_build_recursion_vks"
+# path = "scripts/build_recursion_vks.rs"
 
-[[bin]]
-name = "rwasm_find_maximal_shapes"
-path = "scripts/find_maximal_shapes.rs"
+# [[bin]]
+# name = "rwasm_find_maximal_shapes"
+# path = "scripts/find_maximal_shapes.rs"
 
-[[bin]]
-name = "rwasm_find_small_shapes"
-path = "scripts/find_small_shapes.rs"
+# [[bin]]
+# name = "rwasm_find_small_shapes"
+# path = "scripts/find_small_shapes.rs"
 
-[[bin]]
-name = "rwasm_find_oom_shapes"
-path = "scripts/find_oom_shapes.rs"
+# [[bin]]
+# name = "rwasm_find_oom_shapes"
+# path = "scripts/find_oom_shapes.rs"
 
-[[bin]]
-name = "rwasm_find_recursion_shapes"
-path = "scripts/find_recursion_shapes.rs"
+# [[bin]]
+# name = "rwasm_find_recursion_shapes"
+# path = "scripts/find_recursion_shapes.rs"
 
-[[bin]]
-name = "rwasm_test_shape_fixing"
-path = "scripts/test_shape_fixing.rs"
+# [[bin]]
+# name = "rwasm_test_shape_fixing"
+# path = "scripts/test_shape_fixing.rs"
 
-[[bin]]
-name = "rwasm_post_trusted_setup"
-path = "scripts/post_trusted_setup.rs"
+# [[bin]]
+# name = "rwasm_post_trusted_setup"
+# path = "scripts/post_trusted_setup.rs"
 
 [features]
 native-gnark = ["sp1-recursion-gnark-ffi/native"]

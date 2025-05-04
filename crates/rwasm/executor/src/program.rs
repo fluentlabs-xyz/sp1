@@ -87,22 +87,10 @@ impl Program {
     /// # Errors
     ///
     /// This function may return an error if the ELF is not valid.
-    // pub fn from(input: &[u8]) -> eyre::Result<Self> {
-    //     // Decode the bytes as an ELF.
-    //     let elf = Elf::decode(input)?;
-
-    //     // Transpile the RV32IM instructions.
-    //     let instructions = transpile(&elf.instructions);
-
-    //     // Return the program.
-    //     Ok(Program {
-    //         instructions,
-    //         pc_start: elf.pc_start,
-    //         pc_base: elf.pc_base,
-    //         memory_image: elf.memory_image,
-    //         preprocessed_shape: None,
-    //     })
-    // }
+    pub fn from(input: &[u8]) -> eyre::Result<Self> {
+        // Decode the bytes as an ELF.
+        unimplemented!();// TODO: we should implement this for .wasm or .wat files.
+    }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM from a file path.
     ///
