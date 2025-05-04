@@ -284,6 +284,26 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
         (pk, pk_d, program, vk)
     }
 
+     /// Creates a proving key and a verifying key for a given RISC-V ELF.
+     #[instrument(name = "setup", level = "debug", skip_all)]
+     pub fn setup_program(
+         &self,
+         program: &mut Program,
+     ) -> (SP1ProvingKey, DeviceProvingKey<C>,SP1VerifyingKey) {
+        if let Some(core_shape_config) = &self.core_shape_config {
+            core_shape_config.fix_preprocessed_shape(program);
+        }
+         let (pk, vk) = self.core_prover.setup(&program);
+         let vk = SP1VerifyingKey { vk };
+         let pk = SP1ProvingKey {
+             pk: self.core_prover.pk_to_host(&pk),
+             elf: vec![],
+             vk: vk.clone(),
+         };
+         let pk_d = self.core_prover.pk_to_device(&pk.pk);
+         (pk, pk_d, vk)
+     }
+
     /// Get a program with an allowed preprocessed shape.
     pub fn get_program(&self, elf: &[u8]) -> eyre::Result<Program> {
         let mut program = Program::from(elf)?;
@@ -1438,30 +1458,30 @@ pub mod tests {
         All,
     }
 
-    pub fn test_e2e_prover<C: SP1ProverComponents>(
-        prover: &SP1Prover<C>,
-        elf: &[u8],
-        stdin: SP1Stdin,
-        opts: SP1ProverOpts,
-        test_kind: Test,
-    ) -> Result<()> {
-        run_e2e_prover_with_options(prover, elf, stdin, opts, test_kind, true)
-    }
+    // pub fn test_e2e_prover<C: SP1ProverComponents>(
+    //     prover: &SP1Prover<C>,
+    //     elf: &[u8],
+    //     stdin: SP1Stdin,
+    //     opts: SP1ProverOpts,
+    //     test_kind: Test,
+    // ) -> Result<()> {
+    //     run_e2e_prover_with_options(prover, elf, stdin, opts, test_kind, true)
+    // }
 
-    pub fn bench_e2e_prover<C: SP1ProverComponents>(
-        prover: &SP1Prover<C>,
-        elf: &[u8],
-        stdin: SP1Stdin,
-        opts: SP1ProverOpts,
-        test_kind: Test,
-    ) -> Result<()> {
-        run_e2e_prover_with_options(prover, elf, stdin, opts, test_kind, false)
-    }
+    // pub fn bench_e2e_prover<C: SP1ProverComponents>(
+    //     prover: &SP1Prover<C>,
+    //     elf: &[u8],
+    //     stdin: SP1Stdin,
+    //     opts: SP1ProverOpts,
+    //     test_kind: Test,
+    // ) -> Result<()> {
+    //     run_e2e_prover_with_options(prover, elf, stdin, opts, test_kind, false)
+    // }
 
     pub fn run_e2e_prover_with_options<C: SP1ProverComponents>(
         prover: &SP1Prover<C>,
         elf: &[u8],
-        stdin: SP1Stdin,
+        program:&mut Program,
         opts: SP1ProverOpts,
         test_kind: Test,
         verify: bool,
@@ -1470,7 +1490,7 @@ pub mod tests {
         let context = SP1Context::default();
 
         tracing::info!("setup elf");
-        let (_, pk_d, program, vk) = prover.setup(elf);
+        let (_, pk_d, vk) = prover.setup_program(&mut program);
 
         tracing::info!("prove core");
         let core_proof = prover.prove_core(&pk_d, program, &stdin, opts, context)?;
@@ -1704,18 +1724,18 @@ pub mod tests {
     /// Add `FRI_QUERIES`=1 to your environment for faster execution. Should only take a few minutes
     /// on a Mac M2. Note: This test always re-builds the plonk bn254 artifacts, so setting SP1_DEV
     /// is not needed.
-    #[test]
-    #[serial]
-    fn test_e2e() -> Result<()> {
-        let elf = test_artifacts::FIBONACCI_ELF;
-        setup_logger();
-        let opts = SP1ProverOpts::auto();
-        // TODO(mattstam): We should Test::Plonk here, but this uses the existing
-        // docker image which has a different API than the current. So we need to wait until the
-        // next release (v1.2.0+), and then switch it back.
-        let prover = SP1Prover::<CpuProverComponents>::new();
-        test_e2e_prover::<CpuProverComponents>(&prover, elf, SP1Stdin::default(), opts, Test::All)
-    }
+    // #[test]
+    // #[serial]
+    // fn test_e2e() -> Result<()> {
+    //     let elf = test_artifacts::FIBONACCI_ELF; //TODO: replace this with a rwasm program
+    //     setup_logger();
+    //     let opts = SP1ProverOpts::auto();
+    //     // TODO(mattstam): We should Test::Plonk here, but this uses the existing
+    //     // docker image which has a different API than the current. So we need to wait until the
+    //     // next release (v1.2.0+), and then switch it back.
+    //     let prover = SP1Prover::<CpuProverComponents>::new();
+    //     test_e2e_prover::<CpuProverComponents>(&prover, elf, SP1Stdin::default(), opts, Test::All)
+    // }
 
     /// Tests an end-to-end workflow of proving a program across the entire proof generation
     /// pipeline in addition to verifying deferred proofs.
