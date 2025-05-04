@@ -21,7 +21,11 @@ pub struct InstructionCols<T> {
 impl<F: PrimeField> InstructionCols<F> {
     pub fn populate(&mut self, instruction: &Instruction) {
         self.opcode = F::from_canonical_u32(rwasm_ins_to_code(*instruction));
-        self.aux_val= F::from_canonical_u32(instruction.aux_value().unwrap().into());
+        match instruction.aux_value(){
+            Some(value)=>{self.aux_val= F::from_canonical_u32(instruction.aux_value().unwrap().into());}
+            None=>{self.aux_val=F::zero();}
+        }
+        
     }
 }
 

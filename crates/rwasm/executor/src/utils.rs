@@ -98,6 +98,8 @@ pub fn rwasm_ins_to_code(ins: Instruction) -> u32 {
     ins.code_value() as u32
 }
 
+
+
 ///  these are psudeo rwasm instruction for chips
 pub const I32MULH_CODE: u32 = 0x0101;
 pub const I32MULHU_CODE: u32 = 0x0102;

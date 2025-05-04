@@ -14,7 +14,7 @@ use crate::{
 use clap::ValueEnum;
 use enum_map::EnumMap;
 use hashbrown::HashMap;
-use rwasm::rwasm::InstructionExtra;
+use rwasm::{core::UntypedValue, rwasm::InstructionExtra};
 use serde::{Deserialize, Serialize};
 use sp1_primitives::consts::BABYBEAR_PRIME;
 use sp1_stark::{air::PublicValues, SP1CoreOpts};
@@ -1047,7 +1047,10 @@ impl<'a> Executor<'a> {
         let event = ConstEvent {
             pc: self.state.pc,
             instruction,
-            value: instruction.aux_value().unwrap().into(),
+            value: match instruction.aux_value() {
+                Some(value)=>value.into(),
+                None=>0,
+            },
         };
         self.record.const_events.push(event);
     }
