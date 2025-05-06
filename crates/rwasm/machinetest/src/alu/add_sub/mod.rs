@@ -15,34 +15,6 @@ pub mod test {
     use rwasm_machine::utils::{uni_stark_prove, uni_stark_verify};
     use sp1_stark::baby_bear_poseidon2::BabyBearPoseidon2;
 
-
-
-    /// Lazily initialized record for use across multiple tests.
-    /// Consists of random `ADD` and `SUB` instructions.
-    static SHARD: LazyLock<ExecutionRecord> = LazyLock::new(|| {
-        let add_events = (0..1)
-            .flat_map(|i| {
-                [{
-                    let operand_1 = 1u32;
-                    let operand_2 = 2u32;
-                    let result = operand_1.wrapping_add(operand_2);
-                    AluEvent::new(i % 2, Instruction::I32Add, result, operand_1, operand_2,rwasm_ins_to_code(Instruction::I32Add))
-                }]
-            })
-            .collect::<Vec<_>>();
-        let _sub_events = (0..255)
-            .flat_map(|i| {
-                [{
-                    let operand_1 = thread_rng().gen_range(0..u32::MAX);
-                    let operand_2 = thread_rng().gen_range(0..u32::MAX);
-                    let result = operand_1.wrapping_add(operand_2);
-                    AluEvent::new(i % 2, Instruction::I32Sub, result, operand_1, operand_2,rwasm_ins_to_code(Instruction::I32Sub))
-                }]
-            })
-            .collect::<Vec<_>>();
-        ExecutionRecord { add_events, ..Default::default() }
-    });
-
     #[test]
     fn generate_trace() {
         let mut shard = ExecutionRecord::default();
@@ -53,6 +25,7 @@ pub mod test {
         println!("{:?}", trace.values)
     }
 
+    
     #[test]
     fn prove_babybear() {
         let config = BabyBearPoseidon2::new();
@@ -92,7 +65,7 @@ pub mod test {
         let proof = uni_stark_prove::<BabyBearPoseidon2, _>(&config, &chip, &mut challenger, trace);
 
         let mut challenger = config.challenger();
-        uni_stark_verify(&config, &chip, &mut challenger, &proof).unwrap();
+        let result = uni_stark_verify(&config, &chip, &mut challenger, &proof).unwrap();
     }
 
 }
