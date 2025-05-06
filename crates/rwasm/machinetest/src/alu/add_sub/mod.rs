@@ -66,6 +66,7 @@ pub mod test {
 
         let mut challenger = config.challenger();
         let result = uni_stark_verify(&config, &chip, &mut challenger, &proof).unwrap();
+        println!("{:?}", result);
     }
 
 }
