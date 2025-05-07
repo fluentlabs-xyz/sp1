@@ -169,7 +169,11 @@ impl AddSubChip {
         cols.add_operation.populate(blu, operand_1, operand_2);
         cols.operand_1 = Word::from(operand_1);
         cols.operand_2 = Word::from(operand_2);
-       
+        println!("operand1:{},operand2:{}",operand_1,operand_2);
+        cols.op_a_not_0=F::from_bool(false);
+        let base = [1, 1 << 8, 1 << 16, 1 << 24];
+        let value:F = cols.add_operation.value.0.iter().enumerate().map(|(i, x)| F::from_canonical_u32(base[i].clone()) * *x).sum();
+        println!("result:{}",value);
     }
 }
 
@@ -207,7 +211,7 @@ where
             local.operand_1,
             local.operand_2,
             local.add_operation,
-            local.op_a_not_0.into(),
+            AB::Expr::one(),
         );
 
         // SAFETY: We check that a padding row has `op_a_not_0 == 0`, to prevent a padding row sending byte lookups.

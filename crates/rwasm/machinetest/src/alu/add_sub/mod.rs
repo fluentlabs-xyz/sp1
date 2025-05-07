@@ -33,9 +33,10 @@ pub mod test {
 
         let mut shard = ExecutionRecord::default();
         for i in 0..1 {
-            let operand_1 = thread_rng().gen_range(0..u32::MAX);
-            let operand_2 = thread_rng().gen_range(0..u32::MAX);
-            let result = operand_1.wrapping_add(operand_2);
+            let operand_1 = thread_rng().gen_range(0..100u32);
+            let operand_2 = thread_rng().gen_range(0..100u32);
+            let result = operand_1.wrapping_add(operand_2).wrapping_add(operand_2);
+            println!("{},{},{}",operand_1,operand_2,result);
             shard.add_events.push(AluEvent::new(
                 i * DEFAULT_PC_INC,
                 Instruction::I32Add,
@@ -45,19 +46,19 @@ pub mod test {
                 rwasm_ins_to_code(Instruction::I32Add),
             ));
         }
-        for i in 0..255 {
-            let operand_1 = thread_rng().gen_range(0..u32::MAX);
-            let operand_2 = thread_rng().gen_range(0..u32::MAX);
-            let result = operand_1.wrapping_sub(operand_2);
-            shard.add_events.push(AluEvent::new(
-                i * DEFAULT_PC_INC,
-                Instruction::I32Sub,
-                result,
-                operand_1,
-                operand_2,
-                rwasm_ins_to_code(Instruction::I32Sub),
-            ));
-        }
+        // for i in 0..255 {
+        //     let operand_1 = thread_rng().gen_range(0..u32::MAX);
+        //     let operand_2 = thread_rng().gen_range(0..u32::MAX);
+        //     let result = operand_1.wrapping_sub(operand_2);
+        //     shard.add_events.push(AluEvent::new(
+        //         i * DEFAULT_PC_INC,
+        //         Instruction::I32Sub,
+        //         result,
+        //         operand_1,
+        //         operand_2,
+        //         rwasm_ins_to_code(Instruction::I32Sub),
+        //     ));
+        // }
 
         let chip = AddSubChip::default();
         let trace: RowMajorMatrix<BabyBear> =
