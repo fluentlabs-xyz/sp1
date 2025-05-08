@@ -82,7 +82,7 @@ where
             local.is_memory,
             local.is_syscall,
             local.is_halt,
-            local.is_real,
+            local.instruction.is_alu+local.instruction.is_branching,
         );
 
         // Check that the shard and clk is updated correctly.
@@ -90,6 +90,9 @@ where
 
         // Check that the pc is updated correctly.
         self.eval_pc(builder, local, next, public_values);
+
+        //Check memory for instruction operation
+        self.eval_op_memory(builder, local, clk);
 
         // Check that the is_real flag is correct.
         self.eval_is_real(builder, local, next);
@@ -205,6 +208,18 @@ impl CpuChip {
 
         // If we're halting and it's a transition, then the next.is_real should be 0.
         builder.when_transition().when(local.is_halt).assert_zero(next.is_real);
+    }
+
+
+    pub(crate) fn eval_op_memory<AB: SP1AirBuilder>(
+        &self,
+        builder: &mut AB,
+        local: &CpuCols<AB::Var>,
+        clk: AB::Expr,
+    ){
+        builder.eval_memory_access(local.shard, clk + AB::Expr::from_canonical_u8(4),
+        local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_localget+local.instruction.is_i32const);
+    
     }
 }
 

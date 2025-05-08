@@ -787,6 +787,7 @@ impl<'a> Executor<'a> {
         &mut self,
         clk: u32,
         next_pc: u32,
+        sp:u32,
         instruction: Instruction,
         syscall_code: SyscallCode,
         arg1: u32,
@@ -795,7 +796,7 @@ impl<'a> Executor<'a> {
         record: MemoryAccessRecord,
         exit_code: u32,
     ) {
-        self.emit_cpu(clk, next_pc, arg1, arg2, res, record, exit_code);
+        self.emit_cpu(clk, next_pc, sp,arg1, arg2, res, record, exit_code);
 
         if instruction.is_alu_instruction() {
             self.emit_alu_event(instruction, arg1, arg2, res);
@@ -821,6 +822,7 @@ impl<'a> Executor<'a> {
         &mut self,
         clk: u32,
         next_pc: u32,
+        sp:u32,
         a: u32,
         b: u32,
         c: u32,
@@ -831,6 +833,8 @@ impl<'a> Executor<'a> {
             clk,
             pc: self.state.pc,
             next_pc,
+            sp,
+            next_sp:self.state.sp,
             a,
             a_record: record.arg1_record,
             b,
@@ -1129,6 +1133,7 @@ impl<'a> Executor<'a> {
             self.emit_events(
                 clk,
                 next_pc,
+                sp,
                 instruction.clone(),
                 syscall,
                 arg1,

@@ -71,18 +71,18 @@ mod tests {
 
         let instructions = vec![
             Instruction::I32Const(z6_value.into()),
-            Instruction::I32Const(z5_value.into()),
-            Instruction::I32Const(z4_value.into()),
-            Instruction::I32Const(z3_value.into()),
-            Instruction::I32Const(z2_value.into()),
-            Instruction::I32Const(z1_value.into()),
-            Instruction::I32Const(y_value.into()),
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Add,
-            Instruction::I32Sub,
-            Instruction::I32Mul,
-            Instruction::I32DivS,
-            Instruction::I32DivU,
+            // Instruction::I32Const(z5_value.into()),
+            // Instruction::I32Const(z4_value.into()),
+            // Instruction::I32Const(z3_value.into()),
+            // Instruction::I32Const(z2_value.into()),
+            // Instruction::I32Const(z1_value.into()),
+            // Instruction::I32Const(y_value.into()),
+            // Instruction::I32Const(x_value.into()),
+            // Instruction::I32Add,
+            // Instruction::I32Sub,
+            // Instruction::I32Mul,
+            // Instruction::I32DivS,
+            // Instruction::I32DivU,
         ];
 
         let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);

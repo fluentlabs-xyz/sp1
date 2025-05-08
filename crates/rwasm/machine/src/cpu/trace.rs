@@ -5,13 +5,13 @@ use itertools::Itertools;
 use p3_field::{PrimeField, PrimeField32};
 use p3_matrix::dense::RowMajorMatrix;
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
+use rwasm::engine::bytecode::Instruction;
 use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, CpuEvent, MemoryRecordEnum},
     syscalls::SyscallCode,
     ByteOpcode::{self, U16Range},
-    ExecutionRecord,  Program,
+    ExecutionRecord, Program,
 };
-use rwasm::engine::bytecode::Instruction;
 
 use sp1_stark::air::MachineAir;
 use tracing::instrument;
@@ -127,6 +127,8 @@ impl CpuChip {
         // Populate basic fields.
         cols.pc = F::from_canonical_u32(event.pc);
         cols.next_pc = F::from_canonical_u32(event.next_pc);
+        cols.sp =  F::from_canonical_u32(event.sp);
+        cols.next_sp=F::from_canonical_u32(event.next_sp);
         cols.instruction.populate(instruction);
         cols.op_a_immutable = F::from_bool(
             instruction.is_memory_store_instruction() || instruction.is_branch_instruction(),
@@ -137,7 +139,7 @@ impl CpuChip {
         cols.is_syscall = F::from_bool(instruction.is_ecall_instruction());
         *cols.op_a_access.value_mut() = event.a.into();
         *cols.op_b_access.value_mut() = event.b.into();
-        *cols.op_c_access.value_mut() = event.c.into();
+        *cols.op_res_access.value_mut() = event.c.into();
 
         cols.shard_to_send = if instruction.is_memory_load_instruction()
             || instruction.is_memory_store_instruction()
@@ -171,7 +173,7 @@ impl CpuChip {
             cols.op_b_access.populate(record, blu_events);
         }
         if let Some(MemoryRecordEnum::Read(record)) = event.c_record {
-            cols.op_c_access.populate(record, blu_events);
+            cols.op_res_access.populate(record, blu_events);
         }
 
         if instruction.is_ecall_instruction() {

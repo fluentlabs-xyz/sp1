@@ -77,7 +77,7 @@ pub fn debug_interactions<SC: StarkGenericConfig, A: MachineAir<Val<SC>>>(
 
     let sends = chip.sends().iter().filter(|s| s.scope == scope).collect::<Vec<_>>();
     let receives = chip.receives().iter().filter(|r| r.scope == scope).collect::<Vec<_>>();
-
+    
     let nb_send_interactions = sends.len();
     for row in 0..height {
         for (m, interaction) in sends.iter().chain(receives.iter()).enumerate() {
@@ -106,6 +106,7 @@ pub fn debug_interactions<SC: StarkGenericConfig, A: MachineAir<Val<SC>>>(
                     &interaction.kind.to_string(),
                     vec_to_string(values)
                 );
+               
                 key_to_vec_data.entry(key.clone()).or_insert_with(Vec::new).push(InteractionData {
                     chip_name: chip.name(),
                     kind: interaction.kind,

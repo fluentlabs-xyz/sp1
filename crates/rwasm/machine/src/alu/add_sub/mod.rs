@@ -132,7 +132,7 @@ impl<F: PrimeField32> MachineAir<F> for AddSubChip {
                 blu
             })
             .collect::<Vec<_>>();
-
+        
         output.add_byte_lookup_events_from_maps(blu_batches.iter().collect_vec());
     }
 
@@ -170,7 +170,7 @@ impl AddSubChip {
         cols.operand_1 = Word::from(operand_1);
         cols.operand_2 = Word::from(operand_2);
         println!("operand1:{},operand2:{}",operand_1,operand_2);
-        cols.op_a_not_0=F::from_bool(false);
+        cols.op_a_not_0=F::from_bool(true);
         let base = [1, 1 << 8, 1 << 16, 1 << 24];
         let value:F = cols.add_operation.value.0.iter().enumerate().map(|(i, x)| F::from_canonical_u32(base[i].clone()) * *x).sum();
         println!("result:{}",value);
@@ -325,7 +325,7 @@ mod tests {
     #[test]
     fn generate_trace() {
         let mut shard = ExecutionRecord::default();
-        shard.add_events = vec![AluEvent::new(0, Opcode::ADD, 14, 8, 6, false)];
+        shard.add_events = vec![AluEvent::new(0, Opcode::ADD, 14, 8, 6,)];
         let chip = AddSubChip::default();
         let trace: RowMajorMatrix<BabyBear> =
             chip.generate_trace(&shard, &mut ExecutionRecord::default());

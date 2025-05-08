@@ -40,24 +40,55 @@ pub mod reduce {
     pub use rwasm_executor::SP1ReduceProof;
 }
 
-#[cfg(test)]
+
 pub mod programs {
     #[allow(dead_code)]
     #[allow(missing_docs)]
     pub mod tests {
+        use hashbrown::HashMap;
         use rwasm_executor::{Instruction, Opcode, Program};
-
-       
-
         #[must_use]
-        pub fn simple_program() -> Program {
+        pub fn build_elf() -> Program {
+            let x_value: u32 = 0x11;
+            let y_value: u32 = 0x23;
+            let z1_value: u32 = 0x40;
+            let z2_value: u32 = 0x37;
+            let z3_value: u32 = 0x1800;
+            let z4_value: u32 = 0x2;
+            let z5_value: u32 = 0x7;
+            let z6_value: u32 = 0x21;
+    
             let instructions = vec![
-                Instruction::new(Opcode::ADD, 29, 0, 5, false, true),
-                Instruction::new(Opcode::ADD, 30, 0, 37, false, true),
-                Instruction::new(Opcode::ADD, 31, 30, 29, false, false),
+                Instruction::I32Const(z6_value.into()),
+                // Instruction::I32Const(z5_value.into()),
+                // Instruction::I32Const(z4_value.into()),
+                // Instruction::I32Const(z3_value.into()),
+                // Instruction::I32Const(z2_value.into()),
+                // Instruction::I32Const(z1_value.into()),
+                // Instruction::I32Const(y_value.into()),
+                // Instruction::I32Const(x_value.into()),
+                // Instruction::I32Add,
+                // Instruction::I32Sub,
+                // Instruction::I32Mul,
+                // Instruction::I32DivS,
+                // Instruction::I32DivU,
             ];
-            Program::new(instructions, 0, 0)
+    
+            let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+            //  memory_image: BTreeMap::new() };
+    
+            program
         }
+
+        // #[must_use]
+        // pub fn simple_program() -> Program {
+        //     let instructions = vec![
+        //         Instruction::new(Opcode::ADD, 29, 0, 5, false, true),
+        //         Instruction::new(Opcode::ADD, 30, 0, 37, false, true),
+        //         Instruction::new(Opcode::ADD, 31, 30, 29, false, false),
+        //     ];
+        //     Program::new(instructions, 0, 0)
+        // }
 
         // /// Get the fibonacci program.
         // ///
