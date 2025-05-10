@@ -15,6 +15,7 @@
 #![warn(unused_extern_crates)]
 mod alu;
 mod memory;
+mod cpu;
 
 
 

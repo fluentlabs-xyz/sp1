@@ -10,7 +10,8 @@ use p3_field::{AbstractField, Field, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::*;
 use rwasm_executor::{
-    events::{AluEvent, ByteLookupEvent, ByteRecord}, rwasm_ins_to_code, ByteOpcode, ExecutionRecord, Instruction, Program, DEFAULT_PC_INC
+    events::{AluEvent, ByteLookupEvent, ByteRecord},
+    rwasm_ins_to_code, ByteOpcode, ExecutionRecord, Instruction, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
@@ -207,7 +208,7 @@ impl LtChip {
 
         let mut b_comp = b;
         let mut c_comp = c;
-        if event.code== rwasm_ins_to_code(Instruction::I32LtS) {
+        if event.code == rwasm_ins_to_code(Instruction::I32LtS) {
             b_comp[3] = masked_b;
             c_comp[3] = masked_c;
         }
@@ -231,14 +232,14 @@ impl LtChip {
 
         cols.msb_b = F::from_canonical_u8((b[3] >> 7) & 1);
         cols.msb_c = F::from_canonical_u8((c[3] >> 7) & 1);
-        cols.is_sign_eq = if event.code== rwasm_ins_to_code(Instruction::I32LtS) {
+        cols.is_sign_eq = if event.code == rwasm_ins_to_code(Instruction::I32LtS) {
             F::from_bool((b[3] >> 7) == (c[3] >> 7))
         } else {
             F::one()
         };
 
-        cols.is_slt = F::from_bool(event.code== rwasm_ins_to_code(Instruction::I32LtS));
-        cols.is_sltu = F::from_bool(event.code== rwasm_ins_to_code(Instruction::I32LtU));
+        cols.is_slt = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32LtS));
+        cols.is_sltu = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32LtU));
 
         cols.bit_b = cols.msb_b * cols.is_slt;
         cols.bit_c = cols.msb_c * cols.is_slt;
@@ -554,7 +555,7 @@ mod tests {
             // 1 == 5 < LARGE
             AluEvent::new(0, Opcode::SLTU, 1, 5, LARGE),
             // 0 == 0 < 0
-            AluEvent::new(0, Opcode::SLTU, 0, 0, 0,),
+            AluEvent::new(0, Opcode::SLTU, 0, 0, 0),
             // 0 == LARGE < LARGE
             AluEvent::new(0, Opcode::SLTU, 0, LARGE, LARGE),
         ];
@@ -596,9 +597,9 @@ mod tests {
                     RowMajorMatrix<Val<BabyBearPoseidon2>>,
                 )> {
                     let mut malicious_record = record.clone();
-                    malicious_record.cpu_events[0].a = op_a as u32;
+                    malicious_record.cpu_events[0].res = op_a as u32;
                     if let Some(MemoryRecordEnum::Write(mut write_record)) =
-                        malicious_record.cpu_events[0].a_record
+                        malicious_record.cpu_events[0].res_record
                     {
                         write_record.value = op_a as u32;
                     }

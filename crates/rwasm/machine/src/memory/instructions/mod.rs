@@ -160,7 +160,7 @@ mod tests {
                       -> Vec<(String, RowMajorMatrix<Val<BabyBearPoseidon2>>)> {
                     // Create a malicious record where the incorrect value is loaded from memory.
                     let mut malicious_record = record.clone();
-                    malicious_record.cpu_events[3].a = test_case.incorrect_value;
+                    malicious_record.cpu_events[3].res = test_case.incorrect_value;
                     malicious_record.memory_instr_events[1].a = test_case.incorrect_value;
                     prover.generate_traces(&malicious_record)
                 };

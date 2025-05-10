@@ -1,5 +1,3 @@
-
-
 use core::borrow::Borrow;
 use p3_air::{Air, AirBuilder, AirBuilderWithPublicValues, BaseAir};
 use p3_field::AbstractField;
@@ -45,7 +43,6 @@ where
         // The `pc` and `instruction` is taken from the `ProgramChip`, where these are preprocessed.
         builder.send_program(local.pc, local.instruction, local.is_real);
 
-
         // Assert the shard and clk to send.  Only the memory and syscall instructions need the
         // actual shard and clk values for memory access evals.
         // SAFETY: The usage of `builder.if_else` requires `is_memory + is_syscall` to be boolean.
@@ -82,7 +79,7 @@ where
             local.is_memory,
             local.is_syscall,
             local.is_halt,
-            local.instruction.is_alu+local.instruction.is_branching,
+            local.instruction.is_alu + local.instruction.is_branching,
         );
 
         // Check that the shard and clk is updated correctly.
@@ -210,16 +207,19 @@ impl CpuChip {
         builder.when_transition().when(local.is_halt).assert_zero(next.is_real);
     }
 
-
     pub(crate) fn eval_op_memory<AB: SP1AirBuilder>(
         &self,
         builder: &mut AB,
         local: &CpuCols<AB::Var>,
         clk: AB::Expr,
-    ){
-        builder.eval_memory_access(local.shard, clk + AB::Expr::from_canonical_u8(4),
-        local.sp - AB::Expr::from_canonical_u8(4), &local.op_res_access, local.instruction.is_localget+local.instruction.is_i32const);
-    
+    ) {
+        builder.eval_memory_access(
+            local.shard,
+            clk + AB::Expr::from_canonical_u8(4),
+            local.sp - AB::Expr::from_canonical_u8(4),
+            &local.op_res_access,
+            local.instruction.is_localget + local.instruction.is_i32const,
+        );
     }
 }
 

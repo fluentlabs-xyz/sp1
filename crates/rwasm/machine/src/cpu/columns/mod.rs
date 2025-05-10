@@ -39,7 +39,7 @@ pub struct CpuCols<T: Copy> {
     pub next_pc: T,
 
     pub sp: T,
-    pub next_sp:T,
+    pub next_sp: T,
 
     /// Columns related to the instruction.
     pub instruction: InstructionCols<T>,
@@ -61,9 +61,9 @@ pub struct CpuCols<T: Copy> {
     pub num_extra_cycles: T,
 
     /// Operand values, either from registers or immediate values.
-    pub op_a_access: MemoryReadWriteCols<T>,
-    pub op_b_access: MemoryReadCols<T>,
-    pub op_res_access: MemoryReadCols<T>,
+    pub op_res_access: MemoryReadWriteCols<T>,
+    pub op_arg1_access: MemoryReadCols<T>,
+    pub op_arg2_access: MemoryReadCols<T>,
 
     /// Selector to label whether this row is a non padded row.
     pub is_real: T,
@@ -72,17 +72,17 @@ pub struct CpuCols<T: Copy> {
 impl<T: Copy> CpuCols<T> {
     /// Gets the value of the first operand.
     pub fn op_a_val(&self) -> Word<T> {
-        *self.op_a_access.value()
+        *self.op_res_access.value()
     }
 
     /// Gets the value of the second operand.
     pub fn op_b_val(&self) -> Word<T> {
-        *self.op_b_access.value()
+        *self.op_arg1_access.value()
     }
 
     /// Gets the value of the third operand.
     pub fn op_c_val(&self) -> Word<T> {
-        *self.op_res_access.value()
+        *self.op_arg2_access.value()
     }
 }
 

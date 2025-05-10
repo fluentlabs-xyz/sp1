@@ -211,11 +211,10 @@ where
             local.operand_1,
             local.operand_2,
             local.add_operation,
-            AB::Expr::one(),
+            is_real
         );
 
-        // SAFETY: We check that a padding row has `op_a_not_0 == 0`, to prevent a padding row sending byte lookups.
-        builder.when(local.op_a_not_0).assert_one(is_real.clone());
+       
 
         // Receive the arguments.  There are separate receives for ADD and SUB.
         // For add, `add_operation.value` is `a`, `operand_1` is `b`, and `operand_2` is `c`.

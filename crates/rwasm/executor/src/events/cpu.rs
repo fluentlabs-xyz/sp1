@@ -16,21 +16,21 @@ pub struct CpuEvent {
     /// The next program counter.
     pub next_pc: u32,
     /// The stack pointer,
-    pub sp:u32,
-      /// The next stack pointer,
-    pub next_sp:u32,
+    pub sp: u32,
+    /// The next stack pointer,
+    pub next_sp: u32,
     /// The first operand.
-    pub a: u32,
+    pub res: u32,
     /// The first operand memory record.
-    pub a_record: Option<MemoryRecordEnum>,
+    pub res_record: Option<MemoryRecordEnum>,
     /// The second operand.
-    pub b: u32,
+    pub arg1: u32,
     /// The second operand memory record.
-    pub b_record: Option<MemoryRecordEnum>,
+    pub arg1_record: Option<MemoryRecordEnum>,
     /// The third operand.
-    pub c: u32,
+    pub arg2: u32,
     /// The third operand memory record.
-    pub c_record: Option<MemoryRecordEnum>,
+    pub arg2_record: Option<MemoryRecordEnum>,
     /// The exit code.
     pub exit_code: u32,
 }

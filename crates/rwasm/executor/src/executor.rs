@@ -727,6 +727,7 @@ impl<'a> Executor<'a> {
         let clk = self.state.clk;
         let shard = self.shard();
         let res_record = self.mw(sp, res, shard, clk, None);
+        println!("record: {:?}",res_record);
         self.memory_accesses.res_record = Some(res_record.into());
     }
 
@@ -787,7 +788,7 @@ impl<'a> Executor<'a> {
         &mut self,
         clk: u32,
         next_pc: u32,
-        sp:u32,
+        sp: u32,
         instruction: Instruction,
         syscall_code: SyscallCode,
         arg1: u32,
@@ -796,7 +797,7 @@ impl<'a> Executor<'a> {
         record: MemoryAccessRecord,
         exit_code: u32,
     ) {
-        self.emit_cpu(clk, next_pc, sp,arg1, arg2, res, record, exit_code);
+        self.emit_cpu(clk, next_pc, sp, arg1, arg2, res, record, exit_code);
 
         if instruction.is_alu_instruction() {
             self.emit_alu_event(instruction, arg1, arg2, res);
@@ -822,10 +823,10 @@ impl<'a> Executor<'a> {
         &mut self,
         clk: u32,
         next_pc: u32,
-        sp:u32,
-        a: u32,
-        b: u32,
-        c: u32,
+        sp: u32,
+        arg1: u32,
+        arg2: u32,
+        res: u32,
         record: MemoryAccessRecord,
         exit_code: u32,
     ) {
@@ -834,13 +835,13 @@ impl<'a> Executor<'a> {
             pc: self.state.pc,
             next_pc,
             sp,
-            next_sp:self.state.sp,
-            a,
-            a_record: record.arg1_record,
-            b,
-            b_record: record.arg2_record,
-            c,
-            c_record: record.res_record,
+            next_sp: self.state.sp,
+            res,
+            res_record: record.res_record,
+            arg1,
+            arg1_record: record.arg1_record,
+            arg2,
+            arg2_record: record.arg2_record,
             exit_code,
         });
     }
@@ -1052,8 +1053,8 @@ impl<'a> Executor<'a> {
             pc: self.state.pc,
             instruction,
             value: match instruction.aux_value() {
-                Some(value)=>value.into(),
-                None=>0,
+                Some(value) => value.into(),
+                None => 0,
             },
         };
         self.record.const_events.push(event);

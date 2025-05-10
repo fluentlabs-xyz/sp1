@@ -127,8 +127,8 @@ impl CpuChip {
         // Populate basic fields.
         cols.pc = F::from_canonical_u32(event.pc);
         cols.next_pc = F::from_canonical_u32(event.next_pc);
-        cols.sp =  F::from_canonical_u32(event.sp);
-        cols.next_sp=F::from_canonical_u32(event.next_sp);
+        cols.sp = F::from_canonical_u32(event.sp);
+        cols.next_sp = F::from_canonical_u32(event.next_sp);
         cols.instruction.populate(instruction);
         cols.op_a_immutable = F::from_bool(
             instruction.is_memory_store_instruction() || instruction.is_branch_instruction(),
@@ -137,10 +137,10 @@ impl CpuChip {
             instruction.is_memory_load_instruction() || instruction.is_memory_store_instruction(),
         );
         cols.is_syscall = F::from_bool(instruction.is_ecall_instruction());
-        *cols.op_a_access.value_mut() = event.a.into();
-        *cols.op_b_access.value_mut() = event.b.into();
-        *cols.op_res_access.value_mut() = event.c.into();
-
+        *cols.op_res_access.value_mut() = event.res.into();
+        *cols.op_arg1_access.value_mut() = event.arg1.into();
+        *cols.op_arg2_access.value_mut() = event.arg2.into();
+        
         cols.shard_to_send = if instruction.is_memory_load_instruction()
             || instruction.is_memory_store_instruction()
             || instruction.is_ecall_instruction()
@@ -159,26 +159,26 @@ impl CpuChip {
         };
 
         // Populate memory accesses for a, b, and c.
-        if let Some(record) = event.a_record {
+        if let Some(record) = event.res_record {
             if instruction.is_ecall_instruction() {
                 // For ecall instructions, pass in a dummy byte lookup vector.  This syscall instruction
                 // chip also has a op_a_access field that will be populated and that will contribute
                 // to the byte lookup dependencies.
-                cols.op_a_access.populate(record, &mut Vec::new());
+                cols.op_res_access.populate(record, &mut Vec::new());
             } else {
-                cols.op_a_access.populate(record, blu_events);
+                cols.op_res_access.populate(record, blu_events);
             }
         }
-        if let Some(MemoryRecordEnum::Read(record)) = event.b_record {
-            cols.op_b_access.populate(record, blu_events);
+        if let Some(MemoryRecordEnum::Read(record)) = event.arg1_record {
+            cols.op_arg1_access.populate(record, blu_events);
         }
-        if let Some(MemoryRecordEnum::Read(record)) = event.c_record {
-            cols.op_res_access.populate(record, blu_events);
+        if let Some(MemoryRecordEnum::Read(record)) = event.arg2_record {
+            cols.op_arg2_access.populate(record, blu_events);
         }
 
         if instruction.is_ecall_instruction() {
-            let syscall_id = cols.op_a_access.prev_value[0];
-            let num_extra_cycles = cols.op_a_access.prev_value[2];
+            let syscall_id = cols.op_res_access.prev_value[0];
+            let num_extra_cycles = cols.op_res_access.prev_value[2];
             cols.is_halt =
                 F::from_bool(syscall_id == F::from_canonical_u32(SyscallCode::HALT.syscall_id()));
             cols.num_extra_cycles = num_extra_cycles;
@@ -186,7 +186,7 @@ impl CpuChip {
 
         // Populate range checks for a.
         let a_bytes = cols
-            .op_a_access
+            .op_res_access
             .access
             .value
             .0
