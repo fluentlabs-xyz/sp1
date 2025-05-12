@@ -4,18 +4,14 @@
 mod tests {
     #![allow(clippy::print_stdout)]
     use p3_baby_bear::BabyBear;
-    use p3_field::AbstractField;
     use p3_matrix::dense::RowMajorMatrix;
-    use rand::{thread_rng, Rng};
-    use rwasm_executor::events::{AluEvent, MemoryRecordEnum};
-    use rwasm_executor::{rwasm_ins_to_code, ExecutionRecord, Instruction, Program};
-    use rwasm_machine::alu::{BitwiseChip, LtChip, LtCols};
-    use rwasm_machine::io::SP1Stdin;
-    use rwasm_machine::rwasm::RwasmAir;
-    use rwasm_machine::utils::{run_malicious_test, uni_stark_prove, uni_stark_verify};
+    use rwasm_executor::events::AluEvent;
+    use rwasm_executor::{rwasm_ins_to_code, ExecutionRecord, Instruction};
+    use rwasm_machine::alu::LtChip;
+    use rwasm_machine::utils::{uni_stark_prove, uni_stark_verify};
     use sp1_stark::air::MachineAir;
-    use sp1_stark::baby_bear_poseidon2::{BabyBearPoseidon2, Val};
-    use sp1_stark::{chip_name, CpuProver, MachineProver, StarkGenericConfig};
+    use sp1_stark::baby_bear_poseidon2::BabyBearPoseidon2;
+    use sp1_stark::{MachineProver, StarkGenericConfig};
 
 
     #[test]
