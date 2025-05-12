@@ -229,6 +229,7 @@ impl<SC: StarkGenericConfig, A: MachineAir<Val<SC>>> StarkMachine<SC, A> {
                                 y: SepticExtension::<Val<SC>>::from_base_fn(|i| last_row[i + 7]),
                             })
                         };
+                        println!("chip:{},cumulative_sum:{}",chip.name(),local_sum);
                         (trace, (global_sum, local_sum))
                     })
                     .unzip_into_vecs(&mut permutation_traces, &mut chip_cumulative_sums);

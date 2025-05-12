@@ -94,7 +94,7 @@ where
           // Always range check the word value in `op_a`, as JUMP instructions and `HINT_LEN` syscall may witness
         // an invalid word and write it to memory.
         // SAFETY: `local.is_real` is checked to be boolean in `eval_is_real`.
-        builder.slice_range_check_u8(&local.op_a_access.access.value.0, local.is_real);
+        builder.slice_range_check_u8(&local.op_res_access.access.value.0, local.is_real);
 
         // Check that the is_real flag is correct.
         self.eval_is_real(builder, local, next);
