@@ -55,7 +55,7 @@ debug-assertions = true
 [workspace.dependencies]
 # sp1
 sp1-build = { path = "crates/build", version = "4.2.0" }
-sp1-cli = { path = "crates/cli", version = "4.2.0", default-features = false }
+# sp1-cli = { path = "crates/cli", version = "4.2.0", default-features = false }
 sp1-core-machine = { path = "crates/core/machine", version = "4.2.0" }
 sp1-core-executor = { path = "crates/core/executor", version = "4.2.0" }
 sp1-curves = { path = "crates/curves", version = "4.2.0" }
