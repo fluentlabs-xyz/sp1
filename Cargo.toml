@@ -12,7 +12,7 @@ include = ["SP1_VERSION"]
 [workspace]
 members = [
   "crates/build",
-  "crates/cli",
+
   "crates/core/executor",
   "crates/core/machine",
   "crates/curves",
