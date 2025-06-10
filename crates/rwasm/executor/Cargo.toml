@@ -49,8 +49,8 @@ range-set-blaze = "0.1.16"
 
 #rwasm
 
-rwasm = {git = "https://github.com/fluentlabs-xyz/rwasm", branch = "sp1-compatible"}
-
+rwasm = { path = "/Users/wangyao/github/Fluent/rwasm",features =[ "std","tracing"] }
+wat = "1.0.80"
 # profiling
 goblin = { version = "0.9", optional = true }
 rustc-demangle = { version = "0.1.18", optional = true }

@@ -5,15 +5,14 @@ use std::{
 
 use enum_map::{EnumArray, EnumMap};
 use hashbrown::HashMap;
-use rwasm::engine::{bytecode::Instruction, Instr};
 
-use crate::{events::generate_execution_report, syscalls::SyscallCode, Opcode};
+use crate::{events::generate_execution_report, syscalls::SyscallCode};
 
 /// An execution report.
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionReport {
     /// The opcode counts.
-    pub opcode_counts: Box<EnumMap<Opcode, u64>>,
+    pub opcode_counts: Box<EnumMap<u8, u64>>,
     /// The syscall counts.
     pub syscall_counts: Box<EnumMap<SyscallCode, u64>>,
     /// The cycle tracker counts.
@@ -27,9 +26,9 @@ pub struct ExecutionReport {
 }
 
 impl ExecutionReport {
-    /// Compute the total number of instructions run during the execution.
+    /// Compute the total number of opcodes run during the execution.
     #[must_use]
-    pub fn total_instruction_count(&self) -> u64 {
+    pub fn total_opcode_count(&self) -> u64 {
         self.opcode_counts.values().sum()
     }
 
@@ -73,12 +72,12 @@ impl Display for ExecutionReport {
         if let Some(gas) = self.gas {
             writeln!(f, "gas: {gas}")?;
         }
-        writeln!(f, "opcode counts ({} total instructions):", self.total_instruction_count())?;
+        writeln!(f, "opcode counts ({} total opcodes):", self.total_opcode_count())?;
         for line in generate_execution_report(self.opcode_counts.as_ref()) {
             writeln!(f, "  {line}")?;
         }
 
-        writeln!(f, "syscall counts ({} total syscall instructions):", self.total_syscall_count())?;
+        writeln!(f, "syscall counts ({} total syscall opcodes):", self.total_syscall_count())?;
         for line in generate_execution_report(self.syscall_counts.as_ref()) {
             writeln!(f, "  {line}")?;
         }

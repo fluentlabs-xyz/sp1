@@ -2,16 +2,17 @@
 
 use std::{fs::File, io::Read, str::FromStr};
 
-use crate::{
-    RwasmAirId,
-   
-};
-use rwasm::engine::bytecode::Instruction;
+use crate::disassembler::{build_rwams_bin, ContextPlaceHolder};
+use crate::RwasmAirId;
+
 use hashbrown::HashMap;
+use itertools::Itertools;
 use p3_field::Field;
 use p3_field::{AbstractExtensionField, PrimeField32};
 use p3_maybe_rayon::prelude::IntoParallelIterator;
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator};
+
+use rwasm::RwasmModule;
 use serde::{Deserialize, Serialize};
 use sp1_stark::septic_curve::{SepticCurve, SepticCurveComplete};
 use sp1_stark::septic_digest::SepticDigest;
@@ -24,63 +25,20 @@ use sp1_stark::{
 
 /// A program that can be executed by the SP1 zkVM.
 ///
-/// Contains a series of instructions along with the initial memory image. It also contains the
+/// Contains a series of opcodes along with the initial memory image. It also contains the
 /// start address and base address of the program.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Program {
-    /// The instructions of the program.
-    pub instructions: Vec<Instruction>,
-    /// The start address of the program.
-    pub pc_start: u32,
-    /// The base address of the program.
-    pub pc_base: u32,
-    /// The initial memory image, useful for global constants.
-    pub memory_image: HashMap<u32, u32>,
-     /// The funcindices for calling
-     pub index_offset: Vec<u32>,
-    /// The shape for the preprocessed tables.
+    pub module: RwasmModule,
     pub preprocessed_shape: Option<Shape<RwasmAirId>>,
 }
 
 impl Program {
     /// Create a new [Program].
     #[must_use]
-    pub fn new(instructions: Vec<Instruction>, pc_start: u32, pc_base: u32) -> Self {
-        Self {
-            instructions,
-            pc_start,
-            pc_base,
-            memory_image: HashMap::new(),
-            index_offset:vec![],
-            preprocessed_shape: None,
-        }
+    pub fn new(rwasm_module: RwasmModule) -> Self {
+        Self { module: rwasm_module, preprocessed_shape: None }
     }
-
-     /// Create a new [Program].
-     #[must_use]
-     pub fn new_with_memory(instructions: Vec<Instruction>,mem:HashMap<u32,u32>, pc_start: u32, pc_base: u32) -> Self {
-         Self {
-             instructions,
-             pc_start,
-             pc_base,
-             memory_image: mem,
-             index_offset:vec![],
-             preprocessed_shape: None,
-         }
-     }
-
-      /// Create a new [Program].
-      #[must_use]
-      pub fn new_with_memory_and_func(instructions: Vec<Instruction>,mem:HashMap<u32,u32>, funcs_indices_offset:Vec<u32>, pc_start: u32, pc_base: u32) -> Self {
-          Self {
-              instructions,
-              pc_start,
-              pc_base,
-              memory_image: mem,
-              index_offset:funcs_indices_offset,
-              preprocessed_shape: None,
-          }
-      }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM.
     ///
@@ -88,8 +46,8 @@ impl Program {
     ///
     /// This function may return an error if the ELF is not valid.
     pub fn from(input: &[u8]) -> eyre::Result<Self> {
-        // Decode the bytes as an ELF.
-        unimplemented!();// TODO: we should implement this for .wasm or .wat files.
+        let module = RwasmModule::new(input);
+        Ok(Program { module, preprocessed_shape: None })
     }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM from a file path.
@@ -112,31 +70,28 @@ impl Program {
                 .unwrap_or_else(|| panic!("Chip {} not found in specified shape", air.name()))
         })
     }
-
-    #[must_use]
-    /// Fetch the instruction at the given program counter.
-    pub fn fetch(&self, pc: u32) -> &Instruction {
-        let idx = ((pc - self.pc_base) / 4) as usize;
-        &self.instructions[idx]
-    }
 }
 
 impl<F: PrimeField32> MachineProgram<F> for Program {
     fn pc_start(&self) -> F {
-        F::from_canonical_u32(self.pc_start)
+        F::from_canonical_u32(self.module.source_pc)
     }
 
     fn initial_global_cumulative_sum(&self) -> SepticDigest<F> {
         let mut digests: Vec<SepticCurveComplete<F>> = self
-            .memory_image
-            .iter()
+            .module
+            .memory_section
+            .windows(4)
+            .enumerate()
             .par_bridge()
-            .map(|(&addr, &word)| {
+            .map(|(addr, data)| {
+                let addr = addr as u32;
+                let word = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
                 let values = [
                     (InteractionKind::Memory as u32) << 16,
                     0,
-                    addr,
-                    word & 255,
+                    addr as u32,
+                    word as u32 & 255,
                     (word >> 8) & 255,
                     (word >> 16) & 255,
                     (word >> 24) & 255,

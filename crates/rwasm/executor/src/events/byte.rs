@@ -2,9 +2,10 @@ use std::hash::Hash;
 
 use hashbrown::HashMap;
 use p3_field::{Field, PrimeField32};
+use rwasm::Opcode;
 use serde::{Deserialize, Serialize};
 
-use crate::{ByteOpcode, Opcode};
+use crate::ByteOpcode;
 
 /// The number of different byte operations.
 pub const NUM_BYTE_OPS: usize = 9;
@@ -146,10 +147,10 @@ impl From<Opcode> for ByteOpcode {
     /// Convert an opcode to a byte opcode.
     fn from(value: Opcode) -> Self {
         match value {
-            Opcode::AND => Self::AND,
-            Opcode::OR => Self::OR,
-            Opcode::XOR => Self::XOR,
-            Opcode::SLL => Self::SLL,
+            Opcode::I32And => Self::AND,
+            Opcode::I32Or => Self::OR,
+            Opcode::I32Xor => Self::XOR,
+            Opcode::I32Shl => Self::SLL,
             _ => panic!("Invalid opcode for ByteChip: {value:?}"),
         }
     }

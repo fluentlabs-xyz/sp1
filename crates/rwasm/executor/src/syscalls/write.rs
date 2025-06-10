@@ -1,7 +1,7 @@
 use sp1_primitives::consts::fd::{FD_HINT, FD_PUBLIC_VALUES, LOWEST_ALLOWED_FD};
 use sp1_primitives::consts::num_to_comma_separated;
 
-use crate::{Executor,};
+use crate::Executor;
 
 use super::{Syscall, SyscallCode, SyscallContext};
 
@@ -35,7 +35,7 @@ impl Syscall for WriteSyscall {
         arg1: u32,
         arg2: u32,
     ) -> Option<u32> {
-        let a2 =todo!();
+        let a2 = todo!();
         let rt = &mut ctx.rt;
         let fd = arg1;
         let write_buf = arg2;

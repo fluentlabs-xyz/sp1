@@ -110,7 +110,7 @@ impl Profiler {
                 self.function_stack.push(name.clone());
             }
         } else {
-            // This means pc now points to an instruction that is
+            // This means pc now points to an opcode that is
             //
             // 1. not in the current function's range
             // 2. not a new function call
@@ -178,7 +178,7 @@ impl Profiler {
                 last_known_time,
                 sample.stack.into_iter(),
                 // We don't have a way to know the duration of each sample, so we just use 1us for
-                // all instructions.
+                // all opcodes.
                 std::time::Duration::from_micros(self.sample_rate),
             );
 

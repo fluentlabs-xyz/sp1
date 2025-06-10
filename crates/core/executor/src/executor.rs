@@ -75,7 +75,7 @@ impl From<bool> for DeferredProofVerification {
 pub struct Executor<'a> {
     /// The program.
     pub program: Arc<Program>,
-
+    
     /// The state of the execution.
     pub state: ExecutionState,
 

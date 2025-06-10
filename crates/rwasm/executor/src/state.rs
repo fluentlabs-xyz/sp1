@@ -9,13 +9,17 @@ use serde::{Deserialize, Serialize};
 use sp1_stark::{baby_bear_poseidon2::BabyBearPoseidon2, StarkVerifyingKey};
 
 use crate::{
-    events::MemoryRecord, memory::Memory, record::{ExecutionRecord, MemoryAccessRecord}, syscalls::SyscallCode, ExecutorMode, SP1ReduceProof
+    events::MemoryRecord,
+    memory::Memory,
+    record::{ExecutionRecord, MemoryAccessRecord},
+    syscalls::SyscallCode,
+    ExecutorMode, SP1ReduceProof,
 };
 
-// The starting address of satck 
-pub const SP_START: u32 = 0x2000+4;
+// The starting address of satck
+pub const SP_START: u32 = 0x2000 + 4;
 // The starting address of function frame
-pub const FUNFRAMEP_START :u32 = SP_START +4096;
+pub const FUNFRAMEP_START: u32 = SP_START + 4096;
 
 /// Holds data describing the current state of a program's execution.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -27,23 +31,21 @@ pub struct ExecutionState {
     /// The shard clock keeps track of how many shards have been executed.
     pub current_shard: u32,
 
-    /// The memory which instructions operate over. Values contain the memory value and last shard
+    /// The memory which opcodes operate over. Values contain the memory value and last shard
     /// + timestamp that each memory address was accessed.
     pub memory: Memory<MemoryRecord>,
 
-    /// The global clock keeps track of how many instructions have been executed through all
+    /// The global clock keeps track of how many opcodes have been executed through all
     /// shards.
     pub global_clk: u64,
 
-    /// The clock increments by 4 (possibly more in syscalls) for each instruction that has been
+    /// The clock increments by 4 (possibly more in syscalls) for each opcode that has been
     /// executed in this shard.
     pub clk: u32,
-    /// stack pointer 
+    /// stack pointer
     pub sp: u32,
     /// depth of function frame
-    pub depth:u32,
-
-
+    pub depth: u32,
 
     /// Uninitialized memory addresses that have a specific value they should be initialized with.
     /// `SyscallHintRead` uses this to write hint data into uninitialized memory.
@@ -79,8 +81,8 @@ impl ExecutionState {
             // Start at shard 1 since shard 0 is reserved for memory initialization.
             current_shard: 1,
             clk: 0,
-            sp:SP_START,
-            depth:0,
+            sp: SP_START,
+            depth: 0,
             pc: pc_start,
             memory: Memory::new_preallocated(),
             uninitialized_memory: Memory::new_preallocated(),

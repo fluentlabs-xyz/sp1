@@ -111,7 +111,7 @@ pub enum RwasmAirId {
     /// The lt chip.
     #[subenum(CoreAirId)]
     Lt = 34,
-    /// The memory instructions chip.
+    /// The memory opcodes chip.
     #[subenum(CoreAirId)]
     MemoryInstrs = 35,
     /// The auipc chip.
@@ -123,7 +123,7 @@ pub enum RwasmAirId {
     /// The jump chip.
     #[subenum(CoreAirId)]
     Jump = 38,
-    /// The syscall instructions chip.
+    /// The syscall opcodes chip.
     #[subenum(CoreAirId)]
     SyscallInstrs = 39,
     /// The memory global init chip.

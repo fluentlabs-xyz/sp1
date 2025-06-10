@@ -67,11 +67,11 @@ pub fn estimate_riscv_lde_size(
     cells += (num_events_per_air[RwasmAirId::Auipc]).next_power_of_two()
         * costs_per_air[&RwasmAirId::Auipc];
 
-    // Compute the memory instruction chip contribution.
+    // Compute the memory opcode chip contribution.
     cells += (num_events_per_air[RwasmAirId::MemoryInstrs]).next_power_of_two()
         * costs_per_air[&RwasmAirId::MemoryInstrs];
 
-    // Compute the syscall instruction chip contribution.
+    // Compute the syscall opcode chip contribution.
     cells += (num_events_per_air[RwasmAirId::SyscallInstrs]).next_power_of_two()
         * costs_per_air[&RwasmAirId::SyscallInstrs];
 

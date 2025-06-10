@@ -5,7 +5,7 @@ use crate::{
         MemoryLocalEvent, MemoryReadRecord, MemoryWriteRecord, PrecompileEvent, SyscallEvent,
     },
     record::ExecutionRecord,
-    Executor, ExecutorMode, 
+    Executor, ExecutorMode,
 };
 
 use super::SyscallCode;
@@ -107,8 +107,6 @@ impl<'a, 'b> SyscallContext<'a, 'b> {
         records
     }
 
-   
-
     /// Postprocess the syscall.  Specifically will process the syscall's memory local events.
     pub fn postprocess(&mut self) -> Vec<MemoryLocalEvent> {
         let mut syscall_local_mem_events = Vec::new();
@@ -142,8 +140,6 @@ impl<'a, 'b> SyscallContext<'a, 'b> {
 
         syscall_local_mem_events
     }
-
-  
 
     /// Get the current value of a byte, but doesn't use a memory record.
     #[must_use]

@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     events::{
-        AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, ConstEvent, CpuEvent, GlobalInteractionEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent
+        AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, ConstEvent, CpuEvent,
+        GlobalInteractionEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent,
+        MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent,
     },
     program::Program,
     syscalls::SyscallCode,
@@ -45,14 +47,14 @@ pub struct ExecutionRecord {
     pub divrem_events: Vec<AluEvent>,
     /// A trace of the SLT, SLTI, SLTU, and SLTIU events.
     pub lt_events: Vec<AluEvent>,
-    /// A trace of the memory instructions.
+    /// A trace of the memory opcodes.
     pub memory_instr_events: Vec<MemInstrEvent>,
-   
+
     /// A trace of the branch events.
     pub branch_events: Vec<BranchEvent>,
     /// A trace of the constant events.
     pub const_events: Vec<ConstEvent>,
-   
+
     /// A trace of the byte lookups that are needed.
     pub byte_lookups: HashMap<ByteLookupEvent, usize>,
     // /// A trace of the precompile events.
@@ -196,7 +198,7 @@ impl ExecutionRecord {
                     shards.push(take(last_record_ref));
 
                     // Reset the last record so its program is the correct one. (The default program
-                    // provided by `take` contains no instructions.)
+                    // provided by `take` contains no opcodes.)
                     last_record_ref.program = self.program.clone();
                 }
             }
@@ -276,11 +278,10 @@ impl MachineRecord for ExecutionRecord {
         stats.insert("shift_right_events".to_string(), self.shift_right_events.len());
         stats.insert("divrem_events".to_string(), self.divrem_events.len());
         stats.insert("lt_events".to_string(), self.lt_events.len());
-        stats.insert("memory_instructions_events".to_string(), self.memory_instr_events.len());
+        stats.insert("memory_opcodes_events".to_string(), self.memory_instr_events.len());
         stats.insert("branch_events".to_string(), self.branch_events.len());
         stats.insert("branch_events".to_string(), self.branch_events.len());
         stats.insert("const_events".to_string(), self.const_events.len());
-       
 
         for (syscall_code, events) in self.precompile_events.iter() {
             stats.insert(format!("syscall {syscall_code:?}"), events.len());
@@ -315,7 +316,7 @@ impl MachineRecord for ExecutionRecord {
         self.lt_events.append(&mut other.lt_events);
         self.memory_instr_events.append(&mut other.memory_instr_events);
         self.branch_events.append(&mut other.branch_events);
-       
+
         self.syscall_events.append(&mut other.syscall_events);
 
         self.precompile_events.append(&mut other.precompile_events);
