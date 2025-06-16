@@ -19,22 +19,3 @@ pub fn read_wat(file: &Path) -> Vec<u8> {
 
     wasm_binary
 }
-
-pub fn build_rwams_engine<'a>(
-    
-    store: &'a mut Store<()>,
-) -> ExecutionEngine<'a, ()> {
-    let config = ExecutorConfig::new();
-
-    let mut engine = ExecutionEngine::new(store);
-    engine
-}
-
-pub fn build_rwasm_executor<'a>(
-    engine: &'a mut ExecutionEngine<()>,
-    module: &'a RwasmModule,
-) -> RwasmExecutor<'a, ()> {
-    let executor =
-        RwasmExecutor::new(module, engine.value_stack(), engine.call_stack(), engine.store());
-    executor
-}

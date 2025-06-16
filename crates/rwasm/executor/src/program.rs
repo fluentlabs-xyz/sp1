@@ -1,8 +1,8 @@
 //! Programs that can be executed by the SP1 zkVM.
 
+use std::hash::Hash;
 use std::{fs::File, io::Read, str::FromStr};
 
-use crate::disassembler::{build_rwams_bin, ContextPlaceHolder};
 use crate::RwasmAirId;
 
 use hashbrown::HashMap;
@@ -12,7 +12,7 @@ use p3_field::{AbstractExtensionField, PrimeField32};
 use p3_maybe_rayon::prelude::IntoParallelIterator;
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator};
 
-use rwasm::RwasmModule;
+use rwasm::{InstructionSet, Opcode, RwasmModule};
 use serde::{Deserialize, Serialize};
 use sp1_stark::septic_curve::{SepticCurve, SepticCurveComplete};
 use sp1_stark::septic_digest::SepticDigest;
@@ -30,6 +30,7 @@ use sp1_stark::{
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Program {
     pub module: RwasmModule,
+    pub memory_image: HashMap<u32, u32>,
     pub preprocessed_shape: Option<Shape<RwasmAirId>>,
 }
 
@@ -37,7 +38,26 @@ impl Program {
     /// Create a new [Program].
     #[must_use]
     pub fn new(rwasm_module: RwasmModule) -> Self {
-        Self { module: rwasm_module, preprocessed_shape: None }
+        let memory_image = Program::memory_image(&rwasm_module);
+        Self { module: rwasm_module, memory_image, preprocessed_shape: None }
+    }
+
+    pub fn from_instrs(vec: &Vec<Opcode>) -> Self {
+        let mut code_section = InstructionSet::new();
+        for i in vec.iter() {
+            code_section.push(*i);
+        }
+
+        Self {
+            module: RwasmModule {
+                code_section,
+                data_section: vec![],
+                elem_section: vec![],
+                wasm_section: vec![],
+            },
+            memory_image: HashMap::new(),
+            preprocessed_shape: None,
+        }
     }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM.
@@ -47,7 +67,8 @@ impl Program {
     /// This function may return an error if the ELF is not valid.
     pub fn from(input: &[u8]) -> eyre::Result<Self> {
         let module = RwasmModule::new(input);
-        Ok(Program { module, preprocessed_shape: None })
+        let memory_image = Program::memory_image(&module);
+        Ok(Program { module, memory_image, preprocessed_shape: None })
     }
 
     /// Disassemble a RV32IM ELF to a program that be executed by the VM from a file path.
@@ -70,17 +91,27 @@ impl Program {
                 .unwrap_or_else(|| panic!("Chip {} not found in specified shape", air.name()))
         })
     }
+
+    pub fn memory_image(module: &RwasmModule) -> HashMap<u32, u32> {
+        let len = module.data_section.len() / 4;
+        module
+            .data_section
+            .chunks(4)
+            .zip(0..len as u32)
+            .map(|x| (u32::from_le_bytes(x.0.try_into().unwrap()), x.1))
+            .collect()
+    }
 }
 
 impl<F: PrimeField32> MachineProgram<F> for Program {
     fn pc_start(&self) -> F {
-        F::from_canonical_u32(self.module.source_pc)
+        F::from_canonical_u32(0u32)
     }
 
     fn initial_global_cumulative_sum(&self) -> SepticDigest<F> {
         let mut digests: Vec<SepticCurveComplete<F>> = self
             .module
-            .memory_section
+            .data_section
             .windows(4)
             .enumerate()
             .par_bridge()

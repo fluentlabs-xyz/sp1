@@ -192,7 +192,7 @@ pub mod programs {
                 // Instruction::new(Opcode::SH, 17, 0, 0x43627532, false, true),
                 // Instruction::new(Opcode::LW, 11, 0, 0x43627530, false, true),
             ];
-            Program::new(instructions, 0, 0)
+            Program::new(&instructions)
         }
     }
 }

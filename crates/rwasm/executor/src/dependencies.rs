@@ -115,7 +115,7 @@ pub fn emit_memory_dependencies(executor: &mut Executor, event: MemInstrEvent, _
             | Opcode::I32Store16(_)
             | Opcode::I32Store8(_)
     ) {
-        let offset = event.offset;
+        let offset = event.opcode.aux_value();
         let memory_addr = event.arg1.wrapping_add(offset);
         // Add event to ALU check to check that addr == b + c
         let add_event = AluEvent {
@@ -168,7 +168,7 @@ pub fn emit_memory_dependencies(executor: &mut Executor, event: MemInstrEvent, _
 /// Emit the dependencies for branch opcodes.
 pub fn emit_branch_dependencies(executor: &mut Executor, event: BranchEvent) {
     if event.opcode.is_branch_instruction() {
-        let offset = event.offset;
+        let offset = event.opcode.aux_value();
         let a_eq_zero = event.arg1 == 0;
 
         let a_gt_zero = event.arg1 > 0;

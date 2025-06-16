@@ -46,8 +46,7 @@ pub struct MemInstrEvent {
     pub pc: u32,
     /// The Opcode
     pub opcode: Opcode,
-    ///
-    pub offset: u32,
+
     /// The first operand value.
     pub arg1: u32,
     /// The second operand value.
@@ -74,7 +73,7 @@ impl MemInstrEvent {
 
         mem_access: MemoryRecordEnum,
     ) -> Self {
-        Self { shard, clk, pc, opcode, offset, arg1: a, arg2: b, res: c, mem_access }
+        Self { shard, clk, pc, opcode, arg1: a, arg2: b, res: c, mem_access }
     }
 }
 
@@ -90,8 +89,7 @@ pub struct BranchEvent {
     pub next_pc: u32,
     /// The Opcode
     pub opcode: Opcode,
-    /// The offset
-    pub offset: u32,
+
     /// The first operand value.
     pub res: u32,
     /// The second operand value.
@@ -104,8 +102,8 @@ impl BranchEvent {
     /// Create a new [`BranchEvent`].
     #[must_use]
     #[allow(clippy::too_many_arguments)]
-    pub fn new(pc: u32, next_pc: u32, opcode: Opcode, offset: u32, a: u32, b: u32, c: u32) -> Self {
-        Self { pc, next_pc, opcode, offset, res: a, arg1: b, arg2: c }
+    pub fn new(pc: u32, next_pc: u32, opcode: Opcode, a: u32, b: u32, c: u32) -> Self {
+        Self { pc, next_pc, opcode, res: a, arg1: b, arg2: c }
     }
 }
 

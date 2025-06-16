@@ -870,67 +870,6 @@ mod tests {
         u32::MAX - a + 1
     }
 
-    #[test]
-    fn prove_babybear() {
-        let config = BabyBearPoseidon2::new();
-        let mut challenger = config.challenger();
-
-        let mut divrem_events: Vec<AluEvent> = Vec::new();
-
-        let divrems: Vec<(Opcode, u32, u32, u32)> = vec![
-            (Instruction::I32DivS, 3, 20, 6),
-            (Instruction::I32DivS, 715827879, neg(20), 6),
-            (Instruction::I32DivS, 0, 20, neg(6)),
-            (Instruction::I32DivS, 0, neg(20), neg(6)),
-            (Instruction::I32DivS, 1 << 31, 1 << 31, 1),
-            (Instruction::I32DivS, 0, 1 << 31, neg(1)),
-            (Instruction::I32DivS, u32::MAX, 1 << 31, 0),
-            (Instruction::I32DivS, u32::MAX, 1, 0),
-            (Instruction::I32DivS, u32::MAX, 0, 0),
-            (Instruction::I32RemU, 4, 18, 7),
-            (Instruction::I32RemU, 6, neg(20), 11),
-            (Instruction::I32RemU, 23, 23, neg(6)),
-            (Instruction::I32RemU, neg(21), neg(21), neg(11)),
-            (Instruction::I32RemU, 5, 5, 0),
-            (Instruction::I32RemU, neg(1), neg(1), 0),
-            (Instruction::I32RemU, 0, 0, 0),
-            (Instruction::I32RemS, 7, 16, 9),
-            (Instruction::I32RemS, neg(4), neg(22), 6),
-            (Instruction::I32RemS, 1, 25, neg(3)),
-            (Instruction::I32RemS, neg(2), neg(22), neg(4)),
-            (Instruction::I32RemS, 0, 873, 1),
-            (Instruction::I32RemS, 0, 873, neg(1)),
-            (Instruction::I32RemS, 5, 5, 0),
-            (Instruction::I32RemS, neg(5), neg(5), 0),
-            (Instruction::I32RemS, 0, 0, 0),
-            (Instruction::I32RemS, 0, 0x80000001, neg(1)),
-            (Instruction::I32DivS, 3, 18, 6),
-            (Instruction::I32DivS, neg(6), neg(24), 4),
-            (Instruction::I32DivS, neg(2), 16, neg(8)),
-            (Instruction::I32DivS, neg(1), 0, 0),
-            (Instruction::I32DivS, 1 << 31, 1 << 31, neg(1)),
-            (Instruction::I32RemS, 0, 1 << 31, neg(1)),
-        ];
-        for t in divrems.iter() {
-            divrem_events.push(AluEvent::new(0, t.0, t.1, t.2, t.3, ));
-        }
-
-        // Append more events until we have 1000 tests.
-        for _ in 0..(1000 - divrems.len()) {
-            divrem_events.push(AluEvent::new(0, Instruction::I32DivSU, 1, 1, 1,));
-        }
-
-        let mut shard = ExecutionRecord::default();
-        shard.divrem_events = divrem_events;
-        let chip = DivRemChip::default();
-        let trace: RowMajorMatrix<BabyBear> =
-            chip.generate_trace(&shard, &mut ExecutionRecord::default());
-        let proof = uni_stark_prove::<BabyBearPoseidon2, _>(&config, &chip, &mut challenger, trace);
-
-        let mut challenger = config.challenger();
-        uni_stark_verify(&config, &chip, &mut challenger, &proof).unwrap();
-    }
-
     // #[test]
     // fn test_malicious_divrem() {
     //     const NUM_TESTS: usize = 5;

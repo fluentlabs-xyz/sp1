@@ -35,7 +35,6 @@ pub struct SP1Context<'a> {
 
     /// The IO options for the [`SP1Executor`].
     pub io_options: IoOptions<'a>,
-
 }
 
 impl Default for SP1Context<'_> {
