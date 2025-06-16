@@ -3672,7 +3672,6 @@ checksum = "f7c45b9784283f1b2e7fb61b42047c2fd678ef0960d4f6f1eba131594cc369d4"
 [[package]]
 name = "rwasm"
 version = "0.0.0"
-source = "git+https://github.com/fluentlabs-xyz/rwasm?branch=feat%2Ftracing#f8e9f3867402b36ed226857e36b20485c9954b4e"
 dependencies = [
  "bincode 2.0.1",
  "bitvec",
