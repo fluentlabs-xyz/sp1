@@ -5,6 +5,7 @@ use std::{
 };
 
 use hashbrown::HashMap;
+use rwasm::Store;
 use serde::{Deserialize, Serialize};
 use sp1_stark::{baby_bear_poseidon2::BabyBearPoseidon2, StarkVerifyingKey};
 
@@ -17,7 +18,7 @@ use crate::{
 };
 
 // The starting address of satck
-pub const SP_START: u32 = 0x2000 + 4;
+pub const SP_START: u32 = 0x1000 + 4;
 // The starting address of function frame
 pub const FUNFRAMEP_START: u32 = SP_START + 4096;
 
@@ -93,6 +94,21 @@ impl ExecutionState {
             proof_stream_ptr: 0,
             syscall_counts: HashMap::new(),
         }
+    }
+   
+    ///update memory state from rwasm Tracer
+    pub fn update_state(&mut self,store:&Store<()>){
+        let tracer = &store.tracer;   
+        self.clk=tracer.state.clk;
+        self.current_shard=tracer.state.shard;
+        self.sp = tracer.state.sp;
+        println!("update state");
+        println!("tracer:{:?}",tracer);
+        for item in tracer.memory_records.iter(){
+            println!("addr{},record:{:?},",*item.0, *item.1);
+            self.memory.insert(*item.0, *item.1);
+        }
+        
     }
 }
 

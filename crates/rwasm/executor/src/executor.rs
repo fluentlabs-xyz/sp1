@@ -415,35 +415,7 @@ impl<'a> Executor<'a> {
         runtime
     }
 
-    /// Get the current values of the registers.
-    #[allow(clippy::single_match_else)]
-    #[must_use]
-    pub fn registers(&mut self) -> [u32; 32] {
-        let mut registers = [0; 32];
-        for i in 0..32 {
-            let record = self.state.memory.registers.get(i);
-
-            // Only add the previous memory state to checkpoint map if we're in checkpoint mode,
-            // or if we're in unconstrained mode. In unconstrained mode, the mode is always
-            // Simple.
-            if self.executor_mode == ExecutorMode::Checkpoint || self.unconstrained {
-                match record {
-                    Some(record) => {
-                        self.memory_checkpoint.registers.entry(i).or_insert_with(|| Some(*record));
-                    }
-                    None => {
-                        self.memory_checkpoint.registers.entry(i).or_insert(None);
-                    }
-                }
-            }
-
-            registers[i as usize] = match record {
-                Some(record) => record.value,
-                None => 0,
-            };
-        }
-        registers
-    }
+   
 
     /// Get the current value of a word.
     ///
@@ -1127,7 +1099,7 @@ impl<'a> Executor<'a> {
 
         let res = executor.run_step();
 
-        let memory_record = self.memory_accesses;
+      
 
         // Increment the clock.
         self.state.global_clk += 1;
@@ -1446,7 +1418,7 @@ impl<'a> Executor<'a> {
                 done = true;
                 break;
             }
-
+            
             // Check if the unconstrained cycle limit was exceeded.
             if let Some(unconstrained_cycle_limit) = unconstrained_cycle_limit {
                 if self.unconstrained_state.total_unconstrained_cycles > unconstrained_cycle_limit {
@@ -1469,6 +1441,7 @@ impl<'a> Executor<'a> {
         let public_values = self.record.public_values;
 
         if done {
+            self.state.update_state(&self.store);
             self.postprocess();
 
             // Push the remaining execution record with memory initialize & finalize events.
