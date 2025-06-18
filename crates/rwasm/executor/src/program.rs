@@ -42,11 +42,10 @@ impl Program {
         Self { module: rwasm_module, memory_image, preprocessed_shape: None }
     }
 
-    pub fn from_instrs(vec: &Vec<Opcode>) -> Self {
+    #[must_use]
+    pub fn from_instrs(vec: Vec<Opcode>) -> Self {
         let mut code_section = InstructionSet::new();
-        for i in vec.iter() {
-            code_section.push(*i);
-        }
+        code_section.instr = vec;
 
         Self {
             module: RwasmModule {

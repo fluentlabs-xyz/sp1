@@ -95,20 +95,19 @@ impl ExecutionState {
             syscall_counts: HashMap::new(),
         }
     }
-   
+
     ///update memory state from rwasm Tracer
-    pub fn update_state(&mut self,store:&Store<()>){
-        let tracer = &store.tracer;   
-        self.clk=tracer.state.clk;
-        self.current_shard=tracer.state.shard;
+    pub fn update_state(&mut self, store: &Store<()>) {
+        let tracer = &store.tracer;
+        self.clk = tracer.state.clk;
+        self.current_shard = tracer.state.shard;
         self.sp = tracer.state.sp;
         println!("update state");
-        println!("tracer:{:?}",tracer);
-        for item in tracer.memory_records.iter(){
-            println!("addr{},record:{:?},",*item.0, *item.1);
+        println!("tracer:{:?}", tracer);
+        for item in tracer.memory_records.iter() {
+            println!("addr{},record:{:?},", *item.0, *item.1);
             self.memory.insert(*item.0, *item.1);
         }
-        
     }
 }
 

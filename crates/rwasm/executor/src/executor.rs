@@ -415,8 +415,6 @@ impl<'a> Executor<'a> {
         runtime
     }
 
-   
-
     /// Get the current value of a word.
     ///
     /// Assumes `addr` is a valid memory address, not a register.
@@ -1093,13 +1091,9 @@ impl<'a> Executor<'a> {
     /// Executes one cycle of the program, returning whether the program has finished.
     #[inline]
     #[allow(clippy::too_many_lines)]
-    fn execute_cycle(&mut self) -> Result<bool, ExecutionError> {
-        // Execute the opcode.
-        let mut executor = self.engine.create_executor(&mut self.store, &self.program.module);
-
-        let res = executor.run_step();
-
-      
+    fn execute_cycle(&mut self, executor: &mut RwasmExecutor<()>) -> Result<bool, ExecutionError> {
+        let res = executor.step();
+        println!("step res:{:?}", res);
 
         // Increment the clock.
         self.state.global_clk += 1;
@@ -1202,8 +1196,17 @@ impl<'a> Executor<'a> {
                 }
             }
         }
-
-        Ok(res.is_ok())
+        match res {
+            Ok(value) => Ok(value),
+            Err(err) => {
+                if err == rwasm::TrapCode::UnreachableCodeReached {
+                    Ok(true)
+                } else {
+                    println!("Err:{},", err);
+                    Err(ExecutionError::Unimplemented())
+                }
+            }
+        }
     }
 
     /// Bump the record.
@@ -1413,12 +1416,20 @@ impl<'a> Executor<'a> {
         let mut done = false;
         let mut current_shard = self.state.current_shard;
         let mut num_shards_executed = 0;
+
+        let rwasm_config = ExecutorConfig::default();
+        let mut store = Store::new(rwasm_config, ());
+        let mut engine = ExecutionEngine::new();
+        let module = self.program.module.clone();
+        let mut executor = engine.create_callable_executor(&mut store, &module);
         loop {
-            if self.execute_cycle()? {
+            let res = self.execute_cycle(&mut executor)?;
+
+            if res {
                 done = true;
                 break;
             }
-            
+
             // Check if the unconstrained cycle limit was exceeded.
             if let Some(unconstrained_cycle_limit) = unconstrained_cycle_limit {
                 if self.unconstrained_state.total_unconstrained_cycles > unconstrained_cycle_limit {
@@ -1432,6 +1443,7 @@ impl<'a> Executor<'a> {
                 num_shards_executed += 1;
                 current_shard = self.state.current_shard;
                 if num_shards_executed == self.shard_batch_size {
+                    println!("break bad");
                     break;
                 }
             }
@@ -1441,7 +1453,7 @@ impl<'a> Executor<'a> {
         let public_values = self.record.public_values;
 
         if done {
-            self.state.update_state(&self.store);
+            self.state.update_state(&store);
             self.postprocess();
 
             // Push the remaining execution record with memory initialize & finalize events.
@@ -1774,7 +1786,7 @@ mod tests {
             Opcode::I32Add, // 32 + 4 = 36
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value + y_value);
@@ -1793,7 +1805,7 @@ mod tests {
             Opcode::I32Sub, // 32 - 4 = 28
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value - y_value);
@@ -1811,7 +1823,7 @@ mod tests {
             Opcode::I32Xor, // 5 xor 37 = 32
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value ^ y_value);
@@ -1829,7 +1841,7 @@ mod tests {
             Opcode::I32Or, // 5 or 37 = 32
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value | y_value);
@@ -1847,7 +1859,7 @@ mod tests {
             Opcode::I32And, // 5 and 37 = 32
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value & y_value);
@@ -1868,7 +1880,7 @@ mod tests {
             Opcode::I32Add,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -1893,7 +1905,7 @@ mod tests {
             Opcode::I32Or, // 37 or 42  = 47
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -1917,7 +1929,7 @@ mod tests {
             Opcode::I32And, // 5 and 4  = 4
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -1938,7 +1950,7 @@ mod tests {
             Opcode::I32Mul, // 5 * 32 = 160
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value * y_value);
@@ -1956,7 +1968,7 @@ mod tests {
             Opcode::I32Eq, // check whether x_value is equal y_value
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -1977,7 +1989,7 @@ mod tests {
             Opcode::I32Ne,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
@@ -1993,7 +2005,7 @@ mod tests {
             Opcode::I32Eqz, // check whether x_value is zero
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 0);
@@ -2013,7 +2025,7 @@ mod tests {
             Opcode::I32LtS, // check whether signed x_value is less than signed y_value
             Opcode::I32LtU, // check whether unsigned x_value is less than unsigned y_value
         ];
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2036,7 +2048,7 @@ mod tests {
             Opcode::I32GtU,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2057,7 +2069,7 @@ mod tests {
             Opcode::I32GeU, // check whether unsigned x_value is greater than or equal to unsigned y_value
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2079,7 +2091,7 @@ mod tests {
             Opcode::I32LeU, // check whether unsigned x_value is less than or equal to unsigned y_value
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, 1);
@@ -2104,7 +2116,7 @@ mod tests {
             Opcode::I32DivU, // divide x_value by y_value and return quotient
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2128,7 +2140,7 @@ mod tests {
             Opcode::I32RemU,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2152,7 +2164,7 @@ mod tests {
             Opcode::I32Shl,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2176,7 +2188,7 @@ mod tests {
             Opcode::I32ShrU, //
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2192,7 +2204,7 @@ mod tests {
         let y_value: u32 = b;
         let opcodes =
             vec![Opcode::I32Const(x_value.into()), Opcode::I32Const(y_value.into()), opcode];
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
@@ -2335,7 +2347,7 @@ mod tests {
             Opcode::I32Store(0u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
@@ -2361,7 +2373,7 @@ mod tests {
             Opcode::I32Store16(2u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         println!("stack val:{:x}", runtime.state.memory.get(addr).unwrap().value);
@@ -2396,7 +2408,7 @@ mod tests {
             Opcode::I32Store8(3u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2414,8 +2426,8 @@ mod tests {
         opcodes: Vec<Opcode>,
         expected: u32,
     ) {
-        let program = Program::from_instrs(&opcodes);
-        let Program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
+
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
@@ -2635,7 +2647,7 @@ mod tests {
             Opcode::I32Const(addr.into()),
             Opcode::I32Load(0u32),
         ];
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
@@ -2657,7 +2669,7 @@ mod tests {
             Opcode::I32Load16U(0u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2680,7 +2692,7 @@ mod tests {
             Opcode::I32Load16S(0u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2703,7 +2715,7 @@ mod tests {
             Opcode::I32Load16U(0u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2727,7 +2739,7 @@ mod tests {
             Opcode::I32Load8U(1u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
@@ -2753,7 +2765,7 @@ mod tests {
             Opcode::I32Load8S(3u32), //I32Load8S
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(
@@ -2780,7 +2792,7 @@ mod tests {
             Opcode::I32Shl,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
 
         runtime.run().unwrap();
@@ -2807,7 +2819,7 @@ mod tests {
             Opcode::I32Add,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -2833,7 +2845,7 @@ mod tests {
             Opcode::I32Add,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -2864,7 +2876,7 @@ mod tests {
             Opcode::LocalSet(5u32),
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -2888,7 +2900,7 @@ mod tests {
             Opcode::I32Add,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         println!("before {}", runtime.state.sp);
@@ -2911,7 +2923,7 @@ mod tests {
             Opcode::LocalTee(16u32), // get last element and put it into address (where address = last sp + 16)
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -2925,7 +2937,7 @@ mod tests {
         let x_value: u32 = 0x12345;
         let opcodes = vec![Opcode::I32Const(x_value.into())];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         //  memory_image: BTreeMap::new() };
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
@@ -2973,7 +2985,7 @@ mod tests {
             Opcode::I32Add,
         ];
 
-        let program = Program::from_instrs(&opcodes);
+        let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.sp, sp_value - 4);
