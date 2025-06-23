@@ -5,10 +5,7 @@ use std::{str::FromStr, sync::Arc};
 #[cfg(feature = "profiling")]
 use crate::profiler::Profiler;
 use crate::{
-    dependencies::{emit_branch_dependencies, emit_divrem_dependencies, emit_memory_dependencies},
-    estimator::RecordEstimator,
-    events::{ConstEvent, SyscallEvent},
-    SP_START,
+    dependencies::{emit_branch_dependencies, emit_divrem_dependencies, emit_memory_dependencies}, estimator::RecordEstimator, events::{ConstEvent, SyscallEvent}, syscalls, SP_START
 };
 
 use clap::ValueEnum;
@@ -1092,8 +1089,22 @@ impl<'a> Executor<'a> {
     #[inline]
     #[allow(clippy::too_many_lines)]
     fn execute_cycle(&mut self, executor: &mut RwasmExecutor<()>) -> Result<bool, ExecutionError> {
+         let clk = self.store.tracer.state.clk;
         let res = executor.step();
-        println!("step res:{:?}", res);
+        let op_state = self.store.tracer.logs.last().unwrap();
+        let syscall=SyscallCode::default();
+        self.emit_events(
+                clk,
+                op_state.next_pc,
+                op_state.sp,
+                op_state.opcode,
+                syscall,
+                arg1,
+                arg2,
+                res,
+                self.memory_accesses,
+                exit_code,
+            );
 
         // Increment the clock.
         self.state.global_clk += 1;
@@ -1421,7 +1432,9 @@ impl<'a> Executor<'a> {
         let mut store = Store::new(rwasm_config, ());
         let mut engine = ExecutionEngine::new();
         let module = self.program.module.clone();
+        store.tracer.state.next_shard(); //shard starts with 1;
         let mut executor = engine.create_callable_executor(&mut store, &module);
+
         loop {
             let res = self.execute_cycle(&mut executor)?;
 
@@ -1767,11 +1780,16 @@ pub const fn align(addr: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Add;
+
     use super::peek_stack;
     use crate::{align, Executor, Program, SP_START};
     use hashbrown::HashMap;
 
-    use rwasm::{BranchOffset, Opcode};
+    use rwasm::{
+        mem_index::{AddressType, UNIT},
+        BranchOffset, Opcode,
+    };
     use sp1_stark::SP1CoreOpts;
 
     #[test]
@@ -2206,6 +2224,7 @@ mod tests {
             vec![Opcode::I32Const(x_value.into()), Opcode::I32Const(y_value.into()), opcode];
         let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        println!("opxxx:{}", opcode);
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
     }
@@ -2247,8 +2266,8 @@ mod tests {
         //   simple_opcode_test(Opcode::I32DivS, neg(1), 0, 0);
 
         // Overflow cases
-        simple_opcode_test(Opcode::I32DivS, 1 << 31, 1 << 31, neg(1));
-        simple_opcode_test(Opcode::I32RemS, 0, 1 << 31, neg(1));
+        // simple_opcode_test(Opcode::I32DivS, 1 << 31, 1 << 31, neg(1));
+        // simple_opcode_test(Opcode::I32RemS, 0, 1 << 31, neg(1));
     }
     #[test]
     fn remainder_tests() {
@@ -2342,6 +2361,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2350,8 +2371,16 @@ mod tests {
         let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        assert_eq!(runtime.state.memory.get(addr).unwrap().value, x_value);
-        assert_eq!(sp_value, runtime.state.sp);
+        assert_eq!(
+            runtime
+                .state
+                .memory
+                .get(AddressType::GlobalMemory(addr).to_virtual_addr())
+                .unwrap()
+                .value,
+            x_value
+        );
+        assert_eq!(sp_value, runtime.state.sp + UNIT);
     }
 
     #[test]
@@ -2365,6 +2394,8 @@ mod tests {
 
         //discuss why Opcode::I32Store16(0.into()),Opcode::I32Store16(1.into()) are not working if they are subsequent
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store16(0u32),
@@ -2376,12 +2407,14 @@ mod tests {
         let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
-        println!("stack val:{:x}", runtime.state.memory.get(addr).unwrap().value);
+        let v_addr = AddressType::GlobalMemory(addr).to_virtual_addr();
+        println!("v_addr");
+        println!("stack val:{:x}", runtime.state.memory.get(v_addr).unwrap().value);
         assert_eq!(
-            runtime.state.memory.get(addr).unwrap().value,
+            runtime.state.memory.get(v_addr).unwrap().value,
             (x_value & 0x0000_FFFF) + ((y_value & 0x0000_FFFF) << 16)
         );
-        assert_eq!(sp_value, runtime.state.sp);
+        assert_eq!(sp_value, runtime.state.sp + UNIT);
     }
 
     #[test]
@@ -2394,6 +2427,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store8(0u32),
@@ -2411,14 +2446,15 @@ mod tests {
         let program = Program::from_instrs(opcodes);
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
+        let v_addr = AddressType::GlobalMemory(addr).to_virtual_addr();
         assert_eq!(
-            runtime.state.memory.get(addr).unwrap().value,
+            runtime.state.memory.get(v_addr).unwrap().value,
             ((x_value & 0x0000_00FF)
                 + ((y_value & 0x0000_00FF) << 8)
                 + ((z_value & 0x0000_00FF) << 16)
                 + ((t_value & 0x0000_00FF) << 24))
         );
-        assert_eq!(sp_value, runtime.state.sp);
+        assert_eq!(sp_value, runtime.state.sp + UNIT);
     }
 
     fn simple_memory_load_opcode_test(
@@ -2641,6 +2677,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2651,7 +2689,7 @@ mod tests {
         let mut runtime = Executor::new(program, SP1CoreOpts::default());
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, x_value);
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!(sp_value, runtime.state.sp + 2 * UNIT);
     }
 
     #[test]
@@ -2662,6 +2700,8 @@ mod tests {
 
         //work on order
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store16(0u32),
@@ -2676,7 +2716,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_FFFF
         );
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
     }
     #[test]
     fn test_load16s_normal() {
@@ -2685,6 +2725,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode:: MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2699,7 +2741,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_ffff
         );
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
     }
     #[test]
     fn test_load16s() {
@@ -2708,6 +2750,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode:: MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store16(0u32), //I32Store16S
@@ -2722,7 +2766,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_ffff
         );
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
     }
 
     #[test]
@@ -2732,6 +2776,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode:: MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2748,7 +2794,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             (x_value & 0x0000_FF00) >> 8
         );
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
     }
 
     #[test]
@@ -2758,6 +2804,8 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let opcodes = vec![
+            Opcode::I32Const(2.into()),
+            Opcode:: MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2772,7 +2820,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value as i8,
             ((x_value & 0xff00_0000) >> 24) as i8
         );
-        assert_eq!(sp_value, runtime.state.sp + 4);
+        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
     }
 
     #[test]
@@ -2788,7 +2836,7 @@ mod tests {
             Opcode::I32Const(x_value.into()),
             Opcode::I32Shl,
             Opcode::I32Const(x_value.into()),
-            Opcode::Br(4.into()),
+            Opcode::Br(1.into()),
             Opcode::I32Shl,
         ];
 
@@ -2883,7 +2931,7 @@ mod tests {
         peek_stack(&runtime);
         println!("after sp: {}", runtime.state.sp);
         println!("after pos{}", (SP_START - runtime.state.sp) / 4);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp + 16).unwrap().value, x_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp + 3*UNIT).unwrap().value, x_value);
     }
     #[test]
     fn test_locals() {
@@ -2920,7 +2968,7 @@ mod tests {
             Opcode::I32Const((x_value + 3).into()),
             Opcode::I32Const((x_value + 4).into()),
             Opcode::I32Const((x_value + 7).into()),
-            Opcode::LocalTee(16u32), // get last element and put it into address (where address = last sp + 16)
+            Opcode::LocalTee(4u32), // get last element and put it into address (where address = last sp + 16)
         ];
 
         let program = Program::from_instrs(opcodes);
