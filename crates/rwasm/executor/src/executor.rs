@@ -1091,7 +1091,7 @@ impl<'a> Executor<'a> {
     fn execute_cycle(&mut self, executor: &mut RwasmExecutor<()>) -> Result<bool, ExecutionError> {
          let clk = self.store.tracer.state.clk;
         let res = executor.step();
-        let op_state = self.store.tracer.logs.last().unwrap();
+        /*let op_state = self.store.tracer.logs.last().unwrap();
         let syscall=SyscallCode::default();
         self.emit_events(
                 clk,
@@ -1105,7 +1105,7 @@ impl<'a> Executor<'a> {
                 self.memory_accesses,
                 exit_code,
             );
-
+*/
         // Increment the clock.
         self.state.global_clk += 1;
 
