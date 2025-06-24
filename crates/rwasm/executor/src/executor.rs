@@ -2228,6 +2228,17 @@ mod tests {
         runtime.run().unwrap();
         assert_eq!(runtime.state.memory.get(runtime.state.sp).unwrap().value, expected);
     }
+    fn simple_opcode_test_expect_error(opcode: Opcode, expected: u32, a: u32, b: u32) {
+        let sp_value: u32 = SP_START;
+        let x_value: u32 = a;
+        let y_value: u32 = b;
+        let opcodes =
+            vec![Opcode::I32Const(x_value.into()), Opcode::I32Const(y_value.into()), opcode];
+        let program = Program::from_instrs(opcodes);
+        let mut runtime = Executor::new(program, SP1CoreOpts::default());
+        let error = runtime.run().expect_err("expected error");
+        println!("expected execution error :{:?}", error);
+    }
     #[test]
     #[allow(clippy::unreadable_literal)]
     fn multiplication_tests() {
@@ -2256,18 +2267,25 @@ mod tests {
         simple_opcode_test(Opcode::I32DivU, 1 << 31, 1 << 31, 1);
         simple_opcode_test(Opcode::I32DivU, 0, 1 << 31, u32::MAX - 1 + 1);
 
-        //  simple_opcode_test(Opcode::I32DivU, u32::MAX, 1 << 31, 0);
-        // simple_opcode_test(Opcode::I32DivU, u32::MAX, 1, 0);
-        //  simple_opcode_test(Opcode::I32DivU, u32::MAX, 0, 0);
+        //divide by zero case
+        simple_opcode_test_expect_error(Opcode::I32DivU, u32::MAX, 1 << 31, 0);
+        simple_opcode_test_expect_error(Opcode::I32DivU, u32::MAX, 1, 0);
+        simple_opcode_test_expect_error(Opcode::I32DivU, u32::MAX, 0, 0);
+        simple_opcode_test_expect_error(Opcode::I32DivS, neg(1), 0, 0);
 
         simple_opcode_test(Opcode::I32DivS, 3, 18, 6);
         simple_opcode_test(Opcode::I32DivS, neg(6), neg(24), 4);
         simple_opcode_test(Opcode::I32DivS, neg(2), 16, neg(8));
-        //   simple_opcode_test(Opcode::I32DivS, neg(1), 0, 0);
 
-        // Overflow cases
-        // simple_opcode_test(Opcode::I32DivS, 1 << 31, 1 << 31, neg(1));
-        // simple_opcode_test(Opcode::I32RemS, 0, 1 << 31, neg(1));
+        //TODO check: Overflow cases
+        /*
+        (i32.rem_s x y)
+         If y == 0: trap
+         If x == INT_MIN and y == -1: the result is 0 (not a trap — division would trap, but rem doesn’t)
+         Otherwise: x % y with signed behavior
+        */
+        simple_opcode_test_expect_error(Opcode::I32DivS, 1 << 31, 1 << 31, neg(1));
+        simple_opcode_test(Opcode::I32RemS, 0, 1 << 31, neg(1));
     }
     #[test]
     fn remainder_tests() {
@@ -2277,17 +2295,20 @@ mod tests {
         simple_opcode_test(Opcode::I32RemS, neg(2), neg(22), neg(4));
         simple_opcode_test(Opcode::I32RemS, 0, 873, 1);
         simple_opcode_test(Opcode::I32RemS, 0, 873, neg(1));
-        //simple_opcode_test(Opcode::I32RemS, 5, 5, 0);
-        //simple_opcode_test(Opcode::I32RemS, neg(5), neg(5), 0);
-        //simple_opcode_test(Opcode::I32RemS, 0, 0, 0);
+        //error: mod by zero
+        simple_opcode_test_expect_error(Opcode::I32RemS, 5, 5, 0);
+        simple_opcode_test_expect_error(Opcode::I32RemS, neg(5), neg(5), 0);
+        simple_opcode_test_expect_error(Opcode::I32RemS, 0, 0, 0);
 
         simple_opcode_test(Opcode::I32RemU, 4, 18, 7);
         simple_opcode_test(Opcode::I32RemU, 6, neg(20), 11);
         simple_opcode_test(Opcode::I32RemU, 23, 23, neg(6));
         simple_opcode_test(Opcode::I32RemU, neg(21), neg(21), neg(11));
-        // simple_opcode_test(Opcode::I32RemU, 5, 5, 0);
-        // simple_opcode_test(Opcode::I32RemU, neg(1), neg(1), 0);
-        // simple_opcode_test(Opcode::I32RemU, 0, 0, 0);
+
+        //error: mod by zero
+        simple_opcode_test_expect_error(Opcode::I32RemU, 5, 5, 0);
+        simple_opcode_test_expect_error(Opcode::I32RemU, neg(1), neg(1), 0);
+        simple_opcode_test_expect_error(Opcode::I32RemU, 0, 0, 0);
     }
     #[test]
     #[allow(clippy::unreadable_literal)]
