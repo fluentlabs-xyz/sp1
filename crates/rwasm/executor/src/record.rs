@@ -13,9 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     events::{
-        AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, ConstEvent, CpuEvent,
-        GlobalInteractionEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent,
-        MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SyscallEvent,
+        AluEvent, BranchEvent, ByteLookupEvent, ByteRecord, ConstEvent, CpuEvent, GlobalInteractionEvent, MemInstrEvent, MemoryInitializeFinalizeEvent, MemoryLocalEvent, MemoryRecordEnum, PrecompileEvent, PrecompileEvents, SysStateEvent, SyscallEvent
     },
     program::Program,
     syscalls::SyscallCode,
@@ -54,6 +52,8 @@ pub struct ExecutionRecord {
     pub branch_events: Vec<BranchEvent>,
     /// A trace of the constant events.
     pub const_events: Vec<ConstEvent>,
+     /// A trace of the constant events.
+    pub sys_state_events: Vec<SysStateEvent>,
 
     /// A trace of the byte lookups that are needed.
     pub byte_lookups: HashMap<ByteLookupEvent, usize>,
@@ -251,18 +251,8 @@ impl ExecutionRecord {
     }
 }
 
-/// A memory access record.
-#[derive(Debug, Copy, Clone, Default)]
-pub struct MemoryAccessRecord {
-    /// The memory access of the `a` register.
-    pub arg1_record: Option<MemoryRecordEnum>,
-    /// The memory access of the `b` register.
-    pub arg2_record: Option<MemoryRecordEnum>,
-    /// The memory access of the `c` register.
-    pub res_record: Option<MemoryRecordEnum>,
-    /// The memory access of the `memory` register.
-    pub memory: Option<MemoryRecordEnum>,
-}
+
+pub type  MemoryAccessRecord =rwasm::mem::MemoryAccessRecord;
 
 impl MachineRecord for ExecutionRecord {
     type Config = SP1CoreOpts;

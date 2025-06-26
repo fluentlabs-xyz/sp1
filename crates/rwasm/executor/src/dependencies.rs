@@ -103,7 +103,7 @@ pub fn emit_divrem_dependencies(executor: &mut Executor, event: AluEvent) {
 }
 
 /// Emit the dependencies for memory opcodes.
-pub fn emit_memory_dependencies(executor: &mut Executor, event: MemInstrEvent, _: MemoryRecord) {
+pub fn emit_memory_dependencies(executor: &mut Executor, event: MemInstrEvent) {
     if matches!(
         event.opcode,
         Opcode::I32Load(_)
@@ -116,13 +116,13 @@ pub fn emit_memory_dependencies(executor: &mut Executor, event: MemInstrEvent, _
             | Opcode::I32Store8(_)
     ) {
         let offset = event.opcode.aux_value();
-        let memory_addr = event.arg1.wrapping_add(offset);
+        let memory_addr = event.raw_addr.wrapping_add(offset);
         // Add event to ALU check to check that addr == b + c
         let add_event = AluEvent {
             pc: UNUSED_PC,
             opcode: Opcode::I32Add,
             a: memory_addr,
-            b: event.arg1,
+            b: event.raw_addr,
             c: offset,
             code: Opcode::I32Add.code(),
         };
