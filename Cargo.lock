@@ -5325,6 +5325,7 @@ dependencies = [
 [[package]]
 name = "rwasm"
 version = "0.0.0"
+source = "git+https://github.com/fluentlabs-xyz/rwasm.git?branch=feat%2Ftracing#6e31303d0e35ef96074a5a88885857f10ff4af5c"
 dependencies = [
  "bincode 2.0.1",
  "bitvec",
