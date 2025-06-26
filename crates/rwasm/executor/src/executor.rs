@@ -5,7 +5,10 @@ use std::{str::FromStr, sync::Arc};
 #[cfg(feature = "profiling")]
 use crate::profiler::Profiler;
 use crate::{
-    dependencies::{emit_branch_dependencies, emit_divrem_dependencies, emit_memory_dependencies}, estimator::RecordEstimator, events::{ConstEvent, SyscallEvent}, syscalls, SP_START
+    dependencies::{emit_branch_dependencies, emit_divrem_dependencies, emit_memory_dependencies},
+    estimator::RecordEstimator,
+    events::{ConstEvent, SysStateEvent, SyscallEvent},
+    syscalls, SP_START,
 };
 
 use clap::ValueEnum;
@@ -691,21 +694,25 @@ impl<'a> Executor<'a> {
         arg2: u32,
         res: u32,
         record: MemoryAccessRecord,
-        exit_code: u32,
     ) {
-        self.emit_cpu(clk, next_pc, sp, arg1, arg2, res, record, exit_code);
+        self.emit_cpu(clk, next_pc, sp, arg1, arg2, res, record, 0u32);
 
         if opcode.is_alu_instruction() {
             self.emit_alu_event(opcode, arg1, arg2, res);
         } else if opcode.is_memory_load_instruction() || opcode.is_memory_store_instruction() {
-            self.emit_mem_instr_event(opcode, arg1, arg2, res);
+            self.emit_mem_instr_event(opcode, arg1, arg2, res,record);
         } else if opcode.is_branch_instruction() {
             self.emit_branch_event(opcode, arg1, arg2, res, next_pc);
         } else if opcode.is_ecall_instruction() {
             self.emit_syscall_event(clk, record.arg1_record, syscall_code, arg2, res, next_pc);
         } else if opcode.is_const_instruction() {
             self.emit_const_event(opcode);
-        } else {
+        } else if opcode.is_state_instrucition()    {
+             #[cfg(debug_assertions)]
+            {
+                println!("sys_state_event not generated here");
+            }
+        }else {
             println!("no event :ins:{:?},", opcode);
         }
     }
@@ -828,23 +835,23 @@ impl<'a> Executor<'a> {
 
     // Emit a memory opcode event.
     #[inline]
-    fn emit_mem_instr_event(&mut self, opcode: Opcode, arg1: u32, arg2: u32, res: u32) {
+    fn emit_mem_instr_event(&mut self, opcode: Opcode, arg1: u32, arg2: u32, res: u32,record:MemoryAccessRecord) {
+        println!("record in emit:{:?}",record.memory.expect("Must have memory access"));
         let event = MemInstrEvent {
             shard: self.shard(),
             clk: self.state.clk,
             pc: self.state.pc,
             opcode,
-            arg1,
-            arg2,
+            raw_addr: arg1,
+            offset: arg2,
             res,
-            mem_access: self.memory_accesses.memory.expect("Must have memory access"),
+            mem_access: record.memory.expect("Must have memory access"),
         };
 
         self.record.memory_instr_events.push(event);
         emit_memory_dependencies(
             self,
             event,
-            self.memory_accesses.memory.expect("Must have memory access").current_record(),
         );
     }
 
@@ -927,70 +934,14 @@ impl<'a> Executor<'a> {
         self.record.const_events.push(event);
     }
 
-    /// Execute the given opcode over the current state of the runtime.
-    #[allow(clippy::too_many_lines)]
-    fn execute_opcode(&mut self, opcode: Opcode) -> Result<(), ExecutionError> {
-        // The `clk` variable contains the cycle before the current opcode is executed.  The
-        // `state.clk` can be updated before the end of this function by precompiles' execution.
-        let mut clk = self.state.clk;
-        let sp = self.state.sp;
-        let mut exit_code = 0u32;
-
-        let mut next_pc = self.state.pc.wrapping_add(4);
-        // Will be set to a non-default value if the opcode is a syscall.
-
-        let (mut arg1, mut arg2, mut res): (u32, u32, u32) = (0, 0, 0);
-
-        if self.executor_mode == ExecutorMode::Trace {
-            self.memory_accesses = MemoryAccessRecord::default();
-        }
-
-        // The syscall id for precompiles.  This is only used/set when opcode == ECALL.
-        let mut syscall = SyscallCode::default();
-
-        // if !self.unconstrained {
-        //     if self.print_report {
-        //         self.report.opcode_counts[opcode.opcode] += 1;
-        //     }
-        //     self.local_counts.event_counts[opcode.opcode] += 1;
-        //     if opcode.is_memory_load_opcode() {
-        //         self.local_counts.event_counts[Opcode::ADD] += 2;
-        //     } else if opcode.is_jump_opcode() {
-        //         self.local_counts.event_counts[Opcode::ADD] += 1;
-        //     } else if opcode.is_branch_opcode() {
-        //         self.local_counts.event_counts[Opcode::ADD] += 1;
-        //         self.local_counts.event_counts[Opcode::SLTU] += 2;
-        //     } else if opcode.is_divrem_opcode() {
-        //         self.local_counts.event_counts[Opcode::MUL] += 2;
-        //         self.local_counts.event_counts[Opcode::ADD] += 2;
-        //         self.local_counts.event_counts[Opcode::SLTU] += 1;
-        //     }
-        // }
-        //TODO: fix report find way to count opcode
-
-        // Emit the events for this cycle.
-        if self.executor_mode == ExecutorMode::Trace {
-            self.emit_events(
-                clk,
-                next_pc,
-                sp,
-                opcode,
-                syscall,
-                arg1,
-                arg2,
-                res,
-                self.memory_accesses,
-                exit_code,
-            );
-        };
-
-        // Update the program counter.
-        self.state.pc = next_pc;
-
-        // Update the clk to the next cycle.
-        self.state.clk += 4;
-        Ok(())
+     // Emit a branch event.
+    #[inline]
+    fn emit_sys_state_event(&mut self, opcode:Opcode,fuel:u32,next_fuel:u32,max_memory:u32,next_max_memory:u32) {
+        let event = SysStateEvent::new(opcode, fuel, next_fuel, max_memory, next_max_memory);
+        self.record.sys_state_events.push(event);
     }
+
+   
 
     /// Execute an ecall opcode.
     #[allow(clippy::type_complexity)]
@@ -1089,22 +1040,26 @@ impl<'a> Executor<'a> {
     #[inline]
     #[allow(clippy::too_many_lines)]
     fn execute_cycle(&mut self, executor: &mut RwasmExecutor<()>) -> Result<bool, ExecutionError> {
-         let clk = self.store.tracer.state.clk;
+        let clk = self.store.tracer.state.clk;
         let res = executor.step();
-        let op_state = self.store.tracer.logs.last().unwrap();
-        let syscall=SyscallCode::default();
+        let op_state = executor.store.tracer.logs.last().unwrap();
+        let syscall = SyscallCode::default();
+        println!("op_state:{op_state:?}");
         self.emit_events(
-                clk,
-                op_state.next_pc,
-                op_state.sp,
-                op_state.opcode,
-                syscall,
-                arg1,
-                arg2,
-                res,
-                self.memory_accesses,
-                exit_code,
-            );
+            clk,
+            op_state.next_pc,
+            op_state.sp,
+            op_state.opcode,
+            syscall,
+            op_state.arg1,
+            op_state.arg2,
+            op_state.res,
+            op_state.memory_access,
+           
+        );
+        if op_state.opcode.is_state_instrucition(){
+            //TODO: generate sys_state_event here
+        }
 
         // Increment the clock.
         self.state.global_clk += 1;
@@ -2716,7 +2671,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_FFFF
         );
-        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
+        assert_eq!(sp_value, runtime.state.sp + 2 * UNIT);
     }
     #[test]
     fn test_load16s_normal() {
@@ -2726,7 +2681,7 @@ mod tests {
 
         let opcodes = vec![
             Opcode::I32Const(2.into()),
-            Opcode:: MemoryGrow,
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2741,7 +2696,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_ffff
         );
-        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
+        assert_eq!(sp_value, runtime.state.sp + 2 * UNIT);
     }
     #[test]
     fn test_load16s() {
@@ -2751,7 +2706,7 @@ mod tests {
 
         let opcodes = vec![
             Opcode::I32Const(2.into()),
-            Opcode:: MemoryGrow,
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store16(0u32), //I32Store16S
@@ -2766,7 +2721,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             x_value & 0x0000_ffff
         );
-        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
+        assert_eq!(sp_value, runtime.state.sp + 2 * UNIT);
     }
 
     #[test]
@@ -2777,7 +2732,7 @@ mod tests {
 
         let opcodes = vec![
             Opcode::I32Const(2.into()),
-            Opcode:: MemoryGrow,
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2794,7 +2749,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value,
             (x_value & 0x0000_FF00) >> 8
         );
-        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
+        assert_eq!(sp_value, runtime.state.sp + 2 * UNIT);
     }
 
     #[test]
@@ -2805,7 +2760,7 @@ mod tests {
 
         let opcodes = vec![
             Opcode::I32Const(2.into()),
-            Opcode:: MemoryGrow,
+            Opcode::MemoryGrow,
             Opcode::I32Const(addr.into()),
             Opcode::I32Const(x_value.into()),
             Opcode::I32Store(0u32),
@@ -2820,7 +2775,7 @@ mod tests {
             runtime.state.memory.get(runtime.state.sp).unwrap().value as i8,
             ((x_value & 0xff00_0000) >> 24) as i8
         );
-        assert_eq!(sp_value, runtime.state.sp + 2*UNIT);
+        assert_eq!(sp_value, runtime.state.sp + 2 * UNIT);
     }
 
     #[test]
@@ -2931,7 +2886,7 @@ mod tests {
         peek_stack(&runtime);
         println!("after sp: {}", runtime.state.sp);
         println!("after pos{}", (SP_START - runtime.state.sp) / 4);
-        assert_eq!(runtime.state.memory.get(runtime.state.sp + 3*UNIT).unwrap().value, x_value);
+        assert_eq!(runtime.state.memory.get(runtime.state.sp + 3 * UNIT).unwrap().value, x_value);
     }
     #[test]
     fn test_locals() {

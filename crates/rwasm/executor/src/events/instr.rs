@@ -48,9 +48,9 @@ pub struct MemInstrEvent {
     pub opcode: Opcode,
 
     /// The first operand value.
-    pub arg1: u32,
+    pub raw_addr: u32,
     /// The second operand value.
-    pub arg2: u32,
+    pub offset: u32,
     /// The third operand value.
     pub res: u32,
     /// The memory access record for memory operations.
@@ -66,14 +66,13 @@ impl MemInstrEvent {
         clk: u32,
         pc: u32,
         opcode: Opcode,
+        raw_addr: u32,
         offset: u32,
-        a: u32,
-        b: u32,
-        c: u32,
+        res: u32,
 
         mem_access: MemoryRecordEnum,
     ) -> Self {
-        Self { shard, clk, pc, opcode, arg1: a, arg2: b, res: c, mem_access }
+        Self { shard, clk, pc, opcode, raw_addr, offset, res, mem_access }
     }
 }
 
@@ -127,5 +126,32 @@ impl ConstEvent {
     #[allow(clippy::too_many_arguments)]
     pub fn new(pc: u32, opcode: Opcode, value: u32) -> Self {
         Self { pc, opcode, value }
+    }
+}
+///TODO: this event is for changing the state of rwasm engine. not finished yet.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[repr(C)]
+pub struct SysStateEvent {
+    /// The fuel before op
+    pub fuel: u32,
+    /// The fuel after op
+    pub next_fuel:u32,
+    /// The Opcode
+    pub opcode: Opcode,
+    /// maximium memory before op
+    pub max_memory:u32,
+    /// maximium memory after op
+    pub next_max_memory:u32,
+}
+
+impl SysStateEvent {
+    ///create a new system state event
+    #[must_use] 
+    pub fn new(opcode:Opcode,fuel:u32,next_fuel:u32,max_memory:u32,next_max_memory:u32)->Self{
+        SysStateEvent { fuel, next_fuel,
+             opcode,
+              max_memory, 
+              next_max_memory,
+             }
     }
 }

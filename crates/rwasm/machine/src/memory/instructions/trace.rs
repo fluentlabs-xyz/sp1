@@ -91,7 +91,7 @@ impl MemoryInstructionsChip {
         cols.clk = F::from_canonical_u32(event.clk);
         cols.pc = F::from_canonical_u32(event.pc);
         cols.op_a_value = event.res.into();
-        cols.op_b_value = event.arg1.into();
+        cols.op_b_value = event.raw_addr.into();
         let offset:u32 = event.instruction.aux_value().unwrap().into();
         cols.op_c_value =offset.into();
      
@@ -100,7 +100,7 @@ impl MemoryInstructionsChip {
         cols.memory_access.populate(event.mem_access, blu);
 
         // Populate addr_word and addr_aligned columns.
-        let memory_addr = event.arg1.wrapping_add(offset);
+        let memory_addr = event.raw_addr.wrapping_add(offset);
         let aligned_addr = memory_addr - memory_addr % WORD_SIZE as u32;
         cols.addr_word = memory_addr.into();
         cols.addr_word_range_checker.populate(cols.addr_word, blu);
