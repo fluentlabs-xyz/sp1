@@ -19,7 +19,7 @@ mod tests {
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, StarkGenericConfig,
     };
-   
+
     use crate::{
         io::SP1Stdin,
         utils::{
@@ -166,8 +166,6 @@ mod tests {
 
         execution_record
     }
-
-  
 
     #[test]
     fn test_u256x2048_mul_pass() {

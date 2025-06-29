@@ -9,10 +9,10 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator};
-use rwasm::engine::bytecode::Instruction;
+use rwasm::Opcode;
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
-    ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
+    ExecutionRecord, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
@@ -132,7 +132,7 @@ impl<F: PrimeField32> MachineAir<F> for AddSubChip {
                 blu
             })
             .collect::<Vec<_>>();
-        
+
         output.add_byte_lookup_events_from_maps(blu_batches.iter().collect_vec());
     }
 
@@ -159,7 +159,7 @@ impl AddSubChip {
     ) {
         cols.pc = F::from_canonical_u32(event.pc);
 
-        let is_add = event.instruction==Instruction::I32Add;
+        let is_add = event.opcode == Opcode::I32Add;
         cols.is_add = F::from_bool(is_add);
         cols.is_sub = F::from_bool(!is_add);
 
@@ -169,11 +169,18 @@ impl AddSubChip {
         cols.add_operation.populate(blu, operand_1, operand_2);
         cols.operand_1 = Word::from(operand_1);
         cols.operand_2 = Word::from(operand_2);
-        println!("operand1:{},operand2:{}",operand_1,operand_2);
-        cols.op_a_not_0=F::from_bool(true);
+        println!("operand1:{},operand2:{}", operand_1, operand_2);
+        cols.op_a_not_0 = F::from_bool(true);
         let base = [1, 1 << 8, 1 << 16, 1 << 24];
-        let value:F = cols.add_operation.value.0.iter().enumerate().map(|(i, x)| F::from_canonical_u32(base[i].clone()) * *x).sum();
-        println!("result:{}",value);
+        let value: F = cols
+            .add_operation
+            .value
+            .0
+            .iter()
+            .enumerate()
+            .map(|(i, x)| F::from_canonical_u32(base[i].clone()) * *x)
+            .sum();
+        println!("result:{}", value);
     }
 }
 
@@ -200,8 +207,8 @@ where
         builder.assert_bool(local.is_sub);
         builder.assert_bool(is_real.clone());
 
-        let opcode = AB::Expr::from_f(Opcode::ADD.as_field()) * local.is_add
-            + AB::Expr::from_f(Opcode::SUB.as_field()) * local.is_sub;
+        let opcode = AB::Expr::from_canonical_u32(Opcode::I32Add.code()) * local.is_add
+            + AB::Expr::from_canonical_u32(Opcode::I32Sub.code()) * local.is_sub;
 
         // Evaluate the addition operation.
         // This is enforced only when `op_a_not_0 == 1`.
@@ -211,10 +218,8 @@ where
             local.operand_1,
             local.operand_2,
             local.add_operation,
-            is_real
+            is_real,
         );
-
-       
 
         // Receive the arguments.  There are separate receives for ADD and SUB.
         // For add, `add_operation.value` is `a`, `operand_1` is `b`, and `operand_2` is `c`.
@@ -278,9 +283,10 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{thread_rng, Rng};
+    use rwasm::Opcode;
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, DEFAULT_PC_INC,
+        ExecutionRecord, DEFAULT_PC_INC,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -291,7 +297,7 @@ mod tests {
     use super::*;
     use crate::{
         io::SP1Stdin,
-        rwasm::RwasmAir as RwasmAir,
+        rwasm::RwasmAir,
         utils::{run_malicious_test, uni_stark_prove as prove, uni_stark_verify as verify},
     };
 
@@ -324,7 +330,7 @@ mod tests {
     #[test]
     fn generate_trace() {
         let mut shard = ExecutionRecord::default();
-        shard.add_events = vec![AluEvent::new(0, Opcode::ADD, 14, 8, 6,)];
+        shard.add_events = vec![AluEvent::new(0, Opcode::I32Add, 14, 8, 6, Opcode::I32Add.code())];
         let chip = AddSubChip::default();
         let trace: RowMajorMatrix<BabyBear> =
             chip.generate_trace(&shard, &mut ExecutionRecord::default());
@@ -426,6 +432,4 @@ mod tests {
         // Convert the trace to a row major matrix.
         RowMajorMatrix::new(rows.into_iter().flatten().collect::<Vec<_>>(), NUM_ADD_SUB_COLS)
     }
-
-   
 }

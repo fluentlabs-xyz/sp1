@@ -35,10 +35,9 @@ pub mod extend_tests {
 
     use p3_matrix::dense::RowMajorMatrix;
     use rwasm_executor::{
-        events::AluEvent, syscalls::SyscallCode, ExecutionRecord, Instruction, Opcode, Program,
+        events::AluEvent, syscalls::SyscallCode, ExecutionRecord, Opcode, Program,
     };
     use sp1_stark::{air::MachineAir, CpuProver};
-   
 
     use crate::{
         io::SP1Stdin,
@@ -49,18 +48,18 @@ pub mod extend_tests {
 
     pub fn sha_extend_program() -> Program {
         let w_ptr = 100;
-        let mut instructions = vec![Instruction::new(Opcode::ADD, 29, 0, 5, false, true)];
+        let mut instructions = vec![Opcode::new(Opcode::ADD, 29, 0, 5, false, true)];
         for i in 0..64 {
             instructions.extend(vec![
-                Instruction::new(Opcode::ADD, 30, 0, w_ptr + i * 4, false, true),
-                Instruction::new(Opcode::SW, 29, 30, 0, false, true),
+                Opcode::new(Opcode::ADD, 30, 0, w_ptr + i * 4, false, true),
+                Opcode::new(Opcode::SW, 29, 30, 0, false, true),
             ]);
         }
         instructions.extend(vec![
-            Instruction::new(Opcode::ADD, 5, 0, SyscallCode::SHA_EXTEND as u32, false, true),
-            Instruction::new(Opcode::ADD, 10, 0, w_ptr, false, true),
-            Instruction::new(Opcode::ADD, 11, 0, 0, false, true),
-            Instruction::new(Opcode::ECALL, 5, 10, 11, false, false),
+            Opcode::new(Opcode::ADD, 5, 0, SyscallCode::SHA_EXTEND as u32, false, true),
+            Opcode::new(Opcode::ADD, 10, 0, w_ptr, false, true),
+            Opcode::new(Opcode::ADD, 11, 0, 0, false, true),
+            Opcode::new(Opcode::ECALL, 5, 10, 11, false, false),
         ]);
         Program::new(instructions, 0, 0)
     }
@@ -82,6 +81,4 @@ pub mod extend_tests {
         let stdin = SP1Stdin::new();
         run_test::<CpuProver<_, _>>(program, stdin).unwrap();
     }
-
-  
 }

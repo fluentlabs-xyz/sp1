@@ -43,7 +43,7 @@ use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelIterator, ParallelSlice};
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
-    rwasm_ins_to_code, ExecutionRecord, Instruction, Opcode, Program, DEFAULT_PC_INC,
+    ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
@@ -401,7 +401,7 @@ where
             local.pc,
             local.pc + AB::Expr::from_canonical_u32(DEFAULT_PC_INC),
             AB::Expr::zero(),
-            AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Shl)),
+            AB::F::from_canonical_u32(Opcode::I32Shl.code()),
             local.a,
             local.b,
             local.c,
@@ -432,7 +432,7 @@ mod tests {
     use rand::{thread_rng, Rng};
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, Program,
+        ExecutionRecord, Opcode, Program,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -512,8 +512,8 @@ mod tests {
             assert!(op_a != correct_op_a);
 
             let instructions = vec![
-                Instruction::new(Opcode::SLL, 5, op_b, op_c, true, true),
-                Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
+                Opcode::new(Opcode::SLL, 5, op_b, op_c, true, true),
+                Opcode::new(Opcode::ADD, 10, 0, 0, false, false),
             ];
 
             let program = Program::new(instructions, 0, 0);

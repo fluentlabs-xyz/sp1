@@ -3,7 +3,8 @@ use std::borrow::Borrow;
 use p3_air::{Air, AirBuilder};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
-use rwasm_executor::{rwasm_ins_to_code, Instruction, DEFAULT_PC_INC, UNUSED_PC};
+use rwasm_executor::{Opcode, DEFAULT_PC_INC, UNUSED_PC};
+
 use sp1_stark::{
     air::{BaseAirBuilder, SP1AirBuilder},
     Word,
@@ -39,17 +40,14 @@ where
         builder.assert_bool(local.is_br);
         builder.assert_bool(local.is_brifeqz);
         builder.assert_bool(local.is_brifnez);
-        
-        let is_real = local.is_br
-            + local.is_brifeqz
-            + local.is_brifnez;
-          
+
+        let is_real = local.is_br + local.is_brifeqz + local.is_brifnez;
+
         builder.assert_bool(is_real.clone());
 
-        let opcode = local.is_br * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::Br(0.into())))
-            + local.is_brifeqz * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::BrIfEqz(0.into())))
-            + local.is_brifnez * AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::BrIfNez(0.into())));
-            
+        let opcode = local.is_br * AB::Expr::from_canonical_u32(Opcode::Br(0.into()).code())
+            + local.is_brifeqz * AB::Expr::from_canonical_u32(Opcode::BrIfEqz(0.into()).code())
+            + local.is_brifnez * AB::Expr::from_canonical_u32(Opcode::BrIfNez(0.into()).code());
 
         // SAFETY: This checks the following.
         // - `num_extra_cycles = 0`
@@ -102,7 +100,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Add)),
+                AB::Expr::from_canonical_u32(Opcode::I32Add.code()),
                 local.next_pc,
                 local.pc,
                 local.op_c_value,
@@ -134,39 +132,33 @@ where
 
         // Evaluate branching value constraints.
         {
-          // When the opcode is BEQ and we are branching, assert that a_eq_b is true.
-          builder.when(local.is_brifeqz * local.is_branching).assert_one(local.a_eq_zero);
+            // When the opcode is BEQ and we are branching, assert that a_eq_b is true.
+            builder.when(local.is_brifeqz * local.is_branching).assert_one(local.a_eq_zero);
 
-           
+            // When the opcode is BNE and we are branching, assert that either a_gt_b or a_lt_b is
+            // true.
+            builder.when(local.is_brifnez * local.is_branching).assert_one(local.a_gt_zero);
 
-          // When the opcode is BNE and we are branching, assert that either a_gt_b or a_lt_b is
-          // true.
-          builder
-              .when(local.is_brifnez * local.is_branching)
-              .assert_one(local.a_gt_zero);
+            // When it's a branch instruction and a_eq_b, assert that a == b.
+            builder
+                .when(is_real.clone() * local.a_eq_zero)
+                .assert_word_eq(local.op_a_value, Word::<AB::F>::from(0));
 
-        // When it's a branch instruction and a_eq_b, assert that a == b.
-        builder
-            .when(is_real.clone() * local.a_eq_zero)
-            .assert_word_eq(local.op_a_value,Word::<AB::F>::from(0));
-
-       
-        builder.send_instruction(
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::from_canonical_u32(UNUSED_PC),
-            AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
-            AB::Expr::zero(),
-            AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32LtU)),
-            Word::extend_var::<AB>(local.a_gt_zero),
-            local.op_a_value,
-            local.op_b_value,
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            AB::Expr::zero(),
-            is_real.clone(),
-        );
-
-    }
+            builder.send_instruction(
+                AB::Expr::zero(),
+                AB::Expr::zero(),
+                AB::Expr::from_canonical_u32(UNUSED_PC),
+                AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
+                AB::Expr::zero(),
+                AB::Expr::from_canonical_u32(Opcode::I32LtU.code()),
+                Word::extend_var::<AB>(local.a_gt_zero),
+                local.op_a_value,
+                local.op_b_value,
+                AB::Expr::zero(),
+                AB::Expr::zero(),
+                AB::Expr::zero(),
+                is_real.clone(),
+            );
+        }
     }
 }

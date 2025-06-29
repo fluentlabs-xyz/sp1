@@ -17,8 +17,8 @@
 pub mod air;
 pub mod alu;
 pub mod bytes;
-pub mod control_flow;
 pub mod constins;
+pub mod control_flow;
 pub mod cpu;
 pub mod global;
 pub mod io;
@@ -40,13 +40,13 @@ pub mod reduce {
     pub use rwasm_executor::SP1ReduceProof;
 }
 
-
 pub mod programs {
     #[allow(dead_code)]
     #[allow(missing_docs)]
     pub mod tests {
         use hashbrown::HashMap;
-        use rwasm_executor::{Instruction, Opcode, Program};
+        use rwasm::Opcode;
+        use rwasm_executor::Program;
         #[must_use]
         pub fn build_elf() -> Program {
             let x_value: u32 = 0x11;
@@ -57,35 +57,35 @@ pub mod programs {
             let z4_value: u32 = 0x2;
             let z5_value: u32 = 0x7;
             let z6_value: u32 = 0x21;
-    
+
             let instructions = vec![
-                Instruction::I32Const(z6_value.into()),
-                // Instruction::I32Const(z5_value.into()),
-                // Instruction::I32Const(z4_value.into()),
-                // Instruction::I32Const(z3_value.into()),
-                // Instruction::I32Const(z2_value.into()),
-                // Instruction::I32Const(z1_value.into()),
-                // Instruction::I32Const(y_value.into()),
-                // Instruction::I32Const(x_value.into()),
-                // Instruction::I32Add,
-                // Instruction::I32Sub,
-                // Instruction::I32Mul,
-                // Instruction::I32DivS,
-                // Instruction::I32DivU,
+                Opcode::I32Const(z6_value.into()),
+                // Opcode::I32Const(z5_value.into()),
+                // Opcode::I32Const(z4_value.into()),
+                // Opcode::I32Const(z3_value.into()),
+                // Opcode::I32Const(z2_value.into()),
+                // Opcode::I32Const(z1_value.into()),
+                // Opcode::I32Const(y_value.into()),
+                // Opcode::I32Const(x_value.into()),
+                // Opcode::I32Add,
+                // Opcode::I32Sub,
+                // Opcode::I32Mul,
+                // Opcode::I32DivS,
+                // Opcode::I32DivU,
             ];
-    
-            let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+
+            let program = Program::from_instrs(instructions);
             //  memory_image: BTreeMap::new() };
-    
+
             program
         }
 
         // #[must_use]
         // pub fn simple_program() -> Program {
         //     let instructions = vec![
-        //         Instruction::new(Opcode::ADD, 29, 0, 5, false, true),
-        //         Instruction::new(Opcode::ADD, 30, 0, 37, false, true),
-        //         Instruction::new(Opcode::ADD, 31, 30, 29, false, false),
+        //         Opcode::new(Opcode::ADD, 29, 0, 5, false, true),
+        //         Opcode::new(Opcode::ADD, 30, 0, 37, false, true),
+        //         Opcode::new(Opcode::ADD, 31, 30, 29, false, false),
         //     ];
         //     Program::new(instructions, 0, 0)
         // }
@@ -154,45 +154,45 @@ pub mod programs {
         #[allow(clippy::unreadable_literal)]
         pub fn simple_memory_program() -> Program {
             let instructions = vec![
-                // Instruction::new(Opcode::ADD, 29, 0, 0x12348765, false, true),
+                // Opcode::new(Opcode::ADD, 29, 0, 0x12348765, false, true),
                 // // SW and LW
-                // Instruction::new(Opcode::SW, 29, 0, 0x27654320, false, true),
-                // Instruction::new(Opcode::LW, 28, 0, 0x27654320, false, true),
+                // Opcode::new(Opcode::SW, 29, 0, 0x27654320, false, true),
+                // Opcode::new(Opcode::LW, 28, 0, 0x27654320, false, true),
                 // // LBU
-                // Instruction::new(Opcode::LBU, 27, 0, 0x27654320, false, true),
-                // Instruction::new(Opcode::LBU, 26, 0, 0x27654321, false, true),
-                // Instruction::new(Opcode::LBU, 25, 0, 0x27654322, false, true),
-                // Instruction::new(Opcode::LBU, 24, 0, 0x27654323, false, true),
+                // Opcode::new(Opcode::LBU, 27, 0, 0x27654320, false, true),
+                // Opcode::new(Opcode::LBU, 26, 0, 0x27654321, false, true),
+                // Opcode::new(Opcode::LBU, 25, 0, 0x27654322, false, true),
+                // Opcode::new(Opcode::LBU, 24, 0, 0x27654323, false, true),
                 // // LB
-                // Instruction::new(Opcode::LB, 23, 0, 0x27654320, false, true),
-                // Instruction::new(Opcode::LB, 22, 0, 0x27654321, false, true),
+                // Opcode::new(Opcode::LB, 23, 0, 0x27654320, false, true),
+                // Opcode::new(Opcode::LB, 22, 0, 0x27654321, false, true),
                 // // LHU
-                // Instruction::new(Opcode::LHU, 21, 0, 0x27654320, false, true),
-                // Instruction::new(Opcode::LHU, 20, 0, 0x27654322, false, true),
+                // Opcode::new(Opcode::LHU, 21, 0, 0x27654320, false, true),
+                // Opcode::new(Opcode::LHU, 20, 0, 0x27654322, false, true),
                 // // LU
-                // Instruction::new(Opcode::LH, 19, 0, 0x27654320, false, true),
-                // Instruction::new(Opcode::LH, 18, 0, 0x27654322, false, true),
+                // Opcode::new(Opcode::LH, 19, 0, 0x27654320, false, true),
+                // Opcode::new(Opcode::LH, 18, 0, 0x27654322, false, true),
                 // // SB
-                // Instruction::new(Opcode::ADD, 17, 0, 0x38276525, false, true),
+                // Opcode::new(Opcode::ADD, 17, 0, 0x38276525, false, true),
                 // // Save the value 0x12348765 into address 0x43627530
-                // Instruction::new(Opcode::SW, 29, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::SB, 17, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::LW, 16, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::SB, 17, 0, 0x43627531, false, true),
-                // Instruction::new(Opcode::LW, 15, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::SB, 17, 0, 0x43627532, false, true),
-                // Instruction::new(Opcode::LW, 14, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::SB, 17, 0, 0x43627533, false, true),
-                // Instruction::new(Opcode::LW, 13, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SW, 29, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SB, 17, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::LW, 16, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SB, 17, 0, 0x43627531, false, true),
+                // Opcode::new(Opcode::LW, 15, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SB, 17, 0, 0x43627532, false, true),
+                // Opcode::new(Opcode::LW, 14, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SB, 17, 0, 0x43627533, false, true),
+                // Opcode::new(Opcode::LW, 13, 0, 0x43627530, false, true),
                 // // SH
                 // // Save the value 0x12348765 into address 0x43627530
-                // Instruction::new(Opcode::SW, 29, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::SH, 17, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::LW, 12, 0, 0x43627530, false, true),
-                // Instruction::new(Opcode::SH, 17, 0, 0x43627532, false, true),
-                // Instruction::new(Opcode::LW, 11, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SW, 29, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SH, 17, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::LW, 12, 0, 0x43627530, false, true),
+                // Opcode::new(Opcode::SH, 17, 0, 0x43627532, false, true),
+                // Opcode::new(Opcode::LW, 11, 0, 0x43627530, false, true),
             ];
-            Program::new(&instructions)
+            Program::from_instrs(instructions)
         }
     }
 }

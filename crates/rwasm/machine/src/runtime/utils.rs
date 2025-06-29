@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use super::{Instruction, Runtime};
+use super::{ Runtime};
 
 pub const fn align(addr: u32) -> u32 {
     addr - addr % 4

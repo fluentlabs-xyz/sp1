@@ -7,7 +7,8 @@ use p3_matrix::dense::RowMajorMatrix;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use rwasm_executor::{
-    events::{BranchEvent, ByteLookupEvent, ByteRecord}, ExecutionRecord, Instruction, Opcode, Program
+    events::{BranchEvent, ByteLookupEvent, ByteRecord},
+    ExecutionRecord, Opcode, Program,
 };
 use sp1_stark::air::MachineAir;
 
@@ -81,26 +82,21 @@ impl BranchChip {
         cols: &mut BranchColumns<F>,
         blu: &mut HashMap<ByteLookupEvent, usize>,
     ) {
-        
-
         cols.op_a_value = event.res.into();
         cols.op_b_value = event.arg1.into();
         cols.op_c_value = event.arg2.into();
-       
 
         let a_eq_zero = event.arg1 == 0;
-        let a_gt_zero = event.arg1 >0;
-       
-      
+        let a_gt_zero = event.arg1 > 0;
 
         cols.a_eq_zero = F::from_bool(a_eq_zero);
-       
+
         cols.a_gt_zero = F::from_bool(a_gt_zero);
 
-        let branching = match event.instruction {
-            Instruction::Br(_) => true,
-            Instruction::BrIfEqz(_) => a_eq_zero,
-            Instruction::BrIfNez(_)=>!a_eq_zero,
+        let branching = match event.opcode {
+            Opcode::Br(_) => true,
+            Opcode::BrIfEqz(_) => a_eq_zero,
+            Opcode::BrIfNez(_) => !a_eq_zero,
             _ => unreachable!(),
         };
 

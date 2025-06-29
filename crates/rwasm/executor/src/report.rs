@@ -23,13 +23,15 @@ pub struct ExecutionReport {
     pub touched_memory_addresses: u64,
     /// The gas, if it was calculated.
     pub gas: Option<u64>,
+    ///cycles
+    pub cycles:u64,
 }
 
 impl ExecutionReport {
-    /// Compute the total number of opcodes run during the execution.
+    /// Compute the total number of opcodes run during the execution.// TODO: implement this correctly
     #[must_use]
     pub fn total_opcode_count(&self) -> u64 {
-        self.opcode_counts.values().sum()
+        self.cycles
     }
 
     /// Compute the total number of syscalls made during the execution.
@@ -37,6 +39,13 @@ impl ExecutionReport {
     pub fn total_syscall_count(&self) -> u64 {
         self.syscall_counts.values().sum()
     }
+    ///total instruction count
+     #[must_use]
+    pub fn total_instruction_count(&self) -> u64 {
+        self.cycles
+    }
+
+
 }
 
 /// Combines two `HashMap`s together. If a key is in both maps, the values are added together.

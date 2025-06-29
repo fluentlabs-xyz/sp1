@@ -5,7 +5,7 @@ use itertools::Itertools;
 use p3_field::{PrimeField, PrimeField32};
 use p3_matrix::dense::RowMajorMatrix;
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
-use rwasm::engine::bytecode::Instruction;
+use rwasm::Opcode;
 use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord, CpuEvent, MemoryRecordEnum},
     syscalls::SyscallCode,
@@ -55,7 +55,7 @@ impl<F: PrimeField32> MachineAir<F> for CpuChip {
                     } else {
                         let mut byte_lookup_events = Vec::new();
                         let event = &input.cpu_events[idx];
-                        let instruction = &input.program.fetch(event.pc);
+                        let instruction = input.program.fetch(event.pc);
                         self.event_to_row(
                             event,
                             cols,
@@ -86,7 +86,7 @@ impl<F: PrimeField32> MachineAir<F> for CpuChip {
                 ops.iter().for_each(|op| {
                     let mut row = [F::zero(); NUM_CPU_COLS];
                     let cols: &mut CpuCols<F> = row.as_mut_slice().borrow_mut();
-                    let instruction = &input.program.fetch(op.pc);
+                    let instruction = input.program.fetch(op.pc);
                     self.event_to_row::<F>(
                         op,
                         cols,
@@ -119,7 +119,7 @@ impl CpuChip {
         cols: &mut CpuCols<F>,
         blu_events: &mut impl ByteRecord,
         shard: u32,
-        instruction: &Instruction,
+        instruction: Opcode,
     ) {
         // Populate shard and clk columns.
         self.populate_shard_clk(cols, event, blu_events, shard);
@@ -140,7 +140,7 @@ impl CpuChip {
         *cols.op_res_access.value_mut() = event.res.into();
         *cols.op_arg1_access.value_mut() = event.arg1.into();
         *cols.op_arg2_access.value_mut() = event.arg2.into();
-        
+
         cols.shard_to_send = if instruction.is_memory_load_instruction()
             || instruction.is_memory_store_instruction()
             || instruction.is_ecall_instruction()

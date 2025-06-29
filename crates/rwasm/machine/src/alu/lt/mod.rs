@@ -9,9 +9,11 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, Field, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::*;
+use rwasm::Opcode;
+
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
-    rwasm_ins_to_code, ByteOpcode, ExecutionRecord, Instruction, Program, DEFAULT_PC_INC,
+    ByteOpcode, ExecutionRecord, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
@@ -208,7 +210,7 @@ impl LtChip {
 
         let mut b_comp = b;
         let mut c_comp = c;
-        if event.code == rwasm_ins_to_code(Instruction::I32LtS) {
+        if event.code == Opcode::I32LtS.code() {
             b_comp[3] = masked_b;
             c_comp[3] = masked_c;
         }
@@ -232,14 +234,14 @@ impl LtChip {
 
         cols.msb_b = F::from_canonical_u8((b[3] >> 7) & 1);
         cols.msb_c = F::from_canonical_u8((c[3] >> 7) & 1);
-        cols.is_sign_eq = if event.code == rwasm_ins_to_code(Instruction::I32LtS) {
+        cols.is_sign_eq = if event.code == Opcode::I32LtS.code() {
             F::from_bool((b[3] >> 7) == (c[3] >> 7))
         } else {
             F::one()
         };
 
-        cols.is_slt = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32LtS));
-        cols.is_sltu = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32LtU));
+        cols.is_slt = F::from_bool(event.code == Opcode::I32LtS.code());
+        cols.is_sltu = F::from_bool(event.code == Opcode::I32LtU.code());
 
         cols.bit_b = cols.msb_b * cols.is_slt;
         cols.bit_c = cols.msb_c * cols.is_slt;
@@ -449,8 +451,8 @@ where
             local.pc,
             local.pc + AB::Expr::from_canonical_u32(DEFAULT_PC_INC),
             AB::Expr::zero(),
-            local.is_slt * AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32LtS))
-                + local.is_sltu * AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32LtU)),
+            local.is_slt * AB::F::from_canonical_u32(Opcode::I32LtS.code())
+                + local.is_sltu * AB::F::from_canonical_u32(Opcode::I32LtU.code()),
             Word::extend_var::<AB>(local.a),
             local.b,
             local.c,
@@ -480,7 +482,7 @@ mod tests {
     use rand::{thread_rng, Rng};
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, Program,
+        ExecutionRecord, Opcode, Program,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -581,8 +583,8 @@ mod tests {
                 let op_a = !correct_op_a;
 
                 let instructions = vec![
-                    Instruction::new(opcode, 5, op_b, op_c, true, true),
-                    Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
+                    Opcode::new(opcode, 5, op_b, op_c, true, true),
+                    Opcode::new(Opcode::ADD, 10, 0, 0, false, false),
                 ];
 
                 let program = Program::new(instructions, 0, 0);

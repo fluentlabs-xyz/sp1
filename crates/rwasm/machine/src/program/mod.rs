@@ -64,11 +64,11 @@ impl<F: PrimeField32> MachineAir<F> for ProgramChip {
 
     fn generate_preprocessed_trace(&self, program: &Self::Program) -> Option<RowMajorMatrix<F>> {
         debug_assert!(
-            !program.instructions.is_empty() || program.preprocessed_shape.is_some(),
+            !program.module.code_section.is_empty() || program.preprocessed_shape.is_some(),
             "empty program"
         );
         // Generate the trace rows for each event.
-        let nb_rows = program.instructions.len();
+        let nb_rows = program.module.code_section.len();
         let size_log2 = program.fixed_log2_rows::<F, _>(self);
         let padded_nb_rows = next_power_of_two(nb_rows, size_log2);
         let mut values = zeroed_f_vec(padded_nb_rows * NUM_PROGRAM_PREPROCESSED_COLS);
@@ -84,8 +84,8 @@ impl<F: PrimeField32> MachineAir<F> for ProgramChip {
 
                     if idx < nb_rows {
                         let cols: &mut ProgramPreprocessedCols<F> = row.borrow_mut();
-                        let instruction = &program.instructions[idx];
-                        let pc = program.pc_base + (idx as u32 * 4);
+                        let instruction = program.fetch(idx as u32);
+                        let pc = (idx as u32 * 4); //TODO: find pc_base
                         cols.pc = F::from_canonical_u32(pc);
                         cols.instruction.populate(instruction);
                     }
@@ -117,12 +117,13 @@ impl<F: PrimeField32> MachineAir<F> for ProgramChip {
 
         let mut rows = input
             .program
-            .instructions
+            .module
+            .code_section
             .clone()
-            .into_iter()
+            .iter()
             .enumerate()
             .map(|(i, _)| {
-                let pc = input.program.pc_base + (i as u32 * 4);
+                let pc = (i as u32 * 4); //TODO: do we have pc base?
                 let mut row = [F::zero(); NUM_PROGRAM_MULT_COLS];
                 let cols: &mut ProgramMultiplicityCols<F> = row.as_mut_slice().borrow_mut();
                 cols.multiplicity =
@@ -180,7 +181,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
 
     use p3_matrix::dense::RowMajorMatrix;
-    use rwasm_executor::{ExecutionRecord, Instruction, Opcode, Program};
+    use rwasm_executor::{ExecutionRecord, Opcode, Program};
     use sp1_stark::air::MachineAir;
 
     use crate::program::ProgramChip;
@@ -192,9 +193,9 @@ mod tests {
         //     addi x30, x0, 37
         //     add x31, x30, x29
         let instructions = vec![
-            Instruction::new(Opcode::ADD, 29, 0, 5, false, true),
-            Instruction::new(Opcode::ADD, 30, 0, 37, false, true),
-            Instruction::new(Opcode::ADD, 31, 30, 29, false, false),
+            Opcode::new(Opcode::ADD, 29, 0, 5, false, true),
+            Opcode::new(Opcode::ADD, 30, 0, 37, false, true),
+            Opcode::new(Opcode::ADD, 31, 30, 29, false, false),
         ];
         let shard = ExecutionRecord {
             program: Arc::new(Program {

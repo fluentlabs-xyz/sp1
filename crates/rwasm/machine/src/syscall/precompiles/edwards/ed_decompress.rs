@@ -278,4 +278,3 @@ where
         local.eval::<AB, E::BaseField, E>(builder);
     }
 }
-

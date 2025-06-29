@@ -67,9 +67,7 @@ impl Shapeable for ExecutionRecord {
                     .count(),
             ),
             (RwasmAirId::MemoryInstrs, self.memory_instr_events.len()),
-           
             (RwasmAirId::Branch, self.branch_events.len()),
-          
             (RwasmAirId::Global, self.global_interaction_events.len()),
             (RwasmAirId::SyscallCore, self.syscall_events.len()),
             (RwasmAirId::SyscallInstrs, self.syscall_events.len()),

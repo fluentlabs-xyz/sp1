@@ -9,10 +9,10 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{IntoParallelRefIterator, ParallelIterator, ParallelSlice};
-use rwasm::engine::bytecode::Instruction;
+use rwasm::Opcode;
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
-    ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC,
+    ByteOpcode, ExecutionRecord, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_stark::{
@@ -145,13 +145,10 @@ impl BitwiseChip {
         cols.a = Word::from(event.a);
         cols.b = Word::from(event.b);
         cols.c = Word::from(event.c);
-      
 
-        cols.is_xor = F::from_bool(event.instruction == Instruction::I32Xor);
-        cols.is_or = F::from_bool(event.instruction == Instruction::I32Or);
-        cols.is_and = F::from_bool(event.instruction == Instruction::I32And);
-
-       
+        cols.is_xor = F::from_bool(event.opcode == Opcode::I32Xor);
+        cols.is_or = F::from_bool(event.opcode == Opcode::I32Or);
+        cols.is_and = F::from_bool(event.opcode == Opcode::I32And);
     }
 }
 
@@ -185,9 +182,9 @@ where
         builder.when(local.op_a_not_0).assert_one(mult.clone());
 
         // Get the cpu opcode, which corresponds to the opcode being sent in the CPU table.
-        let cpu_opcode = local.is_xor * Opcode::XOR.as_field::<AB::F>()
-            + local.is_or * Opcode::OR.as_field::<AB::F>()
-            + local.is_and * Opcode::AND.as_field::<AB::F>();
+        let cpu_opcode = local.is_xor * AB::Expr::from_canonical_u32(Opcode::I32Xor.code())
+            + local.is_or * AB::Expr::from_canonical_u32(Opcode::I32Or.code())
+            + local.is_and * AB::Expr::from_canonical_u32(Opcode::I32Add.code());
 
         // Receive the arguments.
         // SAFETY: This checks the following.
@@ -234,9 +231,10 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{thread_rng, Rng};
+    use rwasm::Opcode;
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, Program,
+        ExecutionRecord, Program,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, CpuProver, MachineProver,
@@ -303,8 +301,8 @@ mod tests {
     //             assert!(op_a != correct_op_a);
 
     //             let instructions = vec![
-    //                 Instruction::new(opcode, 5, op_b, op_c, true, true),
-    //                 Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
+    //                 Opcode::new(opcode, 5, op_b, op_c, true, true),
+    //                 Opcode::new(Opcode::ADD, 10, 0, 0, false, false),
     //             ];
     //             let program = Program::new(instructions, 0, 0);
     //             let stdin = SP1Stdin::new();

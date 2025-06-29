@@ -700,19 +700,19 @@ impl<'a> Executor<'a> {
         if opcode.is_alu_instruction() {
             self.emit_alu_event(opcode, arg1, arg2, res);
         } else if opcode.is_memory_load_instruction() || opcode.is_memory_store_instruction() {
-            self.emit_mem_instr_event(opcode, arg1, arg2, res,record);
+            self.emit_mem_instr_event(opcode, arg1, arg2, res, record);
         } else if opcode.is_branch_instruction() {
             self.emit_branch_event(opcode, arg1, arg2, res, next_pc);
         } else if opcode.is_ecall_instruction() {
             self.emit_syscall_event(clk, record.arg1_record, syscall_code, arg2, res, next_pc);
         } else if opcode.is_const_instruction() {
             self.emit_const_event(opcode);
-        } else if opcode.is_state_instrucition()    {
-             #[cfg(debug_assertions)]
+        } else if opcode.is_state_instrucition() {
+            #[cfg(debug_assertions)]
             {
                 println!("sys_state_event not generated here");
             }
-        }else {
+        } else {
             println!("no event :ins:{:?},", opcode);
         }
     }
@@ -835,8 +835,15 @@ impl<'a> Executor<'a> {
 
     // Emit a memory opcode event.
     #[inline]
-    fn emit_mem_instr_event(&mut self, opcode: Opcode, arg1: u32, arg2: u32, res: u32,record:MemoryAccessRecord) {
-        println!("record in emit:{:?}",record.memory.expect("Must have memory access"));
+    fn emit_mem_instr_event(
+        &mut self,
+        opcode: Opcode,
+        arg1: u32,
+        arg2: u32,
+        res: u32,
+        record: MemoryAccessRecord,
+    ) {
+        println!("record in emit:{:?}", record.memory.expect("Must have memory access"));
         let event = MemInstrEvent {
             shard: self.shard(),
             clk: self.state.clk,
@@ -849,10 +856,7 @@ impl<'a> Executor<'a> {
         };
 
         self.record.memory_instr_events.push(event);
-        emit_memory_dependencies(
-            self,
-            event,
-        );
+        emit_memory_dependencies(self, event);
     }
 
     // Emit a branch event.
@@ -934,14 +938,19 @@ impl<'a> Executor<'a> {
         self.record.const_events.push(event);
     }
 
-     // Emit a branch event.
+    // Emit a branch event.
     #[inline]
-    fn emit_sys_state_event(&mut self, opcode:Opcode,fuel:u32,next_fuel:u32,max_memory:u32,next_max_memory:u32) {
+    fn emit_sys_state_event(
+        &mut self,
+        opcode: Opcode,
+        fuel: u32,
+        next_fuel: u32,
+        max_memory: u32,
+        next_max_memory: u32,
+    ) {
         let event = SysStateEvent::new(opcode, fuel, next_fuel, max_memory, next_max_memory);
         self.record.sys_state_events.push(event);
     }
-
-   
 
     /// Execute an ecall opcode.
     #[allow(clippy::type_complexity)]
@@ -1055,9 +1064,8 @@ impl<'a> Executor<'a> {
             op_state.arg2,
             op_state.res,
             op_state.memory_access,
-           
         );
-        if op_state.opcode.is_state_instrucition(){
+        if op_state.opcode.is_state_instrucition() {
             //TODO: generate sys_state_event here
         }
 

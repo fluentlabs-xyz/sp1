@@ -21,9 +21,7 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_field::AbstractField;
     use p3_matrix::dense::RowMajorMatrix;
-    use rwasm_executor::{
-        events::MemoryRecordEnum, ExecutionRecord, Instruction, Opcode, Program,
-    };
+    use rwasm_executor::{events::MemoryRecordEnum, ExecutionRecord, Opcode, Program};
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
         MachineProver, Val,
@@ -69,9 +67,9 @@ mod tests {
 
         for test_case in test_cases {
             let instructions = vec![
-                Instruction::new(Opcode::ADD, 29, 0, 0xDEADBEEF, false, true), // Set the stored value to 5.
-                Instruction::new(Opcode::ADD, 30, 0, 100, false, true), // Set the address to 100.
-                Instruction::new(test_case.opcode, 29, 30, 0, false, true),
+                Opcode::new(Opcode::ADD, 29, 0, 0xDEADBEEF, false, true), // Set the stored value to 5.
+                Opcode::new(Opcode::ADD, 30, 0, 100, false, true),        // Set the address to 100.
+                Opcode::new(test_case.opcode, 29, 30, 0, false, true),
             ];
             let program = Program::new(instructions, 0, 0);
             let stdin = SP1Stdin::new();
@@ -144,10 +142,10 @@ mod tests {
 
         for test_case in test_cases {
             let instructions = vec![
-                Instruction::new(Opcode::ADD, 29, 0, 0xDEADBEEF, false, true), // Set the stored value to 0xDEADBEEF.
-                Instruction::new(Opcode::ADD, 30, 0, 100, false, true), // Set the address to 100.
-                Instruction::new(Opcode::SW, 29, 30, 0, false, true), // Store the value to memory.
-                Instruction::new(test_case.opcode, 25, 30, 0, false, true), // Load the value from memory.
+                Opcode::new(Opcode::ADD, 29, 0, 0xDEADBEEF, false, true), // Set the stored value to 0xDEADBEEF.
+                Opcode::new(Opcode::ADD, 30, 0, 100, false, true),        // Set the address to 100.
+                Opcode::new(Opcode::SW, 29, 30, 0, false, true), // Store the value to memory.
+                Opcode::new(test_case.opcode, 25, 30, 0, false, true), // Load the value from memory.
             ];
             let program = Program::new(instructions, 0, 0);
             let stdin = SP1Stdin::new();
@@ -188,9 +186,9 @@ mod tests {
     #[test]
     fn test_malicious_multiple_opcode_flags() {
         let instructions = vec![
-            Instruction::new(Opcode::ADD, 29, 0, 5, false, true), // Set the stored value to 5.
-            Instruction::new(Opcode::ADD, 30, 0, 100, false, true), // Set the address to 100.
-            Instruction::new(Opcode::SW, 29, 30, 0, false, true),
+            Opcode::new(Opcode::ADD, 29, 0, 5, false, true), // Set the stored value to 5.
+            Opcode::new(Opcode::ADD, 30, 0, 100, false, true), // Set the address to 100.
+            Opcode::new(Opcode::SW, 29, 30, 0, false, true),
         ];
         let program = Program::new(instructions, 0, 0);
         let stdin = SP1Stdin::new();

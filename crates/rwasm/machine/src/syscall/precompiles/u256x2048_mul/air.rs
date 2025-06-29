@@ -12,7 +12,7 @@ use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use rwasm_executor::{
     events::{ByteRecord, FieldOperation, PrecompileEvent},
     syscalls::SyscallCode,
-    ExecutionRecord, Program, 
+    ExecutionRecord, Program,
 };
 use sp1_curves::{
     params::{NumLimbs, NumWords},
@@ -42,8 +42,8 @@ impl U256x2048MulChip {
 }
 type WordsFieldElement = <U256Field as NumWords>::WordsFieldElement;
 const WORDS_FIELD_ELEMENT: usize = WordsFieldElement::USIZE;
-const LO_REGISTER: u32 =0;//TODO: fix this
-const HI_REGISTER: u32 =0;
+const LO_REGISTER: u32 = 0; //TODO: fix this
+const HI_REGISTER: u32 = 0;
 
 /// A set of columns for the U256x2048Mul operation.
 #[derive(Debug, Clone, AlignedBorrow)]

@@ -391,8 +391,6 @@ where
             builder.when(local.is_real).assert_eq(local.timestamp, AB::F::one());
         }
 
-      
-
         // Make assertions for the final value. We need to connect the final valid address to the
         // corresponding `last_addr` value.
         let last_addr_bits = match self.kind {

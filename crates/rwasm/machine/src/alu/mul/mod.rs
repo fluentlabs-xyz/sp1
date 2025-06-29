@@ -40,8 +40,11 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
+use rwasm::Opcode;
 use rwasm_executor::{
-    events::{AluEvent, ByteLookupEvent, ByteRecord}, rwasm_ins_to_code, ByteOpcode, ExecutionRecord, Opcode, Program, DEFAULT_PC_INC, I32MULHSU_CODE, I32MULHU_CODE, I32MULH_CODE
+    events::{AluEvent, ByteLookupEvent, ByteRecord},
+    ByteOpcode, ExecutionRecord, Program, DEFAULT_PC_INC, I32MULHSU_CODE, I32MULHU_CODE,
+    I32MULH_CODE,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::{BYTE_SIZE, LONG_WORD_SIZE, WORD_SIZE};
@@ -52,7 +55,7 @@ use crate::{
     alu::mul::utils::get_msb,
     utils::{next_power_of_two, zeroed_f_vec},
 };
-use rwasm_executor::Instruction;
+
 /// The number of main trace columns for `MulChip`.
 pub const NUM_MUL_COLS: usize = size_of::<MulCols<u8>>();
 
@@ -205,7 +208,6 @@ impl MulChip {
 
         let mut b = b_word.to_vec();
         let mut c = c_word.to_vec();
-      
 
         // Handle b and c's signs.
         {
@@ -215,7 +217,7 @@ impl MulChip {
             cols.c_msb = F::from_canonical_u8(c_msb);
 
             // If b is signed and it is negative, sign extend b.
-            if (event.code == I32MULH_CODE || event.code == I32MULHSU_CODE ) && b_msb == 1 {
+            if (event.code == I32MULH_CODE || event.code == I32MULHSU_CODE) && b_msb == 1 {
                 cols.b_sign_extend = F::one();
                 b.resize(LONG_WORD_SIZE, BYTE_MASK);
             }
@@ -271,7 +273,7 @@ impl MulChip {
         cols.b = Word(b_word.map(F::from_canonical_u8));
         cols.c = Word(c_word.map(F::from_canonical_u8));
         cols.is_real = F::one();
-        cols.is_mul = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32Mul));
+        cols.is_mul = F::from_bool(event.code == Opcode::I32Mul.code());
         cols.is_mulh = F::from_bool(event.code == I32MULH_CODE);
         cols.is_mulhu = F::from_bool(event.code == I32MULHU_CODE);
         cols.is_mulhsu = F::from_bool(event.code == I32MULHSU_CODE);
@@ -418,10 +420,10 @@ where
                 .when(local.is_real)
                 .assert_one(local.is_mul + local.is_mulh + local.is_mulhu + local.is_mulhsu);
 
-            let mul: AB::Expr = AB::F::from_canonical_u32(Opcode::MUL as u32).into();
-            let mulh: AB::Expr = AB::F::from_canonical_u32(Opcode::MULH as u32).into();
-            let mulhu: AB::Expr = AB::F::from_canonical_u32(Opcode::MULHU as u32).into();
-            let mulhsu: AB::Expr = AB::F::from_canonical_u32(Opcode::MULHSU as u32).into();
+            let mul: AB::Expr = AB::F::from_canonical_u32(Opcode::I32Mul.code()).into();
+            let mulh: AB::Expr = AB::F::from_canonical_u32(I32MULH_CODE).into();
+            let mulhu: AB::Expr = AB::F::from_canonical_u32(I32MULHU_CODE).into();
+            let mulhsu: AB::Expr = AB::F::from_canonical_u32(I32MULHSU_CODE).into();
             local.is_mul * mul
                 + local.is_mulh * mulh
                 + local.is_mulhu * mulhu
@@ -479,9 +481,10 @@ mod tests {
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{thread_rng, Rng};
+    use rwasm::Opcode;
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, Program,
+        ExecutionRecord, Program,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -624,8 +627,8 @@ mod tests {
                 assert!(op_a != correct_op_a);
 
                 let instructions = vec![
-                    Instruction::new(opcode, 5, op_b, op_c, true, true),
-                    Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
+                    Opcode::new(opcode, 5, op_b, op_c, true, true),
+                    Opcode::new(Opcode::ADD, 10, 0, 0, false, false),
                 ];
 
                 let program = Program::new(instructions, 0, 0);

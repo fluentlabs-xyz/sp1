@@ -32,9 +32,8 @@ impl ShaCompressChip {
 #[cfg(test)]
 pub mod compress_tests {
 
-    use rwasm_executor::{syscalls::SyscallCode, Instruction, Opcode, Program};
+    use rwasm_executor::{syscalls::SyscallCode, Opcode, Program};
     use sp1_stark::CpuProver;
-    
 
     use crate::{
         io::SP1Stdin,
@@ -44,24 +43,24 @@ pub mod compress_tests {
     pub fn sha_compress_program() -> Program {
         let w_ptr = 100;
         let h_ptr = 1000;
-        let mut instructions = vec![Instruction::new(Opcode::ADD, 29, 0, 5, false, true)];
+        let mut instructions = vec![Opcode::new(Opcode::ADD, 29, 0, 5, false, true)];
         for i in 0..64 {
             instructions.extend(vec![
-                Instruction::new(Opcode::ADD, 30, 0, w_ptr + i * 4, false, true),
-                Instruction::new(Opcode::SW, 29, 30, 0, false, true),
+                Opcode::new(Opcode::ADD, 30, 0, w_ptr + i * 4, false, true),
+                Opcode::new(Opcode::SW, 29, 30, 0, false, true),
             ]);
         }
         for i in 0..8 {
             instructions.extend(vec![
-                Instruction::new(Opcode::ADD, 30, 0, h_ptr + i * 4, false, true),
-                Instruction::new(Opcode::SW, 29, 30, 0, false, true),
+                Opcode::new(Opcode::ADD, 30, 0, h_ptr + i * 4, false, true),
+                Opcode::new(Opcode::SW, 29, 30, 0, false, true),
             ]);
         }
         instructions.extend(vec![
-            Instruction::new(Opcode::ADD, 5, 0, SyscallCode::SHA_COMPRESS as u32, false, true),
-            Instruction::new(Opcode::ADD, 10, 0, w_ptr, false, true),
-            Instruction::new(Opcode::ADD, 11, 0, h_ptr, false, true),
-            Instruction::new(Opcode::ECALL, 5, 10, 11, false, false),
+            Opcode::new(Opcode::ADD, 5, 0, SyscallCode::SHA_COMPRESS as u32, false, true),
+            Opcode::new(Opcode::ADD, 10, 0, w_ptr, false, true),
+            Opcode::new(Opcode::ADD, 11, 0, h_ptr, false, true),
+            Opcode::new(Opcode::ECALL, 5, 10, 11, false, false),
         ]);
         Program::new(instructions, 0, 0)
     }
@@ -73,6 +72,4 @@ pub mod compress_tests {
         let stdin = SP1Stdin::new();
         run_test::<CpuProver<_, _>>(program, stdin).unwrap();
     }
-
-   
 }

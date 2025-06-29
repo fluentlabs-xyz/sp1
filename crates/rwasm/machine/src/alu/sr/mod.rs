@@ -59,10 +59,10 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
 use p3_maybe_rayon::prelude::{ParallelBridge, ParallelIterator, ParallelSlice};
-use rwasm_executor::rwasm_ins_to_code;
+use rwasm::Opcode;
 use rwasm_executor::{
     events::{AluEvent, ByteLookupEvent, ByteRecord},
-    ByteOpcode, ExecutionRecord, Instruction, Opcode, Program, DEFAULT_PC_INC,
+    ByteOpcode, ExecutionRecord, Program, DEFAULT_PC_INC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
@@ -227,8 +227,8 @@ impl ShiftRightChip {
 
             cols.b_msb = F::from_canonical_u32((event.b >> 31) & 1);
 
-            cols.is_srl = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32ShrU));
-            cols.is_sra = F::from_bool(event.code == rwasm_ins_to_code(Instruction::I32ShrS));
+            cols.is_srl = F::from_bool(event.code == Opcode::I32ShrU.code());
+            cols.is_sra = F::from_bool(event.code == Opcode::I32ShrS.code());
 
             cols.is_real = F::one();
 
@@ -257,7 +257,7 @@ impl ShiftRightChip {
                 cols.shift_by_n_bytes[i] = F::from_bool(num_bytes_to_shift == i);
             }
             let sign_extended_b = {
-                if event.code == rwasm_ins_to_code(Instruction::I32ShrS) {
+                if event.code == Opcode::I32ShrS.code() {
                     // Sign extension is necessary only for arithmetic right shift.
                     ((event.b as i32) as i64).to_le_bytes()
                 } else {
@@ -522,8 +522,8 @@ where
             local.pc,
             local.pc + AB::Expr::from_canonical_u32(DEFAULT_PC_INC),
             AB::Expr::zero(),
-            local.is_srl * AB::F::from_canonical_u32(Opcode::SRL as u32)
-                + local.is_sra * AB::F::from_canonical_u32(Opcode::SRA as u32),
+            local.is_srl * AB::F::from_canonical_u32(Opcode::I32ShrU.code() as u32)
+                + local.is_sra * AB::F::from_canonical_u32(Opcode::I32ShrS.code() as u32),
             local.a,
             local.b,
             local.c,
@@ -554,7 +554,7 @@ mod tests {
     use rand::{thread_rng, Rng};
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        ExecutionRecord, Instruction, Opcode, Program,
+        ExecutionRecord, Opcode, Program,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -652,8 +652,8 @@ mod tests {
                 assert!(op_a != correct_op_a);
 
                 let instructions = vec![
-                    Instruction::new(opcode, 5, op_b, op_c, true, true),
-                    Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
+                    Opcode::new(opcode, 5, op_b, op_c, true, true),
+                    Opcode::new(Opcode::ADD, 10, 0, 0, false, false),
                 ];
 
                 let program = Program::new(instructions, 0, 0);

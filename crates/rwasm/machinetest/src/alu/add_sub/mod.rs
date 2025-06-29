@@ -8,7 +8,7 @@ pub mod test {
     use p3_baby_bear::BabyBear;
     use p3_matrix::dense::RowMajorMatrix;
     use rand::{thread_rng, Rng};
-    use rwasm_executor::{events::AluEvent, rwasm_ins_to_code, ExecutionRecord, Instruction, Opcode, DEFAULT_PC_INC};
+    use rwasm_executor::{events::AluEvent,  ExecutionRecord, Instruction, Opcode, DEFAULT_PC_INC};
     use rwasm_machine::rwasm::AddSubChip;
     use sp1_stark::{air::MachineAir, MachineProver, StarkGenericConfig};
     use std::sync::LazyLock;
@@ -18,7 +18,7 @@ pub mod test {
     #[test]
     fn generate_trace() {
         let mut shard = ExecutionRecord::default();
-        shard.add_events = vec![AluEvent::new(0, Instruction::I32Add, 14, 8, 6,rwasm_ins_to_code(Instruction::I32Add))];
+        shard.add_events = vec![AluEvent::new(0, Instruction::I32Add, 14, 8, 6,Opcode::I32Add.code())];
         let chip = AddSubChip::default();
         let trace: RowMajorMatrix<BabyBear> =
             chip.generate_trace(&shard, &mut ExecutionRecord::default());

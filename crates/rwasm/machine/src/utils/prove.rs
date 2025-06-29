@@ -525,7 +525,7 @@ where
         let mut report_aggregate = report_aggregate.lock().unwrap();
         tracing::debug!(
             "execution report (totals): total_cycles={}, total_syscall_cycles={}, touched_memory_addresses={}",
-            report_aggregate.total_instruction_count(),
+            "opcode count not implemented yet",
             report_aggregate.total_syscall_count(),
             report_aggregate.touched_memory_addresses,
         );
@@ -565,8 +565,9 @@ where
         // Print the summary.
         let proving_time = proving_start.elapsed().as_secs_f64();
         tracing::debug!(
-            "summary: cycles={}, e2e={}s, khz={:.2}",
-            cycles,
+            "summary: cycles={}, e2e={}s,
+             khz={}",
+            "cycle count not implemented yet",
             proving_time,
             (cycles as f64 / (proving_time * 1000.0) as f64),
         );

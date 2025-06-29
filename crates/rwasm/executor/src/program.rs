@@ -100,6 +100,10 @@ impl Program {
             .map(|x| (u32::from_le_bytes(x.0.try_into().unwrap()), x.1))
             .collect()
     }
+    /// get Opcode by programm counter
+    pub fn fetch(&self,pc:u32)->Opcode{
+        self.module.code_section[pc as usize]
+    }   
 }
 
 impl<F: PrimeField32> MachineProgram<F> for Program {

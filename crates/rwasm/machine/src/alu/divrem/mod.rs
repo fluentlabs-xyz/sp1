@@ -68,11 +68,11 @@ use core::{
 use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::{AbstractField, PrimeField32};
 use p3_matrix::{dense::RowMajorMatrix, Matrix};
-use rwasm::engine::bytecode::Instruction;
+use rwasm::Opcode;
 use rwasm_executor::{
     events::{ByteLookupEvent, ByteRecord},
-    get_msb, get_quotient_and_remainder, is_signed_operation, rwasm_ins_to_code, ByteOpcode,
-    ExecutionRecord, Program, DEFAULT_PC_INC, I32MULHU_CODE, I32MULH_CODE, UNUSED_PC,
+    get_msb, get_quotient_and_remainder, is_signed_operation, ByteOpcode, ExecutionRecord, Program,
+    DEFAULT_PC_INC, I32MULHU_CODE, I32MULH_CODE, UNUSED_PC,
 };
 use sp1_derive::AlignedBorrow;
 use sp1_primitives::consts::WORD_SIZE;
@@ -218,10 +218,10 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
         let divrem_events = input.divrem_events.clone();
         for event in divrem_events.iter() {
             assert!(
-                event.instruction == Instruction::I32DivU
-                    || event.instruction == Instruction::I32RemU
-                    || event.instruction == Instruction::I32RemS
-                    || event.instruction == Instruction::I32DivS
+                event.opcode == Opcode::I32DivU
+                    || event.opcode == Opcode::I32RemU
+                    || event.opcode == Opcode::I32RemS
+                    || event.opcode == Opcode::I32DivS
             );
             let mut row = [F::zero(); NUM_DIVREM_COLS];
             let cols: &mut DivRemCols<F> = row.as_mut_slice().borrow_mut();
@@ -234,15 +234,14 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
                 cols.b = Word::from(event.b);
                 cols.c = Word::from(event.c);
                 cols.is_real = F::one();
-                cols.is_divu = F::from_bool(event.instruction == Instruction::I32DivU);
-                cols.is_remu = F::from_bool(event.instruction == Instruction::I32RemU);
-                cols.is_div = F::from_bool(event.instruction == Instruction::I32DivS);
-                cols.is_rem = F::from_bool(event.instruction == Instruction::I32RemS);
+                cols.is_divu = F::from_bool(event.opcode == Opcode::I32DivU);
+                cols.is_remu = F::from_bool(event.opcode == Opcode::I32RemU);
+                cols.is_div = F::from_bool(event.opcode == Opcode::I32DivS);
+                cols.is_rem = F::from_bool(event.opcode == Opcode::I32RemS);
                 cols.is_c_0.populate(event.c);
             }
 
-            let (quotient, remainder) =
-                get_quotient_and_remainder(event.b, event.c, event.instruction);
+            let (quotient, remainder) = get_quotient_and_remainder(event.b, event.c, event.opcode);
             cols.quotient = Word::from(quotient);
             cols.remainder = Word::from(remainder);
 
@@ -253,7 +252,7 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
                 cols.c_msb = F::from_canonical_u8(get_msb(event.c));
                 cols.is_overflow_b.populate(event.b, i32::MIN as u32);
                 cols.is_overflow_c.populate(event.c, -1i32 as u32);
-                if is_signed_operation(event.instruction) {
+                if is_signed_operation(event.opcode) {
                     cols.rem_neg = cols.rem_msb;
                     cols.b_neg = cols.b_msb;
                     cols.c_neg = cols.c_msb;
@@ -298,7 +297,7 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
             // Calculate c * quotient + remainder.
             {
                 let c_times_quotient = {
-                    if is_signed_operation(event.instruction) {
+                    if is_signed_operation(event.opcode) {
                         (((quotient as i32) as i64) * ((event.c as i32) as i64)).to_le_bytes()
                     } else {
                         ((quotient as u64) * (event.c as u64)).to_le_bytes()
@@ -307,7 +306,7 @@ impl<F: PrimeField32> MachineAir<F> for DivRemChip {
                 cols.c_times_quotient = c_times_quotient.map(F::from_canonical_u8);
 
                 let remainder_bytes = {
-                    if is_signed_operation(event.instruction) {
+                    if is_signed_operation(event.opcode) {
                         ((remainder as i32) as i64).to_le_bytes()
                     } else {
                         (remainder as u64).to_le_bytes()
@@ -435,7 +434,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Mul)),
+                AB::Expr::from_canonical_u32((Opcode::I32Mul.code())),
                 Word(lower_half),
                 local.quotient,
                 local.c,
@@ -637,7 +636,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Add)),
+                AB::Expr::from_canonical_u32(Opcode::I32Add.code()),
                 Word([zero.clone(), zero.clone(), zero.clone(), zero.clone()]),
                 local.c,
                 local.abs_c,
@@ -652,7 +651,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32Add)),
+                AB::Expr::from_canonical_u32(Opcode::I32Add.code()),
                 Word([zero.clone(), zero.clone(), zero.clone(), zero.clone()]),
                 local.remainder,
                 local.abs_remainder,
@@ -705,7 +704,7 @@ where
                 AB::Expr::from_canonical_u32(UNUSED_PC),
                 AB::Expr::from_canonical_u32(UNUSED_PC + DEFAULT_PC_INC),
                 AB::Expr::zero(),
-                AB::Expr::from_canonical_u32(rwasm_ins_to_code(Instruction::I32LtU)),
+                AB::Expr::from_canonical_u32(Opcode::I32LtU.code()),
                 Word([one.clone(), zero.clone(), zero.clone(), zero.clone()]),
                 local.abs_remainder,
                 local.max_abs_c_or_1,
@@ -779,14 +778,10 @@ where
             );
 
             let opcode = {
-                let divu: AB::Expr =
-                    AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32DivU)).into();
-                let remu: AB::Expr =
-                    AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32RemU)).into();
-                let div: AB::Expr =
-                    AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32DivS)).into();
-                let rem: AB::Expr =
-                    AB::F::from_canonical_u32(rwasm_ins_to_code(Instruction::I32RemS)).into();
+                let divu: AB::Expr = AB::F::from_canonical_u32((Opcode::I32DivU.code())).into();
+                let remu: AB::Expr = AB::F::from_canonical_u32(Opcode::I32RemU.code()).into();
+                let div: AB::Expr = AB::F::from_canonical_u32(Opcode::I32DivS.code()).into();
+                let rem: AB::Expr = AB::F::from_canonical_u32(Opcode::I32RemS.code()).into();
 
                 local.is_divu * divu
                     + local.is_remu * remu
@@ -838,7 +833,7 @@ mod tests {
     use rand::{thread_rng, Rng};
     use rwasm_executor::{
         events::{AluEvent, MemoryRecordEnum},
-        rwasm_ins_to_code, ExecutionRecord, Instruction, Program,
+        ExecutionRecord, Opcode, Program,
     };
     use sp1_stark::{
         air::MachineAir, baby_bear_poseidon2::BabyBearPoseidon2, chip_name, CpuProver,
@@ -846,20 +841,13 @@ mod tests {
     };
 
     use super::DivRemChip;
-   
 
     #[test]
 
     fn generate_trace() {
         let mut shard = ExecutionRecord::default();
-        shard.divrem_events = vec![AluEvent::new(
-            0,
-            Instruction::I32DivU,
-            2,
-            17,
-            3,
-            rwasm_ins_to_code(Instruction::I32DivU),
-        )];
+        shard.divrem_events =
+            vec![AluEvent::new(0, Opcode::I32DivU, 2, 17, 3, Opcode::I32DivU.code())];
         let chip = DivRemChip::default();
         let trace: RowMajorMatrix<BabyBear> =
             chip.generate_trace(&shard, &mut ExecutionRecord::default());
@@ -875,25 +863,25 @@ mod tests {
     //     const NUM_TESTS: usize = 5;
 
     //     for opcode in [
-    //         Instruction::I32DivS,
-    //         Instruction::I32DivSU,
-    //         Instruction::I32RemS,
-    //         Instruction::I32RemU,
+    //         Opcode::I32DivS,
+    //         Opcode::I32DivSU,
+    //         Opcode::I32RemS,
+    //         Opcode::I32RemU,
     //     ] {
     //         for _ in 0..NUM_TESTS {
-    //             let (correct_op_a, op_b, op_c) = if opcode == Instruction::I32DivS {
+    //             let (correct_op_a, op_b, op_c) = if opcode == Opcode::I32DivS {
     //                 let op_b = thread_rng().gen_range(0..i32::MAX);
     //                 let op_c = thread_rng().gen_range(0..i32::MAX);
     //                 ((op_b / op_c) as u32, op_b as u32, op_c as u32)
-    //             } else if opcode == Instruction::I32DivSU {
+    //             } else if opcode == Opcode::I32DivSU {
     //                 let op_b = thread_rng().gen_range(0..u32::MAX);
     //                 let op_c = thread_rng().gen_range(0..u32::MAX);
     //                 (op_b / op_c, op_b as u32, op_c as u32)
-    //             } else if opcode == Instruction::I32RemS {
+    //             } else if opcode == Opcode::I32RemS {
     //                 let op_b = thread_rng().gen_range(0..i32::MAX);
     //                 let op_c = thread_rng().gen_range(0..i32::MAX);
     //                 ((op_b % op_c) as u32, op_b as u32, op_c as u32)
-    //             } else if opcode == Instruction::I32RemU {
+    //             } else if opcode == Opcode::I32RemU {
     //                 let op_b = thread_rng().gen_range(0..u32::MAX);
     //                 let op_c = thread_rng().gen_range(0..u32::MAX);
     //                 (op_b % op_c, op_b as u32, op_c as u32)
@@ -905,8 +893,8 @@ mod tests {
     //             assert!(op_a != correct_op_a);
 
     //             let instructions = vec![
-    //                 Instruction::new(opcode, 5, op_b, op_c, true, true),
-    //                 Instruction::new(Opcode::ADD, 10, 0, 0, false, false),
+    //                 Opcode::new(opcode, 5, op_b, op_c, true, true),
+    //                 Opcode::new(Opcode::ADD, 10, 0, 0, false, false),
     //             ];
 
     //             let program = Program::new(instructions, 0, 0);

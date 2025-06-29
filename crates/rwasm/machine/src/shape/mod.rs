@@ -625,7 +625,7 @@ pub enum CoreShapeError {
 }
 
 pub fn create_dummy_program(shape: &Shape<RwasmAirId>) -> Program {
-    let mut program = Program::new(vec![], 1 << 5, 1 << 5);
+    let mut program = Program::from_instrs(vec![]);
     program.preprocessed_shape = Some(shape.clone());
     program
 }

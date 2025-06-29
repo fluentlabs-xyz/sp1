@@ -25,10 +25,9 @@ pub struct BranchColumns<T> {
     /// The value of the third operand.
     pub op_c_value: Word<T>,
 
-
     /// Branch Instructions.
     pub is_br: T,
-    pub is_brifnez :T,
+    pub is_brifnez: T,
     pub is_brifeqz: T,
 
     /// The is_branching column is equal to:
@@ -54,9 +53,6 @@ pub struct BranchColumns<T> {
     /// Whether a equals zerp.
     pub a_eq_zero: T,
 
-   
     /// Whether a is zero.
     pub a_gt_zero: T,
-
- 
 }

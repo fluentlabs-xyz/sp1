@@ -21,9 +21,8 @@ impl KeccakPermuteChip {
 
 #[cfg(test)]
 pub mod permute_tests {
-    use rwasm_executor::{syscalls::SyscallCode, Executor, Instruction, Opcode, Program};
+    use rwasm_executor::{syscalls::SyscallCode, Executor, Opcode, Program};
     use sp1_stark::{CpuProver, SP1CoreOpts};
-   
 
     use crate::{
         io::SP1Stdin,
@@ -32,17 +31,17 @@ pub mod permute_tests {
 
     pub fn keccak_permute_program() -> Program {
         let digest_ptr = 100;
-        let mut instructions = vec![Instruction::new(Opcode::ADD, 29, 0, 1, false, true)];
+        let mut instructions = vec![Opcode::new(Opcode::ADD, 29, 0, 1, false, true)];
         for i in 0..(25 * 8) {
             instructions.extend(vec![
-                Instruction::new(Opcode::ADD, 30, 0, digest_ptr + i * 4, false, true),
-                Instruction::new(Opcode::SW, 29, 30, 0, false, true),
+                Opcode::new(Opcode::ADD, 30, 0, digest_ptr + i * 4, false, true),
+                Opcode::new(Opcode::SW, 29, 30, 0, false, true),
             ]);
         }
         instructions.extend(vec![
-            Instruction::new(Opcode::ADD, 5, 0, SyscallCode::KECCAK_PERMUTE as u32, false, true),
-            Instruction::new(Opcode::ADD, 10, 0, digest_ptr, false, true),
-            Instruction::new(Opcode::ECALL, 5, 10, 11, false, false),
+            Opcode::new(Opcode::ADD, 5, 0, SyscallCode::KECCAK_PERMUTE as u32, false, true),
+            Opcode::new(Opcode::ADD, 10, 0, digest_ptr, false, true),
+            Opcode::new(Opcode::ECALL, 5, 10, 11, false, false),
         ]);
 
         Program::new(instructions, 0, 0)
@@ -64,6 +63,4 @@ pub mod permute_tests {
         let stdin = SP1Stdin::new();
         utils::run_test::<CpuProver<_, _>>(program, stdin).unwrap();
     }
-
-  
 }

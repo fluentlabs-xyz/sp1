@@ -3,9 +3,7 @@ use std::borrow::Borrow;
 use p3_air::{Air, AirBuilder};
 use p3_field::AbstractField;
 use p3_matrix::Matrix;
-use rwasm_executor::{
-     syscalls::SyscallCode, Opcode, 
-};
+use rwasm_executor::{syscalls::SyscallCode, Opcode};
 use sp1_stark::{
     air::{
         BaseAirBuilder, InteractionScope, PublicValues, SP1AirBuilder, POSEIDON_NUM_WORDS,
@@ -63,7 +61,7 @@ where
             local.pc,
             local.next_pc,
             local.num_extra_cycles,
-            Opcode::ECALL.as_field::<AB::F>(),
+            AB::Expr::from_canonical_u32(Opcode::Call(0).code()),
             *local.op_a_access.value(),
             local.op_b_value,
             local.op_c_value,
@@ -89,7 +87,7 @@ where
         // // Do the memory eval for op_a. For syscall instructions, we need to eval at register X5.
         // builder.eval_memory_access(
         //     local.shard,
-        //     local.clk 
+        //     local.clk
         //     AB::Expr::from_canonical_u32(X5 as u32),
         //     &local.op_a_access,
         //     local.is_real,
