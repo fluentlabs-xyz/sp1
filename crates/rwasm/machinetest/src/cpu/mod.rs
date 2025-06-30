@@ -42,7 +42,7 @@ pub mod test {
             // Instruction::I32DivU,
         ];
 
-        let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program

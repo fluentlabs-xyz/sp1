@@ -43,7 +43,7 @@ pub mod test {
                 result,
                 operand_1,
                 operand_2,
-                rwasm_ins_to_code(Instruction::I32Add),
+                Opcode::I32Add.code()
             ));
         }
         // for i in 0..255 {

@@ -1,5 +1,5 @@
 use hashbrown::HashMap;
-use rwasm::engine::Instr;
+
 use rwasm_executor::{Opcode, Program, SP_START};
 use rwasm_machine::utils::setup_logger;
 
@@ -44,7 +44,7 @@ mod tests {
     use super::super::*;
 
     use hashbrown::HashMap;
-    use rwasm::engine::Instr;
+    
     use rwasm_executor::{Opcode, Program, SP_START};
     use rwasm_machine::utils::setup_logger;
 
