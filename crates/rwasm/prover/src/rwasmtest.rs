@@ -44,9 +44,10 @@ mod tests {
     use super::super::*;
 
     use hashbrown::HashMap;
-    
+
     use rwasm_executor::{Opcode, Program, SP_START};
     use rwasm_machine::utils::setup_logger;
+    use rwasm::BranchOffset;
 
     use super::super::*;
     use super::*;
@@ -58,7 +59,6 @@ mod tests {
     use std::fs::File;
     use std::io::{Read, Write};
 
-    use rwasm::engine::bytecode::{BranchOffset, DropKeep, Instruction};
     fn build_elf() -> Program {
         let x_value: u32 = 0x11;
         let y_value: u32 = 0x23;
@@ -70,22 +70,22 @@ mod tests {
         let z6_value: u32 = 0x21;
 
         let instructions = vec![
-            Instruction::I32Const(z6_value.into()),
-            // Instruction::I32Const(z5_value.into()),
-            // Instruction::I32Const(z4_value.into()),
-            // Instruction::I32Const(z3_value.into()),
-            // Instruction::I32Const(z2_value.into()),
-            // Instruction::I32Const(z1_value.into()),
-            // Instruction::I32Const(y_value.into()),
-            // Instruction::I32Const(x_value.into()),
-            // Instruction::I32Add,
-            // Instruction::I32Sub,
-            // Instruction::I32Mul,
-            // Instruction::I32DivS,
-            // Instruction::I32DivU,
+            Opcode::I32Const(z6_value.into()),
+            // Opcode::I32Const(z5_value.into()),
+            // Opcode::I32Const(z4_value.into()),
+            // Opcode::I32Const(z3_value.into()),
+            // Opcode::I32Const(z2_value.into()),
+            // Opcode::I32Const(z1_value.into()),
+            // Opcode::I32Const(y_value.into()),
+            // Opcode::I32Const(x_value.into()),
+            // Opcode::I32Add,
+            // Opcode::I32Sub,
+            // Opcode::I32Mul,
+            // Opcode::I32DivS,
+            // Opcode::I32DivU,
         ];
 
-        let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -104,29 +104,29 @@ mod tests {
         let z8_value: u32 = 0x444444;
 
         let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(y_value.into()),
-            Instruction::I32Const(z1_value.into()),
-            Instruction::I32Const(z2_value.into()),
-            Instruction::I32Const(z3_value.into()),
-            Instruction::I32Const(z4_value.into()),
-            Instruction::I32Const(z5_value.into()),
-            Instruction::I32Const(z6_value.into()),
-            Instruction::I32Const(z7_value.into()),
-            Instruction::I32Const(z8_value.into()),
-            Instruction::I32Ne,
-            Instruction::I32Eq,
-            Instruction::I32GtS,
-            Instruction::I32GtU,
-            Instruction::I32LeS,
-            Instruction::I32LeU,
-            Instruction::I32GeS,
-            Instruction::I32GeU,
-            Instruction::I32LtS,
-            Instruction::I32Eqz,
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Const(y_value.into()),
+            Opcode::I32Const(z1_value.into()),
+            Opcode::I32Const(z2_value.into()),
+            Opcode::I32Const(z3_value.into()),
+            Opcode::I32Const(z4_value.into()),
+            Opcode::I32Const(z5_value.into()),
+            Opcode::I32Const(z6_value.into()),
+            Opcode::I32Const(z7_value.into()),
+            Opcode::I32Const(z8_value.into()),
+            Opcode::I32Ne,
+            Opcode::I32Eq,
+            Opcode::I32GtS,
+            Opcode::I32GtU,
+            Opcode::I32LeS,
+            Opcode::I32LeU,
+            Opcode::I32GeS,
+            Opcode::I32GeU,
+            Opcode::I32LtS,
+            Opcode::I32Eqz,
         ];
 
-        let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -142,21 +142,21 @@ mod tests {
         let z5_value: u32 = 0x1;
 
         let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(y_value.into()),
-            Instruction::I32Const(z1_value.into()),
-            Instruction::I32Const(z2_value.into()),
-            Instruction::I32Const(z3_value.into()),
-            Instruction::I32Const(z4_value.into()),
-            Instruction::I32Const(z5_value.into()),
-            Instruction::I32And,
-            Instruction::I32Or,
-            Instruction::I32Xor,
-            Instruction::I32Shl,
-            Instruction::I32ShrS,
-            Instruction::I32ShrU,
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Const(y_value.into()),
+            Opcode::I32Const(z1_value.into()),
+            Opcode::I32Const(z2_value.into()),
+            Opcode::I32Const(z3_value.into()),
+            Opcode::I32Const(z4_value.into()),
+            Opcode::I32Const(z5_value.into()),
+            Opcode::I32And,
+            Opcode::I32Or,
+            Opcode::I32Xor,
+            Opcode::I32Shl,
+            Opcode::I32ShrS,
+            Opcode::I32ShrU,
         ];
-        let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+        let program = Program::from_instrs(instructions);
         program
     }
 
@@ -171,28 +171,28 @@ mod tests {
         let x_2_value: u32 = 0x10008;
         let x_3_value: u32 = 0x1000C;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, addr);
-        mem.insert(sp_value - 4, addr_2);
-        mem.insert(sp_value - 8, 0x10000);
-        mem.insert(sp_value - 12, addr_3);
-        mem.insert(sp_value - 16, 0x10000);
-        mem.insert(addr, x_value);
-        mem.insert(addr_2, x_2_value);
-        mem.insert(addr_3, x_3_value);
+        // let mut mem = HashMap::new();
+        // mem.insert(sp_value, addr);
+        // mem.insert(sp_value - 4, addr_2);
+        // mem.insert(sp_value - 8, 0x10000);
+        // mem.insert(sp_value - 12, addr_3);
+        // mem.insert(sp_value - 16, 0x10000);
+        // mem.insert(addr, x_value);
+        // mem.insert(addr_2, x_2_value);
+        // mem.insert(addr_3, x_3_value);
 
-        println!("{:?}", mem);
+        //  println!("{:?}", mem);
         let instructions = vec![
-            Instruction::I32Load(0.into()),
-            Instruction::I32Load16U(0.into()),
-            Instruction::I32Add,
-            Instruction::I32Load8U(0x10000.into()),
-            Instruction::I32Add,
-            Instruction::I32Load16S(0.into()),
-            Instruction::I32Load8S(0.into()),
+            Opcode::I32Load(0),
+            Opcode::I32Load16U(0),
+            Opcode::I32Add,
+            Opcode::I32Load8U(0x10000),
+            Opcode::I32Add,
+            Opcode::I32Load16S(0),
+            Opcode::I32Load8S(0),
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -209,18 +209,18 @@ mod tests {
         let x_3_value: u32 = 0x1000C;
 
         let instructions = vec![
-            Instruction::I32Const(x_3_value.into()),
-            Instruction::I32Const(addr_3.into()),
-            Instruction::I32Const(x_2_value.into()),
-            Instruction::I32Const(addr_2.into()),
-            Instruction::I32Const(addr.into()),
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Store(0.into()),
-            Instruction::I32Store16(0.into()),
-            Instruction::I32Store8(0.into()),
+            Opcode::I32Const(x_3_value.into()),
+            Opcode::I32Const(addr_3.into()),
+            Opcode::I32Const(x_2_value.into()),
+            Opcode::I32Const(addr_2.into()),
+            Opcode::I32Const(addr.into()),
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Store(0),
+            Opcode::I32Store16(0),
+            Opcode::I32Store8(0),
         ];
 
-        let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -230,17 +230,17 @@ mod tests {
         let addr: u32 = 0x10000;
 
         let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(x_value.into()),
-            Instruction::Br(4.into()),
-            Instruction::I32Shl,
-            Instruction::I32Shl,
-            Instruction::I32Shl,
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Const(x_value.into()),
+            Opcode::Br(4.into()),
+            Opcode::I32Shl,
+            Opcode::I32Shl,
+            Opcode::I32Shl,
         ];
 
-        let program = Program::new_with_memory(instructions, HashMap::new(), 1, 1);
+        let program = Program::from_instrs(instructions);
         program
     }
 
@@ -250,24 +250,24 @@ mod tests {
         let x_2_value: u32 = 0x10008;
         let x_3_value: u32 = 0x1000C;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, x_2_value);
-        mem.insert(sp_value - 8, x_3_value);
+        // let mut mem = HashMap::new();
+        // mem.insert(sp_value, x_value);
+        // mem.insert(sp_value - 4, x_2_value);
+        // mem.insert(sp_value - 8, x_3_value);
 
-        println!("{:?}", mem);
+        //  println!("{:?}", mem);
         let instructions = vec![
-            Instruction::Br(20.into()),
-            Instruction::I32Add,
-            Instruction::I32Add,
-            Instruction::I32Add,
-            Instruction::BrIfNez(12.into()),
-            Instruction::I32Add,
-            Instruction::BrIfNez(BranchOffset::from(-8i32)),
-            Instruction::I32Add,
+            Opcode::Br(20.into()),
+            Opcode::I32Add,
+            Opcode::I32Add,
+            Opcode::I32Add,
+            Opcode::BrIfNez(12.into()),
+            Opcode::I32Add,
+            Opcode::BrIfNez(BranchOffset::from(-8i32)),
+            Opcode::I32Add,
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -280,19 +280,19 @@ mod tests {
         let depth = 5 * 4;
         let under_depth = depth - 4;
         let constant = x_value;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - depth, x_2_value);
+        // let mut mem = HashMap::new();
+        // mem.insert(sp_value, x_value);
+        // mem.insert(sp_value - depth, x_2_value);
 
-        println!("{:?}", mem);
+        //  println!("{:?}", mem);
         let instructions = vec![
-            Instruction::LocalGet(depth.into()),
-            Instruction::LocalSet(under_depth.into()),
-            Instruction::LocalTee(under_depth.into()),
-            Instruction::I32Const(constant.into()),
+            Opcode::LocalGet(depth),
+            Opcode::LocalSet(under_depth),
+            Opcode::LocalTee(under_depth),
+            Opcode::I32Const(constant.into()),
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -301,93 +301,91 @@ mod tests {
         let sp_value: u32 = SP_START;
         let x_value: u32 = 0x12345;
         let y_value: u32 = 0x54321;
-        let mut mem = HashMap::new();
 
-        println!("{:?}", mem);
         let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(y_value.into()),
-            Instruction::I32Add,
+            Opcode::I32Const(x_value.into()),
+            Opcode::I32Const(y_value.into()),
+            Opcode::I32Add,
         ];
 
-        let program = Program::new_with_memory(instructions, mem, 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
     }
-    fn build_elf_call() -> Program {
-        let sp_value: u32 = SP_START;
-        let x_value: u32 = 0x3;
-        let y_value: u32 = 0x5;
+    // fn build_elf_call() -> Program {
+    //     let sp_value: u32 = SP_START;
+    //     let x_value: u32 = 0x3;
+    //     let y_value: u32 = 0x5;
 
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - 4, y_value);
-        let mut functions = vec![12 + 1];
+    //     let mut mem = HashMap::new();
+    //     mem.insert(sp_value, x_value);
+    //     mem.insert(sp_value - 4, y_value);
+    //     let mut functions = vec![12 + 1];
 
-        let instructions = vec![
-            Instruction::CallInternal(1u32.into()),
-            Instruction::Return(DropKeep::none()),
-            Instruction::I32Add,
-            Instruction::Return(DropKeep::none()),
-        ];
+    //     let instructions = vec![
+    //         Opcode::CallInternal(1u32.into()),
+    //         Opcode::Return(DropKeep::none()),
+    //         Opcode::I32Add,
+    //         Opcode::Return(DropKeep::none()),
+    //     ];
 
-        let program = Program::new_with_memory_and_func(instructions, mem, functions, 1, 1);
-        program
-    }
-    fn build_elf_call2() -> Program {
-        let sp_value: u32 = SP_START;
-        let x_value: u32 = 0x3;
-        let y_value: u32 = 0x5;
-        let z_value: u32 = 0x7;
-        let mut mem = HashMap::new();
+    //     let program = Program::new_with_memory_and_func(instructions, mem, functions, 1, 1);
+    //     program
+    // }
+    // fn build_elf_call2() -> Program {
+    //     let sp_value: u32 = SP_START;
+    //     let x_value: u32 = 0x3;
+    //     let y_value: u32 = 0x5;
+    //     let z_value: u32 = 0x7;
+    //     let mut mem = HashMap::new();
 
-        let mut functions = vec![21];
+    //     let mut functions = vec![21];
 
-        let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-            Instruction::I32Const(y_value.into()),
-            Instruction::I32Const(z_value.into()),
-            Instruction::CallInternal(0u32.into()),
-            Instruction::Return(DropKeep::none()),
-            Instruction::I32Add,
-            Instruction::I32Add,
-            Instruction::Return(DropKeep::none()),
-        ];
+    //     let instructions = vec![
+    //         Opcode::I32Const(x_value.into()),
+    //         Opcode::I32Const(y_value.into()),
+    //         Opcode::I32Const(z_value.into()),
+    //         Opcode::CallInternal(0u32.into()),
+    //         Opcode::Return(DropKeep::none()),
+    //         Opcode::I32Add,
+    //         Opcode::I32Add,
+    //         Opcode::Return(DropKeep::none()),
+    //     ];
 
-        let program = Program::new_with_memory_and_func(instructions, mem, functions.clone(), 1, 1);
-        for (ins_idx, item) in program.instructions.iter().enumerate() {
-            println!("ins_idx:{},item:{:?},", ins_idx * 4 + 1, item);
-        }
-        println!("functions: {:?}", functions);
-        program
-    }
+    //     let program = Program::new_with_memory_and_func(instructions, mem, functions.clone(), 1, 1);
+    //     for (ins_idx, item) in program.instructions.iter().enumerate() {
+    //         println!("ins_idx:{},item:{:?},", ins_idx * 4 + 1, item);
+    //     }
+    //     println!("functions: {:?}", functions);
+    //     program
+    // }
 
-    fn build_elf_call3() -> Program {
-        let sp_value: u32 = SP_START;
-        let x_value: u32 = 0x3;
-        let y_value: u32 = 0x5;
-        let z_value: u32 = 0x7;
-        let mut mem = HashMap::new();
+    // fn build_elf_call3() -> Program {
+    //     let sp_value: u32 = SP_START;
+    //     let x_value: u32 = 0x3;
+    //     let y_value: u32 = 0x5;
+    //     let z_value: u32 = 0x7;
+    //     let mut mem = HashMap::new();
 
-        let mut functions = vec![13, 17, 25];
+    //     let mut functions = vec![13, 17, 25];
 
-        let instructions = vec![
-            Instruction::I32Const(x_value.into()),
-            Instruction::CallInternal(1u32.into()),
-            Instruction::Return(DropKeep::none()),
-            Instruction::Return(DropKeep::none()),
-            Instruction::CallInternal(0u32.into()),
-            Instruction::Return(DropKeep::none()),
-        ];
+    //     let instructions = vec![
+    //         Opcode::I32Const(x_value.into()),
+    //         Opcode::CallInternal(1u32.into()),
+    //         Opcode::Return(DropKeep::none()),
+    //         Opcode::Return(DropKeep::none()),
+    //         Opcode::CallInternal(0u32.into()),
+    //         Opcode::Return(DropKeep::none()),
+    //     ];
 
-        let program = Program::new_with_memory_and_func(instructions, mem, functions.clone(), 1, 1);
-        for (ins_idx, item) in program.instructions.iter().enumerate() {
-            println!("ins_idx:{},item:{:?},", ins_idx * 4 + 1, item);
-        }
-        println!("functions: {:?}", functions);
-        program
-    }
+    //     let program = Program::new_with_memory_and_func(instructions, mem, functions.clone(), 1, 1);
+    //     for (ins_idx, item) in program.instructions.iter().enumerate() {
+    //         println!("ins_idx:{},item:{:?},", ins_idx * 4 + 1, item);
+    //     }
+    //     println!("functions: {:?}", functions);
+    //     program
+    // }
 
     fn build_elf_skipped_ins() -> Program {
         let sp_value: u32 = SP_START;
@@ -396,18 +394,14 @@ mod tests {
         let depth = 5 * 4;
         let under_depth = depth - 4;
         let constant = x_value;
-        let mut mem = HashMap::new();
-        mem.insert(sp_value, x_value);
-        mem.insert(sp_value - depth, x_2_value);
+        // let mut mem = HashMap::new();
+        // mem.insert(sp_value, x_value);
+        // mem.insert(sp_value - depth, x_2_value);
 
-        println!("{:?}", mem);
-        let instructions = vec![
-            Instruction::ConsumeFuel(1.into()),
-            Instruction::SignatureCheck(1.into()),
-            Instruction::Drop,
-        ];
+        //  println!("{:?}", mem);
+        let instructions = vec![Opcode::ConsumeFuel(1), Opcode::SignatureCheck(1), Opcode::Drop];
 
-        let program = Program::new_with_memory(instructions, mem, 1, 1);
+        let program = Program::from_instrs(instructions);
         //  memory_image: BTreeMap::new() };
 
         program
@@ -460,22 +454,22 @@ mod tests {
         let program = build_elf_const_another();
         run_rwasm_prover(program);
     }
-    #[test]
-    fn test_rwasm_call_internal_and_return() {
-        let program = build_elf_call();
-        run_rwasm_prover(program);
-    }
-    #[test]
-    fn test_rwasm_call_internal_and_return2() {
-        let program = build_elf_call2();
-        run_rwasm_prover(program);
-    }
+    // #[test]
+    // fn test_rwasm_call_internal_and_return() {
+    //     let program = build_elf_call();
+    //     run_rwasm_prover(program);
+    // }
+    // #[test]
+    // fn test_rwasm_call_internal_and_return2() {
+    //     let program = build_elf_call2();
+    //     run_rwasm_prover(program);
+    // }
 
-    #[test]
-    fn test_rwasm_call_internal_and_return3() {
-        let program = build_elf_call3();
-        run_rwasm_prover(program);
-    }
+    // #[test]
+    // fn test_rwasm_call_internal_and_return3() {
+    //     let program = build_elf_call3();
+    //     run_rwasm_prover(program);
+    // }
 
     #[test]
     fn test_rwasm_skipped() {

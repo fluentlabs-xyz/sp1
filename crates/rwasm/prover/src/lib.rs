@@ -14,11 +14,11 @@
 pub mod build;
 pub mod components;
 pub mod gas;
+mod rwasmtest;
 pub mod shapes;
 pub mod types;
 pub mod utils;
 pub mod verify;
-mod rwasmtest;
 
 use std::{
     borrow::Borrow,
@@ -285,25 +285,22 @@ impl<C: SP1ProverComponents> SP1Prover<C> {
         (pk, pk_d, program, vk)
     }
 
-     /// Creates a proving key and a verifying key for a given RISC-V ELF.
-     #[instrument(name = "setup", level = "debug", skip_all)]
-     pub fn setup_program(
-         &self,
-         program: &mut Program,
-     ) -> (SP1ProvingKey, DeviceProvingKey<C>,SP1VerifyingKey) {
+    /// Creates a proving key and a verifying key for a given RISC-V ELF.
+    #[instrument(name = "setup", level = "debug", skip_all)]
+    pub fn setup_program(
+        &self,
+        program: &mut Program,
+    ) -> (SP1ProvingKey, DeviceProvingKey<C>, SP1VerifyingKey) {
         if let Some(core_shape_config) = &self.core_shape_config {
             core_shape_config.fix_preprocessed_shape(program);
         }
-         let (pk, vk) = self.core_prover.setup(&program);
-         let vk = SP1VerifyingKey { vk };
-         let pk = SP1ProvingKey {
-             pk: self.core_prover.pk_to_host(&pk),
-             elf: vec![],
-             vk: vk.clone(),
-         };
-         let pk_d = self.core_prover.pk_to_device(&pk.pk);
-         (pk, pk_d, vk)
-     }
+        let (pk, vk) = self.core_prover.setup(&program);
+        let vk = SP1VerifyingKey { vk };
+        let pk =
+            SP1ProvingKey { pk: self.core_prover.pk_to_host(&pk), elf: vec![], vk: vk.clone() };
+        let pk_d = self.core_prover.pk_to_device(&pk.pk);
+        (pk, pk_d, vk)
+    }
 
     /// Get a program with an allowed preprocessed shape.
     pub fn get_program(&self, elf: &[u8]) -> eyre::Result<Program> {
@@ -1483,7 +1480,7 @@ pub mod tests {
         prover: &SP1Prover<C>,
         elf: &[u8],
         stdin: SP1Stdin,
-        program:Program,
+        program: Program,
         opts: SP1ProverOpts,
         test_kind: Test,
         verify: bool,

@@ -10,8 +10,8 @@ use std::{
 use eyre::Result;
 use p3_baby_bear::BabyBear;
 use p3_field::AbstractField;
-use serde::{Deserialize, Serialize};
 use rwasm_machine::shape::CoreShapeConfig;
+use serde::{Deserialize, Serialize};
 use sp1_recursion_circuit::machine::{
     SP1CompressWithVKeyWitnessValues, SP1DeferredWitnessValues, SP1RecursionWitnessValues,
 };
